@@ -1,0 +1,92 @@
+@extends('admin.layouts.app')
+
+@section('content')
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Create Solution</h3>
+            <p class="text-muted mb-0">Define a new business solution and its presentation details.</p>
+        </div>
+        <a href="{{ route('admin.solutions.index') }}" class="btn btn-light border rounded-pill px-4">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to list
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form action="{{ route('admin.solutions.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Solution Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" placeholder="e.g. Data Center Solutions" required>
+                            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Short Description</label>
+                            <textarea name="short_description" class="form-control @error('short_description') is-invalid @enderror" rows="3" placeholder="Brief summary of the solution...">{{ old('short_description') }}</textarea>
+                            @error('short_description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="form-label fw-bold">Full Description</label>
+                            <div class="editor-wrap">
+                                <textarea name="description" class="form-control editor @error('description') is-invalid @enderror">{{ old('description') }}</textarea>
+                            </div>
+                            @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card bg-light border-0 rounded-4 p-4 mb-4">
+                            <h6 class="fw-bold mb-3">Media & Status</h6>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small">Banner Image</label>
+                                <input type="file" name="image" class="form-control @error('image') is-invalid @enderror" accept="image/*">
+                                <small class="text-muted">High resolution landscape image</small>
+                                @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small">Icon (SVG/PNG)</label>
+                                <input type="file" name="icon" class="form-control @error('icon') is-invalid @enderror" accept="image/*">
+                                <small class="text-muted">Square icon for menus</small>
+                                @error('icon') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label fw-bold small">Visibility Status</label>
+                                <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                                    <option value="1" {{ old('status') == '1' ? 'selected' : '' }}>Active</option>
+                                    <option value="0" {{ old('status') == '0' ? 'selected' : '' }}>Inactive</option>
+                                </select>
+                                @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-3 rounded-3">
+                                <i class="fa-solid fa-floppy-disk me-2"></i> Save Solution
+                            </button>
+                            <a href="{{ route('admin.solutions.index') }}" class="btn btn-light py-3 rounded-3">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('js')
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<script>
+    document.querySelectorAll('.editor').forEach(function(el) {
+        ClassicEditor.create(el).catch(function(error) { console.error(error); });
+    });
+</script>
+@endpush
+@endsection
