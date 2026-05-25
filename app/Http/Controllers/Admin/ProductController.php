@@ -9,8 +9,6 @@ use App\Models\Product;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Subcategory;
-use App\Models\ChildCategory;
-use App\Models\Solution;
 use App\Models\ProductImage;
 use App\Models\ProductImportLog;
 use Illuminate\Http\Request;
@@ -30,7 +28,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['brand', 'category', 'subcategory', 'childCategory'])->latest()->get();
+        $products = Product::with(['brand', 'category', 'subcategory'])->latest()->get();
 
         return view('admin.products.index', compact('products'));
     }
@@ -309,45 +307,258 @@ class ProductController extends Controller
 
     public function import(Request $request)
     {
+        if ($request->input('confirm') == 1) {
+            return $this->confirmImport($request);
+        }
+
         $request->validate([
-            'excel' => 'required|file|mimes:xlsx|max:51200',
-            'zip' => 'nullable|file|mimes:zip|max:512000',
+            'excel' => 'required|file|mimes:xlsx,csv,txt|max:51200',
         ]);
 
+        $file = $request->file('excel');
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        $tempId = Str::random(12);
+        $tempDirName = 'products/temp/' . $tempId;
+        $tempPath = storage_path('app/public/' . $tempDirName);
+        File::ensureDirectoryExists($tempPath);
+
+        // Store file temporarily
+        $fileName = 'import_' . Str::random(10) . '.' . $extension;
+        $file->storeAs('imports/temp', $fileName, 'local');
+        $storedFilePath = 'imports/temp/' . $fileName;
+        $absoluteFilePath = storage_path('app/' . $storedFilePath);
+
+        $extractedImages = [];
+        if ($extension === 'xlsx') {
+            $extractedImages = \App\Services\ExcelImageExtractor::extract($absoluteFilePath, $tempPath);
+        }
+
+        // Open spreadsheet to read rows for preview
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($absoluteFilePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($storedFilePath);
+            File::deleteDirectory($tempPath);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to parse Excel file: ' . $e->getMessage()
+            ], 422);
+        }
+
+        $previewRows = [];
+        $summary = [
+            'total' => 0,
+            'valid' => 0,
+            'error' => 0,
+        ];
+
+        $firstRow = true;
+        foreach ($rows as $rowIndex => $row) {
+            // Skip header row
+            if ($firstRow) {
+                $firstRow = false;
+                continue;
+            }
+
+            // Skip empty rows
+            $rowValues = array_filter($row);
+            if (empty($rowValues)) {
+                continue;
+            }
+
+            $name = trim($row['A'] ?? '');
+            $sku = trim($row['B'] ?? '');
+            $slug = trim($row['C'] ?? '');
+            $brand = trim($row['D'] ?? '');
+            $category = trim($row['E'] ?? '');
+            $subcategory = trim($row['F'] ?? '');
+            $priceVal = trim($row['G'] ?? '');
+            $discountPriceVal = trim($row['H'] ?? '');
+            $taxType = trim($row['I'] ?? '');
+            $taxPercentageVal = trim($row['J'] ?? '');
+            $stockVal = trim($row['K'] ?? '');
+            $weightVal = trim($row['L'] ?? '');
+            $shortDesc = trim($row['M'] ?? '');
+            $fullDesc = trim($row['N'] ?? '');
+            $statusVal = trim($row['O'] ?? '');
+            $featuredImageVal = trim($row['P'] ?? '');
+            $gallery1Val = trim($row['Q'] ?? '');
+            $gallery2Val = trim($row['R'] ?? '');
+            $gallery3Val = trim($row['S'] ?? '');
+            $colors = trim($row['T'] ?? '');
+            $sizes = trim($row['U'] ?? '');
+            $tags = trim($row['V'] ?? '');
+
+            // Row drawing checks (Embedded cell images)
+            $featuredImageSrc = '';
+            if (isset($extractedImages["P_{$rowIndex}"])) {
+                $featuredImageSrc = asset('storage/' . $tempDirName . '/' . $extractedImages["P_{$rowIndex}"]);
+            } elseif ($featuredImageVal !== '') {
+                $featuredImageSrc = $featuredImageVal;
+            }
+
+            // Gallery images preview sources
+            $gallerySrcs = [];
+            foreach (['Q', 'R', 'S'] as $col) {
+                if (isset($extractedImages["{$col}_{$rowIndex}"])) {
+                    $gallerySrcs[] = asset('storage/' . $tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
+                }
+            }
+            foreach ([$gallery1Val, $gallery2Val, $gallery3Val] as $gVal) {
+                if ($gVal !== '' && filter_var($gVal, FILTER_VALIDATE_URL)) {
+                    $gallerySrcs[] = $gVal;
+                }
+            }
+
+            $errors = [];
+
+            // Validation Rules
+            if ($name === '') {
+                $errors[] = 'Product Name is required.';
+            }
+
+            if ($sku !== '') {
+                $exists = Product::where('sku', $sku)->first();
+                if ($exists && strcasecmp($exists->name, $name) !== 0) {
+                    $errors[] = "SKU '{$sku}' already exists for product: '{$exists->name}'.";
+                }
+            }
+
+            $price = null;
+            if ($priceVal !== '') {
+                $priceClean = preg_replace('/[^0-9.]/', '', $priceVal);
+                if (!is_numeric($priceClean)) {
+                    $errors[] = 'Price must be numeric.';
+                } else {
+                    $price = (float)$priceClean;
+                }
+            }
+
+            $discountPrice = null;
+            if ($discountPriceVal !== '') {
+                $dpClean = preg_replace('/[^0-9.]/', '', $discountPriceVal);
+                if (!is_numeric($dpClean)) {
+                    $errors[] = 'Discount Price must be numeric.';
+                } else {
+                    $discountPrice = (float)$dpClean;
+                }
+            }
+
+            $taxPercentage = null;
+            if ($taxPercentageVal !== '') {
+                $taxClean = preg_replace('/[^0-9.]/', '', $taxPercentageVal);
+                if (!is_numeric($taxClean)) {
+                    $errors[] = 'Tax Percentage must be numeric.';
+                } else {
+                    $taxPercentage = (float)$taxClean;
+                }
+            }
+
+            $stock = 0;
+            if ($stockVal !== '') {
+                $stockClean = preg_replace('/[^0-9]/', '', $stockVal);
+                if (!is_numeric($stockClean)) {
+                    $errors[] = 'Stock Quantity must be an integer.';
+                } else {
+                    $stock = (int)$stockClean;
+                }
+            }
+
+            $hasError = count($errors) > 0;
+            $summary['total']++;
+            if ($hasError) {
+                $summary['error']++;
+            } else {
+                $summary['valid']++;
+            }
+
+            $previewRows[] = [
+                'row' => $rowIndex,
+                'name' => $name,
+                'sku' => $sku,
+                'slug' => $slug ?: Str::slug($name),
+                'brand' => $brand,
+                'category' => $category,
+                'subcategory' => $subcategory,
+                'price' => $price,
+                'discount_price' => $discountPrice,
+                'tax_type' => $taxType,
+                'tax_percentage' => $taxPercentage,
+                'stock' => $stock,
+                'weight' => $weightVal,
+                'short_description' => $shortDesc,
+                'full_description' => $fullDesc,
+                'status' => $statusVal,
+                'featured_image' => $featuredImageSrc,
+                'gallery_images' => $gallerySrcs,
+                'colors' => $colors,
+                'sizes' => $sizes,
+                'tags' => $tags,
+                'errors' => $errors,
+                'is_valid' => !$hasError,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'temp_file_path' => $storedFilePath,
+            'temp_id' => $tempId,
+            'rows' => $previewRows,
+            'summary' => $summary,
+        ]);
+    }
+
+    public function confirmImport(Request $request)
+    {
+        $request->validate([
+            'temp_file_path' => 'required|string',
+            'temp_id' => 'required|string',
+        ]);
+
+        $storedFilePath = $request->input('temp_file_path');
+        $tempId = $request->input('temp_id');
+
+        if (!Storage::disk('local')->exists($storedFilePath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Uploaded Excel file session has expired. Please upload the file again.'
+            ], 422);
+        }
+
+        // Create import log
         $log = ProductImportLog::create([
-            'filename' => $request->file('excel')->getClientOriginalName(),
+            'filename' => basename($storedFilePath),
             'status' => 'pending',
             'errors' => [],
         ]);
 
-        $base = 'imports/'.$log->id;
+        // Copy temporary excel to job imports folder
+        $base = 'imports/' . $log->id;
+        Storage::disk('local')->makeDirectory($base);
+        Storage::disk('local')->copy($storedFilePath, $base . '/products.xlsx');
 
-        try {
-            $request->file('excel')->storeAs($base, 'products.xlsx');
-            
-            $extractDir = Storage::disk('local')->path($base.'/images');
-            File::ensureDirectoryExists($extractDir);
+        // Copy drawings to job images folder
+        $tempPath = storage_path('app/public/products/temp/' . $tempId);
+        $jobImagesPath = Storage::disk('local')->path($base . '/images');
+        File::ensureDirectoryExists($jobImagesPath);
 
-            if ($request->hasFile('zip')) {
-                $zipRelative = $request->file('zip')->storeAs($base, 'images.zip');
-                $zipPath = Storage::disk('local')->path($zipRelative);
-                $zip = new ZipArchive;
-                if ($zip->open($zipPath) !== true) {
-                    throw new \RuntimeException('Could not open the ZIP archive.');
-                }
-                $zip->extractTo($extractDir);
-                $zip->close();
+        if (is_dir($tempPath)) {
+            $files = File::files($tempPath);
+            foreach ($files as $file) {
+                File::copy($file->getRealPath(), $jobImagesPath . '/' . $file->getFilename());
             }
-        } catch (\Throwable $e) {
-            Storage::disk('local')->deleteDirectory($base);
-            $log->delete();
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            File::deleteDirectory($tempPath);
         }
 
+        // Delete temp uploaded excel
+        Storage::disk('local')->delete($storedFilePath);
+
+        // Dispatch background queue job
         ProductImportJob::dispatch($log->id);
 
         // Automatically start a background worker to process the job
@@ -406,58 +617,72 @@ class ProductController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
 
         $headers = [
-            'brand',
-            'category',
-            'sub_category',
-            'name',
-            'slug',
-            'part_code',
-            'part_number',
-            'thumbnail',
-            'gallery_images',
-            'tags',
-            'short_description',
-            'price',
-            'additional_info',
-            'featured',
-            'is_future',
-            'meta_title',
-            'meta_description',
-            'meta_keywords',
-            'status',
+            'Product Name',
+            'SKU',
+            'Slug',
+            'Brand',
+            'Category',
+            'Subcategory',
+            'Price',
+            'Discount Price',
+            'Tax Type',
+            'Tax Percentage',
+            'Stock Quantity',
+            'Weight',
+            'Short Description',
+            'Full Description',
+            'Status',
+            'Featured Image',
+            'Gallery Image 1',
+            'Gallery Image 2',
+            'Gallery Image 3',
+            'Colors',
+            'Sizes',
+            'Tags',
         ];
 
         $sample = [
-            'Acme Corp',
-            'Electronics',
-            'Mobile Phones',
-            'Sample Product Name',
-            'sample-product-name',
-            'PC-98765',
-            'PN-12345',
-            'thumbnail.jpg',
-            'gallery-a.jpg, gallery-b.jpg',
-            'industrial, oem',
-            'Short description text',
-            276.00,
-            'Optional notes',
-            1,
-            0,
-            'Sample SEO title',
-            'Meta description for search engines.',
-            'keyword one, keyword two',
-            1,
+            'Corporate Elite Notebook',
+            'ELITE-NOTE-001',
+            'corporate-elite-notebook',
+            'Acme Stationery',
+            'Office Supplies',
+            'Notebooks',
+            150.00,
+            120.00,
+            'GST',
+            18.00,
+            500,
+            '350g',
+            'Premium faux leather binding business notebook.',
+            'Fitted with 120 sheets of 80gsm fountain-pen friendly lined paper. Includes silk bookmark, document pocket, and secure elastic band.',
+            '1',
+            'paste_image_or_url_here',
+            '',
+            '',
+            '',
+            'Navy Blue, Slate Grey, Black',
+            'A5, A6',
+            'office, notebook, premium, leather',
         ];
 
         $sheet->fromArray([$headers], null, 'A1');
         $sheet->fromArray([$sample], null, 'A2');
 
-        $lastCol = 'S';
+        $lastCol = 'V';
         $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4F46E5'],
+            ],
+        ]);
+
+        // Style specific helper columns
+        $sheet->getStyle('P1:S1')->applyFromArray([
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '06B6D4'],
             ],
         ]);
 

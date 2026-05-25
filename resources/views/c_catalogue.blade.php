@@ -343,10 +343,17 @@
     <!-- ── Glassmorphic Header ─────────────────────── -->
     <header class="glass-header">
         <div class="container d-flex justify-content-between align-items-center">
+            @php
+                $settings = \App\Models\Setting::first();
+            @endphp
             <a href="{{ url('/catalogue') }}" class="d-flex align-items-center gap-2 text-decoration-none">
-                <div style="width:38px;height:38px;background:var(--primary-gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.25rem;">C</div>
+                @if($settings && $settings->logo)
+                    <img src="{{ asset('uploads/settings/' . $settings->logo) }}" alt="{{ $settings->site_title ?? 'Catasky' }}" style="max-height: 38px; max-width: 120px; object-fit: contain;">
+                @else
+                    <div style="width:38px;height:38px;background:var(--primary-gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.25rem;">C</div>
+                @endif
                 <div>
-                    <h5 class="mb-0 text-dark" style="letter-spacing:-0.5px;font-weight:800;line-height:1;">{{ config('app.name', 'Catasky') }}</h5>
+                    <h5 class="mb-0 text-dark" style="letter-spacing:-0.5px;font-weight:800;line-height:1;">{{ $settings->site_title ?? config('app.name', 'Catasky') }}</h5>
                     <small class="text-secondary" style="font-size:0.65rem;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">B2B Verified Client</small>
                 </div>
             </a>

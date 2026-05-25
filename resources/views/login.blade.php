@@ -3,9 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @php $globalSetting = \App\Models\Setting::first(); @endphp
-    <title>Sign In — {{ $globalSetting->site_title ?? 'Catasky' }}</title>
-    <meta name="description" content="Sign in to your Catasky account and manage your B2B product catalogues.">
+    @php
+        $globalSetting = \App\Models\Setting::first();
+        $siteTitle = $globalSetting->site_title ?? 'Catasky';
+        $faviconUrl = ($globalSetting && $globalSetting->favicon) ? asset('uploads/settings/' . $globalSetting->favicon) : asset('uploads/fav.png');
+        $logoUrl = ($globalSetting && $globalSetting->logo) ? asset('uploads/settings/' . $globalSetting->logo) : null;
+    @endphp
+    <title>Sign In - {{ $siteTitle }}</title>
+    <meta name="description" content="{{ Str::limit(strip_tags($globalSetting->site_description ?? 'Sign in to manage your B2B product catalogues.'), 160, '') }}">
+    <link rel="icon" href="{{ $faviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
 
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -153,28 +160,42 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 48px 40px;
+            padding: 24px 40px;
             background: #0F172A;
             min-height: 100vh;
-            overflow-y: auto;
+        }
+
+        /* Prevent vertical scroll on standard screens */
+        @media (min-height: 620px) and (min-width: 992px) {
+            body {
+                height: 100vh;
+                overflow: hidden;
+            }
+            .brand-panel {
+                height: 100vh;
+            }
+            .form-panel {
+                height: 100vh;
+                overflow: hidden;
+            }
         }
 
         .form-box {
             width: 100%; max-width: 420px;
         }
 
-        .form-header { margin-bottom: 36px; }
+        .form-header { margin-bottom: 20px; }
         .form-header h2 {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.9rem; font-weight: 800; color: white; letter-spacing: -0.03em; margin-bottom: 6px;
+            font-size: 1.55rem; font-weight: 800; color: white; letter-spacing: -0.03em; margin-bottom: 4px;
         }
-        .form-header p { font-size: 0.9rem; color: rgba(255,255,255,0.45); }
+        .form-header p { font-size: 0.85rem; color: rgba(255,255,255,0.45); }
         .form-header a { color: #818CF8; text-decoration: none; font-weight: 600; }
         .form-header a:hover { color: #A5B4FC; }
 
         .form-floating-label {
-            font-size: 0.78rem; font-weight: 600; letter-spacing: 0.3px;
-            color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 8px;
+            font-size: 0.72rem; font-weight: 600; letter-spacing: 0.3px;
+            color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 6px;
             display: block;
         }
 
@@ -182,10 +203,10 @@
             width: 100%;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px;
+            border-radius: 12px;
             color: white;
-            padding: 14px 18px;
-            font-size: 0.95rem;
+            padding: 10px 14px;
+            font-size: 0.88rem;
             font-family: 'Poppins', sans-serif;
             transition: all 0.3s ease;
             outline: none;
@@ -200,60 +221,60 @@
             border-color: rgba(239,68,68,0.6);
             background: rgba(239,68,68,0.04);
         }
-        .invalid-feedback { color: #FCA5A5; font-size: 0.78rem; margin-top: 6px; }
+        .invalid-feedback { color: #FCA5A5; font-size: 0.75rem; margin-top: 4px; }
 
         .input-wrap { position: relative; }
         .input-icon {
-            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-            color: rgba(255,255,255,0.25); font-size: 1rem; pointer-events: none;
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.25); font-size: 0.95rem; pointer-events: none;
         }
-        .input-wrap .form-input { padding-left: 46px; }
+        .input-wrap .form-input { padding-left: 40px; }
         .toggle-password {
-            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
             color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer;
-            font-size: 1rem; transition: color 0.2s;
+            font-size: 0.95rem; transition: color 0.2s;
         }
         .toggle-password:hover { color: white; }
 
         .btn-signin {
             width: 100%;
-            padding: 15px;
+            padding: 11px;
             background: linear-gradient(135deg, #4F46E5, #7C3AED);
-            color: white; border: none; border-radius: 14px;
-            font-size: 1rem; font-weight: 700; font-family: 'Poppins', sans-serif;
+            color: white; border: none; border-radius: 12px;
+            font-size: 0.95rem; font-weight: 700; font-family: 'Poppins', sans-serif;
             cursor: pointer;
-            box-shadow: 0 10px 25px rgba(79,70,229,0.35);
+            box-shadow: 0 8px 20px rgba(79,70,229,0.35);
             transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
             display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         .btn-signin:hover {
             transform: translateY(-2px);
-            box-shadow: 0 16px 35px rgba(79,70,229,0.45);
+            box-shadow: 0 12px 28px rgba(79,70,229,0.45);
         }
         .btn-signin:active { transform: translateY(0); }
 
         .form-divider {
-            display: flex; align-items: center; gap: 16px; margin: 28px 0;
+            display: flex; align-items: center; gap: 12px; margin: 16px 0;
         }
         .form-divider::before, .form-divider::after {
             content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.07);
         }
-        .form-divider span { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
+        .form-divider span { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
 
         .form-footer {
-            text-align: center; margin-top: 28px;
-            font-size: 0.85rem; color: rgba(255,255,255,0.35);
+            text-align: center; margin-top: 16px;
+            font-size: 0.8rem; color: rgba(255,255,255,0.35);
         }
         .form-footer a { color: #818CF8; text-decoration: none; font-weight: 600; }
         .form-footer a:hover { color: #A5B4FC; }
 
         .forgot-link {
-            color: #818CF8; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+            color: #818CF8; text-decoration: none; font-size: 0.8rem; font-weight: 600;
         }
         .forgot-link:hover { color: #A5B4FC; }
 
         .remember-label {
-            font-size: 0.84rem; color: rgba(255,255,255,0.5); cursor: pointer;
+            font-size: 0.8rem; color: rgba(255,255,255,0.5); cursor: pointer;
         }
 
         .form-check-input {
@@ -268,8 +289,8 @@
         .error-alert {
             background: rgba(239,68,68,0.08);
             border: 1px solid rgba(239,68,68,0.2);
-            border-radius: 12px; padding: 12px 16px;
-            color: #FCA5A5; font-size: 0.85rem; margin-bottom: 24px;
+            border-radius: 12px; padding: 10px 14px;
+            color: #FCA5A5; font-size: 0.8rem; margin-bottom: 16px;
             display: flex; align-items: center; gap: 10px;
         }
 
@@ -292,9 +313,13 @@
 
         <!-- Logo -->
         <a href="{{ url('/') }}" class="brand-logo">
-            <div class="brand-logo-icon">C</div>
+            @if($logoUrl)
+                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:44px;max-width:150px;object-fit:contain;">
+            @else
+                <div class="brand-logo-icon">C</div>
+            @endif
             <div>
-                <div class="brand-logo-text">Catasky</div>
+                <div class="brand-logo-text">{{ $siteTitle }}</div>
                 <div class="brand-logo-sub">Smart Catalogue</div>
             </div>
         </a>
@@ -352,15 +377,19 @@
             <!-- Mobile Logo -->
             <div class="d-lg-none text-center mb-4">
                 <div style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;">
-                    <div style="width:38px;height:38px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;">C</div>
-                    <span style="font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:800;color:white;">Catasky</span>
+                    @if($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:42px;max-width:150px;object-fit:contain;">
+                    @else
+                        <div style="width:38px;height:38px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;">C</div>
+                    @endif
+                    <span style="font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:800;color:white;">{{ $siteTitle }}</span>
                 </div>
             </div>
 
             <!-- Header -->
             <div class="form-header">
                 <h2>Welcome back 👋</h2>
-                <p>Don't have an account? <a href="{{ route('register') }}">Create one free</a></p>
+                <p>Sign in to your administration dashboard</p>
             </div>
 
             <!-- Error Alert -->
@@ -382,7 +411,7 @@
             <form action="{{ route('login.submit') }}" method="POST" id="login-form">
                 @csrf
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label class="form-floating-label" for="email">Email Address</label>
                     <div class="input-wrap">
                         <i class="bi bi-envelope-fill input-icon"></i>
@@ -396,7 +425,7 @@
                     @enderror
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-floating-label mb-0" for="password">Password</label>
                         <a href="#" class="forgot-link">Forgot password?</a>
@@ -415,14 +444,14 @@
                     @enderror
                 </div>
 
-                <div class="d-flex align-items-center gap-2 mb-5">
+                <div class="d-flex align-items-center gap-2 mb-3">
                     <input type="checkbox" name="remember" id="remember" class="form-check-input" style="width:18px;height:18px;border-radius:5px;margin:0;">
                     <label for="remember" class="remember-label">Remember me for 30 days</label>
                 </div>
 
                 <button type="submit" class="btn-signin" id="signin-btn">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    Sign In to Catasky
+                    Sign In to {{ $siteTitle }}
                 </button>
             </form>
 
@@ -434,7 +463,6 @@
             </a>
 
             <div class="form-footer">
-                New to Catasky? <a href="{{ route('register') }}">Create a free account</a><br>
                 <span style="font-size:0.75rem;margin-top:6px;display:block;">
                     By signing in you agree to our <a href="#" style="color:rgba(255,255,255,0.35);">Terms</a> &amp; <a href="#" style="color:rgba(255,255,255,0.35);">Privacy Policy</a>
                 </span>

@@ -1,36 +1,39 @@
-<nav id="top-navbar" class="glass-effect">
+<nav id="top-navbar" class="glass-effect px-4 py-2 border-bottom d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center">
-        <button type="button" id="sidebarCollapse" class="btn btn-light rounded-circle shadow-sm me-3">
-            <i class="bi bi-list fs-5"></i>
-        </button>
         <div class="d-none d-md-block">
-            <h5 class="mb-0 fw-bold">Administrator Panel</h5>
+            <h5 class="mb-0 fw-bold brand-font text-dark">
+                @yield('page-title', 'Analytical Panel')
+            </h5>
         </div>
     </div>
+    
     <div class="d-flex align-items-center gap-2">
-        
         <!-- Live Frontend Link -->
-        <a href="{{ route('home') }}" target="_blank" class="btn btn-white btn-sm rounded-pill px-3 shadow-sm d-none d-lg-flex align-items-center gap-2 me-2">
+        <a href="{{ route('home') }}" target="_blank" class="btn btn-white btn-sm rounded-pill px-3 shadow-sm d-none d-lg-flex align-items-center gap-2 me-2 border text-muted">
             <i class="bi bi-box-arrow-up-right"></i> View Site
         </a>
+
+
 
         @php
             $unreadEnquiries = \App\Models\Enquiry::where('is_read', false)->latest()->take(5)->get();
             $unreadCount = \App\Models\Enquiry::where('is_read', false)->count();
+            $currentUser = auth()->user();
+            $currentRole = $currentUser?->roles?->pluck('name')->first() ?? 'User';
         @endphp
         
-        <!-- Notifications -->
+        <!-- Notifications with pulse badge -->
         <div class="dropdown">
-            <button class="btn btn-light position-relative rounded-circle p-0" style="width: 40px; height: 40px;" id="notifDropdown" data-bs-toggle="dropdown">
+            <button class="btn btn-light position-relative rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" id="notifDropdown" data-bs-toggle="dropdown">
                 <i class="bi bi-bell"></i>
                 @if($unreadCount > 0)
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white pulse-badge" style="font-size: 0.6rem; padding: 4px 6px;">
                         {{ $unreadCount }}
                     </span>
                 @endif
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 p-0 rounded-4 overflow-hidden" aria-labelledby="notifDropdown" style="width: 320px;">
-                <li class="p-3 bg-light d-flex justify-content-between align-items-center">
+                <li class="p-3 bg-light d-flex justify-content-between align-items-center border-bottom">
                     <h6 class="mb-0 fw-bold">Inquiries</h6>
                     @if($unreadCount > 0)
                         <span class="badge bg-primary rounded-pill">{{ $unreadCount }} New</span>
@@ -69,21 +72,22 @@
         <div class="dropdown ms-2">
             <a href="#" class="d-flex align-items-center text-decoration-none" id="userDropdown" data-bs-toggle="dropdown">
                 <div class="me-2 text-end d-none d-sm-block">
-                    <div class="fw-bold text-dark small">{{ auth()->user()->name }}</div>
-                    <div class="text-muted extra-small">Administrator</div>
+                    <div class="fw-bold text-dark small">{{ $currentUser->name }}</div>
+                    <div class="text-muted extra-small">{{ $currentRole }}</div>
                 </div>
                 <div class="position-relative">
-                    @if(auth()->user()->profile_image)
-                        <img src="{{ asset('uploads/profile/'.auth()->user()->profile_image) }}" alt="User" class="rounded-circle object-fit-cover shadow-sm border" width="40" height="40">
+                    @if($currentUser->profile_image)
+                        <img src="{{ asset('uploads/profile/'.$currentUser->profile_image) }}" alt="User" class="rounded-circle object-fit-cover shadow-sm border border-light" width="40" height="40">
                     @else
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=4f46e5&color=fff" alt="User" class="rounded-circle shadow-sm" width="40" height="40">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($currentUser->name) }}&background=4f46e5&color=fff" alt="User" class="rounded-circle shadow-sm border border-light" width="40" height="40">
                     @endif
                     <span class="position-absolute bottom-0 end-0 bg-success border border-white border-2 rounded-circle" style="width: 12px; height: 12px;"></span>
                 </div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4 p-2" aria-labelledby="userDropdown" style="min-width: 200px;">
-                <li><a class="dropdown-item rounded-3 py-2" href="{{ route('admin.profile.edit') }}"><i class="bi bi-person me-2"></i> My Profile</a></li>
+                <li><a class="dropdown-item rounded-3 py-2" href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Dashboard Overview</a></li>
                 <li><a class="dropdown-item rounded-3 py-2" href="{{ route('admin.settings.index') }}"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                <li><a class="dropdown-item rounded-3 py-2" href="{{ route('admin.profile.edit') }}"><i class="bi bi-person me-2"></i> Profile</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form action="{{ route('admin.logout') }}" method="POST">
@@ -102,6 +106,36 @@
     .extra-small { font-size: 0.75rem; }
     .glass-effect {
         background: rgba(255, 255, 255, 0.8) !important;
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(12px);
+    }
+    html[data-theme="dark"] .glass-effect {
+        background: rgba(17, 24, 39, 0.8) !important;
+    }
+    .pulse-badge {
+        box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+        animation: pulse-animation 1.8s infinite;
+    }
+    @keyframes pulse-animation {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const theme = document.documentElement.getAttribute('data-theme') || 'light';
+        const toggle = document.getElementById('themeToggle');
+        if (toggle) {
+            toggle.innerHTML = theme === 'dark'
+                ? '<i class="bi bi-sun-fill"></i>'
+                : '<i class="bi bi-moon-stars-fill"></i>';
+        }
+    });
+</script>

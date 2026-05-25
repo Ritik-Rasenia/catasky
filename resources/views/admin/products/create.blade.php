@@ -66,6 +66,17 @@
                     </div>
                 </div>
 
+                            <!-- Dynamic Attributes (loaded by subcategory) -->
+                            <div class="card border-0 shadow-sm rounded-4 mb-4" id="dynamic-attributes-card" style="display:none;">
+                                <div class="card-header bg-white border-0 p-4">
+                                    <h5 class="fw-bold mb-0">Product Attributes</h5>
+                                    <small class="text-muted">Attributes for the selected subcategory load here automatically.</small>
+                                </div>
+                                <div class="card-body p-4" id="dynamic-attributes-body">
+                                    <!-- JS will inject attribute fields here -->
+                                </div>
+                            </div>
+
                 <!-- Product Content -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-header bg-white border-0 p-4">
@@ -241,6 +252,88 @@
                 });
             }
         });
+
+        // Dynamic attributes loader
+        function renderAttributeField(attr) {
+            const required = attr.is_required ? 'required' : '';
+            const badgeFlags = [];
+            if (attr.is_searchable) badgeFlags.push('<span class="badge bg-info-subtle text-info ms-1">Search</span>');
+            if (attr.is_filterable) badgeFlags.push('<span class="badge bg-success-subtle text-success ms-1">Filter</span>');
+            if (attr.is_comparable) badgeFlags.push('<span class="badge bg-warning-subtle text-warning ms-1">Compare</span>');
+            if (attr.is_variant_enabled) badgeFlags.push('<span class="badge bg-primary-subtle text-primary ms-1">Variant</span>');
+
+            let html = '<div class="mb-3">';
+            html += '<label class="form-label fw-semibold">' + attr.name + (attr.unit ? ' <small class="text-muted">('+attr.unit+')</small>' : '') + '</label>';
+            html += '<div class="text-muted small mb-2">' + (attr.group ? attr.group : 'General') + ' ' + badgeFlags.join(' ') + '</div>';
+
+            switch(attr.type) {
+                case 'text':
+                case 'url':
+                    html += `<input type="text" name="attributes[${attr.id}]" class="form-control" placeholder="${attr.placeholder || ''}" ${required}>`;
+                    break;
+                case 'number':
+                    html += `<input type="number" step="any" name="attributes[${attr.id}]" class="form-control" placeholder="${attr.placeholder || ''}" ${required}>`;
+                    break;
+                case 'textarea':
+                    html += `<textarea name="attributes[${attr.id}]" class="form-control" rows="3" placeholder="${attr.placeholder || ''}" ${required}></textarea>`;
+                    break;
+                case 'color':
+                    html += `<input type="color" name="attributes[${attr.id}]" class="form-control form-control-color" ${required}>`;
+                    break;
+                case 'date':
+                    html += `<input type="date" name="attributes[${attr.id}]" class="form-control" ${required}>`;
+                    break;
+                case 'boolean':
+                    html += `<div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="attributes[${attr.id}]" value="1" id="attr_${attr.id}"><label class="form-check-label" for="attr_${attr.id}">Enabled</label></div>`;
+                    break;
+                case 'multiselect':
+                    html += `<select name="attributes[${attr.id}][]" class="form-select" multiple ${required}>`;
+                    attr.options.forEach(function(o){ html += `<option value="${o.value}">${o.label}</option>`; });
+                    html += `</select>`;
+                    break;
+                case 'select':
+                    html += `<select name="attributes[${attr.id}]" class="form-select" ${required}><option value="">-- Select --</option>`;
+                    attr.options.forEach(function(o){ html += `<option value="${o.value}">${o.label}</option>`; });
+                    html += `</select>`;
+                    break;
+                case 'checkbox':
+                    attr.options.forEach(function(o){ html += `<div class="form-check"><input class="form-check-input" type="checkbox" name="attributes[${attr.id}][]" value="${o.value}" id="opt_${attr.id}_${o.value}"><label class="form-check-label" for="opt_${attr.id}_${o.value}">${o.label}</label></div>`; });
+                    break;
+                case 'radio':
+                    attr.options.forEach(function(o){ html += `<div class="form-check"><input class="form-check-input" type="radio" name="attributes[${attr.id}]" value="${o.value}" id="opt_${attr.id}_${o.value}"><label class="form-check-label" for="opt_${attr.id}_${o.value}">${o.label}</label></div>`; });
+                    break;
+                default:
+                    html += `<input type="text" name="attributes[${attr.id}]" class="form-control" ${required}>`;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function loadAttributesForSubcategory(subcategoryId) {
+            const container = $('#dynamic-attributes-body');
+            const card = $('#dynamic-attributes-card');
+            container.html('Loading attributes...');
+            if (!subcategoryId) { container.html(''); card.hide(); return; }
+
+            $.get(window.baseUrl + '/dashboard/attributes/subcategory/' + subcategoryId)
+            .done(function(data){
+                if (!data || data.length === 0) { container.html('<div class="text-muted">No attributes assigned to this subcategory.</div>'); card.show(); return; }
+                container.html('');
+                data.forEach(function(attr){ container.append(renderAttributeField(attr)); });
+                // Enhance selects if select2 available
+                if (window.jQuery && $.fn.select2) { container.find('select').select2({ theme: 'bootstrap-5', width: '100%' }); }
+                card.show();
+            }).fail(function(){ container.html('<div class="text-danger">Failed to load attributes.</div>'); card.show(); });
+        }
+
+        // Trigger load when subcategory changes
+        $('#subcategory_id').on('change', function(){ loadAttributesForSubcategory($(this).val()); });
+
+        // If a subcategory is already selected on page load (old input), load attributes
+        @if(old('subcategory_id'))
+            loadAttributesForSubcategory('{{ old('subcategory_id') }}');
+        @endif
     });
 </script>
 @endpush

@@ -19,6 +19,10 @@ class AuthController extends Controller
 
     public function login()
     {
+        if (Auth::check()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         return view('login');
     }
 
@@ -47,6 +51,15 @@ class AuthController extends Controller
             return back()
                 ->withErrors([
                     'email' => 'Email not found',
+                ])
+                ->withInput();
+        }
+
+        // Restrict login strictly to Super Admin role
+        if (!$user->hasRole('Super Admin')) {
+            return back()
+                ->withErrors([
+                    'email' => 'Access denied. This page is only for administrators.',
                 ])
                 ->withInput();
         }

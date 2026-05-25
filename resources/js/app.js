@@ -9,18 +9,28 @@ window.DataTable = DataTable;
 import Swal from 'sweetalert2';
 window.Swal = Swal;
 
-import toastr from 'toastr';
-window.toastr = toastr;
+import alertService from './services/alertService';
+import notificationService from './services/notificationService';
 
-// Default Toastr options
-toastr.options = {
-    "closeButton": true,
-    "progressBar": true,
-    "positionClass": "toast-top-right",
+window.alertService = alertService;
+window.notificationService = notificationService;
+window.CataskyAlerts = alertService;
+window.CataskyNotifications = notificationService;
+
+window.alert = (message) => alertService.infoAlert('CATASKY', message);
+window.confirm = (message) => {
+    alertService.warningAlert('Confirmation required', message);
+    return false;
+};
+window.prompt = () => {
+    alertService.warningAlert('Unsupported action', 'Text prompts must use a CATASKY modal form.');
+    return null;
 };
 
 // Global UI Enhancements
 $(document).ready(function() {
+    notificationService.init({ pollInterval: 60000 });
+
     // Smooth scroll
     $('a[href^="#"]').on('click', function(event) {
         var target = $(this.getAttribute('href'));

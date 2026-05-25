@@ -137,15 +137,4 @@ class SubcategoryController extends Controller
             ->route('admin.subcategories.index')
             ->with('success', 'Subcategory Deleted Successfully');
     }
-
-    /**
-     * AJAX endpoint to get child categories for a subcategory
-     */
-    public function getChildcategories($subcategoryId)
-    {
-        $childcategories = \App\Models\ChildCategory::where('subcategory_id', $subcategoryId)
-                                                    ->where('status', 1)
-                                                    ->get();
-        return response()->json($childcategories);
-    }
 }

@@ -146,7 +146,7 @@
             <div class="card border-0 shadow-sm rounded-4 mt-4">
                 <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0">System Logs (Last 100 Lines)</h5>
-                    <form action="{{ route('admin.system.clear-logs') }}" method="POST" onsubmit="return confirm('Are you sure you want to clear all system logs?')">
+                    <form action="{{ route('admin.system.clear-logs') }}" method="POST" data-confirm-delete="Are you sure you want to clear all system logs?">
                         @csrf
                         <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
                             <i class="fa-solid fa-trash-can me-1"></i> Clear Log File

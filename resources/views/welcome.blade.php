@@ -83,13 +83,13 @@ $demoProducts = [
                 </p>
 
                 <div class="hero-cta-group">
-                    <a href="{{ route('catalogue') }}" class="btn-hero-primary" id="start-free-btn">
+                    <a href="{{ route('subscriber.register') }}" class="btn-hero-primary" id="start-free-btn">
                         <i class="bi bi-rocket-takeoff-fill"></i>
-                        Book a Demo
+                        Start Free Trial
                     </a>
                     <a href="{{ route('catalogue') }}" class="btn-hero-outline" id="watch-demo-btn">
-                        <i class="bi bi-play-circle-fill text-primary"></i>
-                        Start Free Trial
+                        <i class="bi bi-search text-primary"></i>
+                        Explore Catalogue
                     </a>
                 </div>
 
@@ -592,45 +592,45 @@ $demoProducts = [
                     <div class="pricing-plan-name">Starter</div>
                     <div class="pricing-price">
                         <span class="pricing-currency">₹</span>
-                        <span class="pricing-amount" id="starter-price">999</span>
+                        <span class="pricing-amount" id="starter-price">499</span>
                         <span class="pricing-period">/mo</span>
                     </div>
                     <p class="pricing-desc">Perfect for small teams and freelancers just getting started with digital catalogues.</p>
                     <hr class="pricing-divider">
                     <ul class="pricing-features">
                         <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Up to 50 Products</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 5 PDF Exports / Month</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Basic Branding</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> WhatsApp Image Sharing</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 2 User Seats</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 20 Attributes</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 100 Share Links</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> WhatsApp Sharing</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> PDF & Image Sharing</li>
                         <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">Custom Domain</span></li>
-                        <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">API Access</span></li>
+                        <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">Advanced Analytics</span></li>
                     </ul>
-                    <a href="{{ route('login') }}" class="btn-pricing-outline">Get Started Free</a>
+                    <a href="{{ route('subscriber.register') }}?plan=starter" class="btn-pricing-outline">Get Started Free</a>
                 </div>
             </div>
 
             <div class="col-md-4 animate-fade-in">
                 <div class="pricing-card featured">
                     <div class="pricing-popular-badge">⚡ Most Popular</div>
-                    <div class="pricing-plan-name">Professional</div>
+                    <div class="pricing-plan-name">Business</div>
                     <div class="pricing-price">
                         <span class="pricing-currency" style="color:rgba(255,255,255,0.7);">₹</span>
-                        <span class="pricing-amount" style="color:white;" id="pro-price">2,499</span>
+                        <span class="pricing-amount" style="color:white;" id="pro-price">1,299</span>
                         <span class="pricing-period">/mo</span>
                     </div>
-                    <p class="pricing-desc">For growing B2B sales teams that need unlimited power and advanced sharing tools.</p>
+                    <p class="pricing-desc">For growing B2B sales teams that need advanced sharing tools and custom branding.</p>
                     <hr class="pricing-divider">
                     <ul class="pricing-features">
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Products</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited PDF Exports</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Up to 250 Products</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 100 Attributes</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 500 Share Links</li>
                         <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Custom Branding & Logo</li>
                         <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Analytics Dashboard</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 10 User Seats</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Variants & Specs</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> QR Code Support</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Watermark Removal</li>
+                        <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">Custom Domain</span></li>
                     </ul>
-                    <a href="{{ route('login') }}" class="btn-pricing-white">Start Professional</a>
+                    <a href="{{ route('subscriber.register') }}?plan=business" class="btn-pricing-white">Start Business</a>
                 </div>
             </div>
 
@@ -639,21 +639,21 @@ $demoProducts = [
                     <div class="pricing-plan-name">Enterprise</div>
                     <div class="pricing-price">
                         <span class="pricing-currency">₹</span>
-                        <span class="pricing-amount" id="ent-price">5,999</span>
+                        <span class="pricing-amount" id="ent-price">3,999</span>
                         <span class="pricing-period">/mo</span>
                     </div>
-                    <p class="pricing-desc">For large enterprises needing white-label solutions, API access, and dedicated support.</p>
+                    <p class="pricing-desc">For large enterprises needing white-label solutions, custom domains, and dedicated support.</p>
                     <hr class="pricing-divider">
                     <ul class="pricing-features">
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Everything</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> White-Label Solution</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Custom Domain</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Products</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Attributes</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Share Links</li>
+                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Custom Domain Ready</li>
                         <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> REST API Access</li>
                         <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Multi-User + Roles</li>
                         <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Priority Support (24/7)</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> SLA Guarantee</li>
                     </ul>
-                    <a href="{{ route('contact') }}" class="btn-pricing-primary">Contact Sales</a>
+                    <a href="{{ route('subscriber.register') }}?plan=enterprise" class="btn-pricing-primary">Contact Sales</a>
                 </div>
             </div>
         </div>
@@ -724,11 +724,11 @@ $demoProducts = [
                         <h5 style="font-weight:800;color:white;margin-bottom:8px;font-size:1.1rem;">Get Started Today</h5>
                         <p style="color:rgba(255,255,255,0.65);font-size:0.875rem;margin-bottom:24px;line-height:1.6;">No credit card required. Start free and upgrade when your team is ready to scale.</p>
                         <div class="d-grid gap-3">
-                            <a href="{{ route('catalogue') }}" class="btn-hero-primary" style="justify-content:center;">
-                                <i class="bi bi-rocket-takeoff-fill"></i> Book a Demo
+                            <a href="{{ route('subscriber.register') }}" class="btn-hero-primary" style="justify-content:center;">
+                                <i class="bi bi-rocket-takeoff-fill"></i> Start Free Trial
                             </a>
                             <a href="{{ route('catalogue') }}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:transparent;color:rgba(255,255,255,0.8);border-radius:14px;font-weight:600;border:1.5px solid rgba(255,255,255,0.2);text-decoration:none;transition:all 0.3s ease;font-size:0.95rem;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                                <i class="bi bi-grid-fill"></i> Start Free Trial
+                                <i class="bi bi-search"></i> Explore Catalogue
                             </a>
                         </div>
                     </div>
@@ -757,8 +757,8 @@ $(document).ready(function () {
 
     // Pricing toggle
     const prices = {
-        monthly: { starter: '999', pro: '2,499', ent: '5,999' },
-        annual:  { starter: '699', pro: '1,749', ent: '4,199' },
+        monthly: { starter: '499', pro: '1,299', ent: '3,999' },
+        annual:  { starter: '349', pro: '899', ent: '2,799' },
     };
 
     function setPrices(mode) {

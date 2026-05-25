@@ -14,11 +14,6 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -26,26 +21,89 @@ class User extends Authenticatable
         'profile_image',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // ─── Subscriber Relationships ───────────────────────────────────────────────
+
+    public function subscriberProfile()
+    {
+        return $this->hasOne(SubscriberProfile::class);
+    }
+
+    public function subscription()
+    {
+        return $this->hasOne(Subscription::class)->latest();
+    }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function subscriberProducts()
+    {
+        return $this->hasMany(SubscriberProduct::class);
+    }
+
+    public function attributeGroups()
+    {
+        return $this->hasMany(AttributeGroup::class);
+    }
+
+    public function attributes()
+    {
+        return $this->hasMany(Attribute::class);
+    }
+
+    public function shareLinks()
+    {
+        return $this->hasMany(SubscriberShareLink::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    // ─── Subscriber Helper Methods ──────────────────────────────────────────────
+
+    public function isSubscriber(): bool
+    {
+        return $this->hasRole('Subscriber');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('Admin');
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        $sub = $this->subscription;
+        return $sub && $sub->isActive();
+    }
+
+    public function activeSubscription(): ?Subscription
+    {
+        return $this->subscriptions()
+            ->whereIn('status', ['active', 'trial'])
+            ->latest()
+            ->first();
     }
 }

@@ -9,14 +9,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->decimal('price', 10, 2)->nullable()->after('variant')->comment('Base price in INR');
+            if (!Schema::hasColumn('products', 'variant')) {
+                $table->text('variant')->nullable()->after('short_description');
+            }
+            if (!Schema::hasColumn('products', 'price')) {
+                $table->integer('price')->nullable()->after('variant');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('price');
+            if (Schema::hasColumn('products', 'price')) {
+                $table->dropColumn('price');
+            }
         });
     }
 };

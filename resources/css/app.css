@@ -2662,3 +2662,14 @@ footer .nav-icon-btn:hover {
         justify-content: center;
     }
 }
+  
+/* SweetAlert2 Custom Styling */  
+.catasky-swal-popup { border-radius: 8px !important; padding: 2rem !important; font-family: 'Poppins', sans-serif !important; box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22) !important; }  
+.catasky-swal-title { font-size: 1.35rem !important; font-weight: 700 !important; color: var(--text-primary) !important; letter-spacing: 0 !important; }  
+.catasky-swal-text { font-size: 0.95rem !important; color: var(--text-secondary) !important; }  
+.catasky-swal-button { border-radius: 8px !important; padding: 0.75rem 1.15rem !important; font-weight: 700 !important; box-shadow: none !important; }
+.catasky-swal-button-primary { background: var(--primary) !important; color: #fff !important; }
+.catasky-swal-button-secondary { background: #f1f5f9 !important; color: #334155 !important; }
+.catasky-swal-button-danger { background: var(--danger) !important; color: #fff !important; }
+.catasky-toast-popup { border-radius: 8px !important; padding: 0.9rem 1rem !important; font-family: 'Poppins', sans-serif !important; box-shadow: 0 14px 40px rgba(15, 23, 42, 0.16) !important; }
+.catasky-toast-title { color: #0f172a !important; font-size: 0.9rem !important; font-weight: 600 !important; letter-spacing: 0 !important; }

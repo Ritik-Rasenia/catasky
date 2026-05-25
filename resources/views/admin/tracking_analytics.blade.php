@@ -147,8 +147,8 @@
             </div>
 
             <!-- Pagination Grid -->
-            <div class="mt-4 d-flex justify-content-center">
-                {{ $shares->links() }}
+            <div class="mt-4 admin-pagination-wrap">
+                {{ $shares->links('vendor.pagination.bootstrap-5') }}
             </div>
         </div>
 </div>

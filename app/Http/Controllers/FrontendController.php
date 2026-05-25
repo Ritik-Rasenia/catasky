@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Subcategory;
-use App\Models\ChildCategory;
 use App\Models\Product;
-use App\Models\Solution;
 use Illuminate\Http\Request;
 
 class FrontendController extends Controller
@@ -15,8 +13,13 @@ class FrontendController extends Controller
     /**
      * Display the landing catalogue page.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($subscriberId = $request->attributes->get('custom_domain_subscriber_id')) {
+            $slug = $request->attributes->get('custom_domain_slug');
+            return $this->storeCatalog($slug, $request);
+        }
+
         $categories = Category::where('status', 1)->withCount('products')->get();
         $featuredProducts = Product::where('status', 1)
             ->where('featured', 1)
@@ -25,9 +28,7 @@ class FrontendController extends Controller
             ->take(8)
             ->get();
             
-        $solutions = Solution::all();
-
-        return view('welcome', compact('categories', 'featuredProducts', 'solutions'));
+        return view('welcome', compact('categories', 'featuredProducts'));
     }
 
     /**
@@ -104,14 +105,7 @@ class FrontendController extends Controller
         return view('subcategories', compact('subcategories'));
     }
 
-    /**
-     * Display child categories.
-     */
-    public function childCategories()
-    {
-        $childCategories = ChildCategory::with(['subcategory', 'products'])->get();
-        return view('childcategories', compact('childCategories'));
-    }
+
 
     /**
      * Display products for a specific category.
@@ -160,7 +154,7 @@ class FrontendController extends Controller
     public function productDetails($slug)
     {
         $product = Product::where('slug', $slug)
-            ->with(['category', 'brand', 'images', 'solutions'])
+            ->with(['category', 'brand', 'images'])
             ->firstOrFail();
 
         $relatedProducts = Product::where('category_id', $product->category_id)
@@ -288,23 +282,7 @@ class FrontendController extends Controller
         return view('future-products', compact('products'));
     }
 
-    /**
-     * Solutions list.
-     */
-    public function solutions()
-    {
-        $solutions = Solution::all();
-        return view('solutions.index', compact('solutions'));
-    }
 
-    /**
-     * Solution details.
-     */
-    public function solutionDetails($slug)
-    {
-        $solution = Solution::where('slug', $slug)->with('products')->firstOrFail();
-        return view('solutions.show', compact('solution'));
-    }
 
     /**
      * API for subcategories.
@@ -314,13 +292,7 @@ class FrontendController extends Controller
         return Subcategory::where('category_id', $category_id)->get();
     }
 
-    /**
-     * API for child categories.
-     */
-    public function getApiChildcategories($subcategory_id)
-    {
-        return ChildCategory::where('subcategory_id', $subcategory_id)->get();
-    }
+
 
     /**
      * API for featured products.
@@ -345,16 +317,13 @@ class FrontendController extends Controller
             ]);
         }
 
-        $products = Product::with(['category', 'brand', 'images', 'solutions'])
+        $products = Product::with(['category', 'brand', 'images'])
             ->whereIn('id', $ids)
             ->get();
 
         $results = [];
         foreach ($products as $product) {
-            $thumbnail_url = $product->thumbnail;
-            if (!filter_var($thumbnail_url, FILTER_VALIDATE_URL)) {
-                $thumbnail_url = asset('uploads/products/' . $product->thumbnail);
-            }
+            $thumbnail_url = $product->thumbnail_url;
 
             $gallery_urls = $product->images->map(function($img) {
                 $image_url = $img->image;
@@ -383,12 +352,9 @@ class FrontendController extends Controller
      */
     public function apiProductDetails($id)
     {
-        $product = Product::with(['category', 'brand', 'images', 'solutions'])->findOrFail($id);
+        $product = Product::with(['category', 'brand', 'images'])->findOrFail($id);
         
-        $thumbnail_url = $product->thumbnail;
-        if (!filter_var($thumbnail_url, FILTER_VALIDATE_URL)) {
-            $thumbnail_url = asset('uploads/products/' . $product->thumbnail);
-        }
+        $thumbnail_url = $product->thumbnail_url;
 
         $gallery_urls = $product->images->map(function($img) {
             $image_url = $img->image;
@@ -414,4 +380,250 @@ class FrontendController extends Controller
         $product = Product::with(['category', 'brand', 'images'])->findOrFail($id);
         return view('partials.product-drawer-content', compact('product'));
     }
+
+    /**
+     * Display the subscription pricing plans page.
+     */
+    public function pricing()
+    {
+        $plans = \App\Models\SubscriptionPlan::where('is_active', true)
+            ->where('is_trial', false)
+            ->orderBy('sort_order')
+            ->get();
+        return view('pricing', compact('plans'));
+    }
+
+    /**
+     * Display the public subscriber catalog store page.
+     */
+    public function storeCatalog($slug, Request $request)
+    {
+        $profile = \App\Models\SubscriberProfile::where('company_slug', $slug)->firstOrFail();
+        
+        // Double-approval check: Store status must be active
+        if ($profile->status !== 'active') {
+            return response()->view('subscriber-panel.share.pending', ['link' => (object)[
+                'title' => $profile->company_name . ' - Storefront Catalog',
+                'approval_status' => 'pending',
+                'is_expired' => false,
+            ]], 403);
+        }
+
+        // Check active subscription
+        $subscriber = $profile->user;
+        if (!$subscriber || !$subscriber->hasActiveSubscription()) {
+            abort(403, 'This storefront has no active subscription.');
+        }
+
+        // Get approved active subscriber products
+        $query = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
+            ->where('status', 'active')
+            ->where('approval_status', 'approved')
+            ->with(['images', 'attributeValues.attribute', 'category']);
+
+        // Search filter
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->input('search') . '%');
+        }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $catSlug = $request->input('category');
+            $query->whereHas('category', function($q) use ($catSlug) {
+                $q->where('slug', $catSlug);
+            });
+        }
+
+        $catalogProducts = $query->orderBy('name')->get();
+
+        // Get categories represented in subscriber products
+        $subscriberCategories = \App\Models\Category::whereHas('products', function($q) use ($profile) {
+            // Note: does Category have products or subscriberProducts relation? Let's check Category.php or use basic query.
+        })->get();
+        
+        // Wait, let's write a robust query for categories.
+        $categoryIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
+            ->where('status', 'active')
+            ->where('approval_status', 'approved')
+            ->whereNotNull('category_id')
+            ->pluck('category_id')
+            ->unique();
+        
+        $subscriberCategories = \App\Models\Category::whereIn('id', $categoryIds)->get();
+
+        $companyName = $profile->company_name;
+        $settings = [
+            'show_mrp'         => true,
+            'show_offer_price' => true,
+            'show_description' => true,
+            'show_attributes'  => true,
+            'show_images'      => true,
+            'show_contact'     => true,
+            'allow_download'   => false,
+        ];
+
+        return view('subscriber-panel.share.store', compact('profile', 'catalogProducts', 'subscriberCategories', 'companyName', 'settings', 'subscriber'));
+    }
+
+    /**
+     * Submit B2B Product Review.
+     */
+    public function submitReview(Request $request, $slug)
+    {
+        $product = Product::where('slug', $slug)->firstOrFail();
+
+        $request->validate([
+            'reviewer_name'  => 'required|string|max:255',
+            'reviewer_email' => 'required|email|max:255',
+            'rating'         => 'required|integer|min:1|max:5',
+            'review_content' => 'required|string|max:2000',
+            'images.*'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        // Verified buyer check
+        $isVerified = \App\Models\Enquiry::where('email', $request->reviewer_email)
+            ->where('product_id', $product->id)
+            ->exists();
+
+        $reviewImages = [];
+        if ($request->hasFile('images')) {
+            $destDir = storage_path('app/public/reviews');
+            if (!is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+
+            foreach ($request->file('images') as $file) {
+                $imageName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move($destDir, $imageName);
+                $reviewImages[] = $imageName;
+            }
+        }
+
+        $review = \App\Models\Review::create([
+            'product_id'        => $product->id,
+            'user_id'           => auth()->id(),
+            'rating'            => $request->rating,
+            'reviewer_name'     => $request->reviewer_name,
+            'reviewer_email'    => $request->reviewer_email,
+            'review_content'    => $request->review_content,
+            'images'            => $reviewImages,
+            'is_verified_buyer' => $isVerified,
+            'status'            => true,
+        ]);
+
+        return response()->json([
+            'success'        => true,
+            'message'        => 'Thank you! Your product review has been submitted successfully.',
+            'review'         => [
+                'reviewer_name'     => $review->reviewer_name,
+                'rating'            => $review->rating,
+                'review_content'    => $review->review_content,
+                'created_at'        => $review->created_at->diffForHumans(),
+                'is_verified_buyer' => $review->is_verified_buyer,
+                'images'            => array_map(function($img) {
+                    return asset('storage/reviews/' . $img);
+                }, $review->images ?? []),
+            ],
+            'average_rating' => $product->average_rating,
+            'reviews_count'  => $product->reviews_count,
+        ]);
+    }
+
+    /**
+     * Download Product PDF Catalogue with QR Code.
+     */
+    public function downloadProductPdf($slug)
+    {
+        $product = Product::where('slug', $slug)->with(['category', 'brand'])->firstOrFail();
+
+        $qrUrl = route('product.details', $product->slug);
+        
+        $qrCodeBase64 = '';
+        try {
+            $qrCodeBase64 = base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(140)->margin(0)->generate($qrUrl));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('QR Code Generation Error: ' . $e->getMessage());
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.product', compact('product', 'qrCodeBase64'));
+        return $pdf->download($product->slug . '-specification.pdf');
+    }
+
+    /**
+     * Generate dynamic XML Sitemap for products.
+     */
+    public function sitemap()
+    {
+        $products = Product::where('status', 1)->latest()->get();
+        $categories = Category::where('status', 1)->get();
+        $subcategories = Subcategory::where('status', 1)->get();
+
+        $xml = view('seo.sitemap', compact('products', 'categories', 'subcategories'))->render();
+
+        return response($xml, 200, [
+            'Content-Type' => 'text/xml'
+        ]);
+    }
+
+    /**
+     * AJAX Product Catalogue Filtering.
+     */
+    public function apiFilterProducts(Request $request)
+    {
+        $query = Product::where('status', 1)->with(['category', 'brand', 'reviews']);
+
+        if ($request->filled('query')) {
+            $q = $request->input('query');
+            $query->where(function($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                   ->orWhere('sku', 'like', "%{$q}%")
+                   ->orWhere('short_description', 'like', "%{$q}%")
+                   ->orWhere('description', 'like', "%{$q}%");
+            });
+        }
+
+        if ($request->filled('category')) {
+            $catSlug = $request->input('category');
+            if ($catSlug !== 'all') {
+                $query->whereHas('category', function($sub) use ($catSlug) {
+                    $sub->where('slug', $catSlug);
+                });
+            }
+        }
+
+        if ($request->filled('subcategory')) {
+            $subSlug = $request->input('subcategory');
+            $query->whereHas('subcategory', function($sub) use ($subSlug) {
+                $sub->where('slug', $subSlug);
+            });
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->input('min_price'));
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->input('max_price'));
+        }
+
+        $sort = $request->input('sort', 'default');
+        match ($sort) {
+            'name_asc'   => $query->orderBy('name', 'asc'),
+            'price_asc'  => $query->orderBy('price', 'asc'),
+            'price_desc' => $query->orderBy('price', 'desc'),
+            default      => $query->latest(),
+        };
+
+        $products = $query->paginate(12);
+
+        $html = view('partials.product-grid-items', compact('products'))->render();
+        $paginationHtml = $products->links('pagination::bootstrap-5')->render();
+
+        return response()->json([
+            'success' => true,
+            'html' => $html,
+            'pagination_html' => $paginationHtml,
+            'count' => $products->total(),
+        ]);
+    }
 }
+

@@ -39,12 +39,6 @@ class DefaultPermissionsAndRolesSeeder extends Seeder
             ['name' => 'edit-subcategories', 'description' => 'Edit Subcategories'],
             ['name' => 'delete-subcategories', 'description' => 'Delete Subcategories'],
 
-            // Child Categories
-            ['name' => 'view-childcategories', 'description' => 'View Child Categories'],
-            ['name' => 'create-childcategories', 'description' => 'Create Child Categories'],
-            ['name' => 'edit-childcategories', 'description' => 'Edit Child Categories'],
-            ['name' => 'delete-childcategories', 'description' => 'Delete Child Categories'],
-
             // Products
             ['name' => 'view-products', 'description' => 'View Products'],
             ['name' => 'create-products', 'description' => 'Create Products'],
@@ -52,12 +46,6 @@ class DefaultPermissionsAndRolesSeeder extends Seeder
             ['name' => 'delete-products', 'description' => 'Delete Products'],
             ['name' => 'import-products', 'description' => 'Import Products'],
             ['name' => 'export-products', 'description' => 'Export Products'],
-
-            // Solutions
-            ['name' => 'view-solutions', 'description' => 'View Solutions'],
-            ['name' => 'create-solutions', 'description' => 'Create Solutions'],
-            ['name' => 'edit-solutions', 'description' => 'Edit Solutions'],
-            ['name' => 'delete-solutions', 'description' => 'Delete Solutions'],
 
             // Enquiries
             ['name' => 'view-enquiries', 'description' => 'View Enquiries'],
@@ -107,30 +95,9 @@ class DefaultPermissionsAndRolesSeeder extends Seeder
         }
 
         // Create roles
-        $admin = Role::firstOrCreate(['name' => 'Admin']);
-        $staff = Role::firstOrCreate(['name' => 'Staff']);
+        $superAdmin = Role::firstOrCreate(['name' => 'Super Admin']);
 
-        // Assign all permissions to Admin
-        $admin->syncPermissions(Permission::all());
-
-        // Assign permissions to Staff (operational access)
-        $staffPermissions = Permission::whereNotIn('name', [
-            'view-permissions',
-            'create-permissions',
-            'edit-permissions',
-            'delete-permissions',
-            'view-roles',
-            'create-roles',
-            'edit-roles',
-            'delete-roles',
-            'view-settings',
-            'edit-settings',
-            'manage-system',
-            'create-users',
-            'edit-users',
-            'delete-users',
-            'assign-roles'
-        ])->pluck('id')->toArray();
-        $staff->syncPermissions($staffPermissions);
+        // Assign all permissions to Super Admin
+        $superAdmin->syncPermissions(Permission::all());
     }
 }

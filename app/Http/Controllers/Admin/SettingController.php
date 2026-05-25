@@ -20,7 +20,7 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        $setting = Setting::first();
+        $setting = Setting::firstOrCreate([]);
 
         $request->validate([
             'site_title' => 'nullable|string|max:255',
@@ -29,7 +29,7 @@ class SettingController extends Controller
             'footer_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:2048',
             'favicon' => 'nullable|image|mimes:jpg,jpeg,png,ico,webp|max:1024',
             'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'admin_email' => 'nullable|email|max:255',
             'facebook' => 'nullable|url|max:255',
@@ -113,6 +113,8 @@ class SettingController extends Controller
             'meta_keywords' => $request->meta_keywords,
         ]);
 
-        return redirect()->back()->with('success', 'Settings updated successfully.');
+        return redirect()
+            ->route('admin.settings.index')
+            ->with('success', 'Settings updated successfully.');
     }
 }

@@ -22,7 +22,7 @@ return [
     | Auto Aliased Classes
     |--------------------------------------------------------------------------
     |
-    | Tinker will not automatically alias classes in your vendor namespaces
+    | Tinker will not automatically alias classes in your subscriber namespaces
     | but you may explicitly allow a subset of classes to get aliased by
     | adding the names of each of those classes to the following list.
     |

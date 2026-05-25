@@ -1,0 +1,160 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+
+class SubscriberProduct extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = [
+        'user_id', 'category_id', 'subcategory_id',
+        'name', 'slug', 'sku', 'mrp', 'offer_price', 'currency',
+        'thumbnail', 'short_description', 'full_description', 'tags',
+        'featured', 'status', 'approval_status',
+        'pdf_show_mrp', 'pdf_show_offer_price', 'pdf_show_description',
+        'pdf_show_attributes', 'pdf_show_images', 'pdf_show_short_desc',
+        'share_show_mrp', 'share_show_offer_price',
+        'share_show_description', 'share_show_attributes',
+        'sort_order',
+    ];
+
+    protected $casts = [
+        'tags' => 'array',
+        'mrp' => 'decimal:2',
+        'offer_price' => 'decimal:2',
+        'featured' => 'boolean',
+        'pdf_show_mrp' => 'boolean',
+        'pdf_show_offer_price' => 'boolean',
+        'pdf_show_description' => 'boolean',
+        'pdf_show_attributes' => 'boolean',
+        'pdf_show_images' => 'boolean',
+        'pdf_show_short_desc' => 'boolean',
+        'share_show_mrp' => 'boolean',
+        'share_show_offer_price' => 'boolean',
+        'share_show_description' => 'boolean',
+        'share_show_attributes' => 'boolean',
+    ];
+
+    protected $appends = ['thumbnail_url', 'thumbnail_srcset', 'preview_image_url', 'share_image_url', 'discount_percentage'];
+
+    public function getThumbnailUrlAttribute(): string
+    {
+        return $this->thumbnail
+            ? $this->optimizedImageUrl($this->thumbnail, 360, 82)
+            : asset('uploads/subscriber-products/default.webp');
+    }
+
+    public function getPreviewImageUrlAttribute(): string
+    {
+        return $this->thumbnail
+            ? $this->optimizedImageUrl($this->thumbnail, 720, 84)
+            : asset('uploads/subscriber-products/default.webp');
+    }
+
+    public function getShareImageUrlAttribute(): string
+    {
+        return $this->thumbnail
+            ? $this->optimizedImageUrl($this->thumbnail, 1200, 86)
+            : asset('uploads/subscriber-products/default.webp');
+    }
+
+    public function getThumbnailSrcsetAttribute(): string
+    {
+        if (! $this->thumbnail) {
+            return '';
+        }
+
+        return collect([240, 360, 540, 720])
+            ->map(fn (int $width) => $this->optimizedImageUrl($this->thumbnail, $width, 82) . ' ' . $width . 'w')
+            ->implode(', ');
+    }
+
+    public function optimizedImageUrl(?string $path, int $width = 720, int $quality = 82): string
+    {
+        if (! $path) {
+            return asset('uploads/subscriber-products/default.webp');
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $separator = str_contains($path, '?') ? '&' : '?';
+            return $path . $separator . http_build_query([
+                'auto' => 'format',
+                'fit' => 'crop',
+                'fm' => 'webp',
+                'q' => $quality,
+                'w' => $width,
+            ]);
+        }
+
+        return str_starts_with($path, 'uploads/')
+            ? asset($path)
+            : asset('uploads/subscriber-products/' . $path);
+    }
+
+    public function getDiscountPercentageAttribute(): ?int
+    {
+        if ($this->mrp && $this->offer_price && $this->mrp > $this->offer_price) {
+            return (int) round((($this->mrp - $this->offer_price) / $this->mrp) * 100);
+        }
+        return null;
+    }
+
+    public function subscriber()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function subcategory()
+    {
+        return $this->belongsTo(Subcategory::class);
+    }
+
+    public function images()
+    {
+        return $this->hasMany(SubscriberProductImage::class)->orderBy('sort_order');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(SubscriberProductImage::class)->where('is_primary', true);
+    }
+
+    public function attributeValues()
+    {
+        return $this->hasMany(SubscriberProductAttributeValue::class);
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(SubscriberProductVariant::class);
+    }
+
+    public function shareLinks()
+    {
+        return $this->hasMany(SubscriberShareLink::class, 'subscriber_product_id');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($product) {
+            if (empty($product->slug)) {
+                $product->slug = Str::slug($product->name) . '-' . Str::random(6);
+            }
+        });
+    }
+}
