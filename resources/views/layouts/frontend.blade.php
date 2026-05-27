@@ -13,7 +13,13 @@
         if ($settings && $settings->logo) {
             $logoPath = public_path('uploads/settings/' . $settings->logo);
             if (file_exists($logoPath) && is_file($logoPath)) {
-                $logoBase64 = asset('uploads/settings/' . $settings->logo);
+                $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                $data = @file_get_contents($logoPath);
+                if ($data !== false) {
+                    $logoBase64 = 'data:image/' . ($type === 'svg' ? 'svg+xml' : $type) . ';base64,' . base64_encode($data);
+                } else {
+                    $logoBase64 = asset('uploads/settings/' . $settings->logo);
+                }
             }
         }
         $siteTitle = $settings->site_title ?? 'Catasky';
@@ -41,6 +47,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        window.baseUrl = "{{ url('/') }}";
+    </script>
 
     <!-- CDNs for Client-Side PDF & Image catalogue generation -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -61,23 +70,40 @@
         .animate-modal-fade-in {
             animation: modalFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
+        @keyframes customPulse {
+            0% { transform: scale(1); box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35); }
+            50% { transform: scale(1.02); box-shadow: 0 6px 20px rgba(37, 211, 102, 0.55); }
+            100% { transform: scale(1); box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35); }
+        }
+        .btn-custom-pulse {
+            animation: customPulse 1.8s infinite ease-in-out !important;
+        }
+
+
         #selection-bar.floating-bar {
             left: 50% !important;
             right: auto !important;
-            bottom: 20px !important;
+            bottom: 24px !important;
             transform: translate(-50%, 130%) !important;
-            width: min(720px, calc(100vw - 24px)) !important;
+            width: fit-content !important;
+            min-width: 480px !important; /* Premium tablet/small laptop width */
+            max-width: 95vw !important;
             z-index: 1045 !important;
-            border: 1px solid rgba(255, 255, 255, 0.18) !important;
-            border-radius: 999px !important;
-            background: rgba(255, 255, 255, 0.08) !important;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
-            backdrop-filter: blur(24px) saturate(1.6) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-            padding: 12px !important;
-            transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.24s ease !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+            border-radius: 100px !important;
+            background: rgba(255, 255, 255, 0.85) !important; /* Premium light frosted background */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            padding: 10px 16px !important;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
             opacity: 0 !important;
             pointer-events: none !important;
+        }
+        @media (min-width: 992px) {
+            #selection-bar.floating-bar {
+                min-width: 620px !important; /* Premium grand wide width on desktop/laptops */
+            }
         }
         #selection-bar.floating-bar.active {
             transform: translate(-50%, 0) !important;
@@ -85,25 +111,60 @@
             pointer-events: auto !important;
         }
         #selection-bar .bar-actions {
-            gap: 10px !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 16px !important; /* Spacious premium gaps */
+            width: 100% !important;
         }
-        #selection-bar .bar-btn {
-            min-height: 44px;
-            border-radius: 999px !important;
-            padding: 0 18px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-            white-space: nowrap;
+        /* Pill buttons */
+        #selection-bar .bar-pill-btn {
+            min-height: 46px !important; /* Taller touch targets */
+            border-radius: 50px !important;
+            padding: 8px 24px !important; /* Spacious wider button padding */
+            font-weight: 800 !important;
+            font-size: 14.5px !important; /* Highly readable premium size */
+            color: #ffffff !important;
+            border: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease !important;
+            cursor: pointer !important;
+            white-space: nowrap !important;
         }
-        #selection-bar .bar-btn:hover {
-            transform: translateY(-2px);
-            filter: saturate(1.08);
+        #selection-bar .bar-pill-btn:hover {
+            transform: translateY(-2px) !important;
+            filter: brightness(1.1) !important;
+            color: #ffffff !important;
+        }
+        #selection-bar .bar-pill-btn i {
+            font-size: 15px !important;
+            vertical-align: middle !important;
+        }
+        #selection-bar .selected-btn {
+            background: #2b303c !important; /* Charcoal dark */
+            box-shadow: 0 4px 12px rgba(43, 48, 60, 0.3) !important;
+        }
+        #selection-bar .pdf-btn {
+            background: #007acc !important; /* Royal Blue */
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3) !important;
+        }
+        #selection-bar .images-btn {
+            background: #0ea5e9 !important; /* Cyan / Light Blue */
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
         }
         .share-image-preview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            justify-content: center;
             gap: 14px;
             align-items: start;
             padding: 16px;
+            width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
         .share-image-preview-card {
             display: block;
@@ -112,27 +173,157 @@
             background: #ffffff;
             box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
             text-decoration: none;
+            /* aspect-ratio keeps card square regardless of width */
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            height: auto;
         }
         .share-image-preview-card > div {
-            width: 800px;
-            height: 800px;
-            transform: scale(var(--preview-scale, 0.22));
+            width: 1080px;
+            height: 1080px;
+            transform: scale(var(--preview-scale, 0.163));
             transform-origin: top left;
+            will-change: transform;
+            contain: layout paint;
+        }
+        /* Pulsing Skeleton Previews */
+        .skeleton-pulse {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: skeletonLoading 1.5s infinite linear;
+            border-radius: 8px;
+        }
+        @keyframes skeletonLoading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .preview-skeleton-page {
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .preview-skeleton-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .preview-skeleton-logo {
+            width: 80px;
+            height: 25px;
+        }
+        .preview-skeleton-date {
+            width: 70px;
+            height: 12px;
+        }
+        .preview-skeleton-title {
+            width: 160px;
+            height: 22px;
+            margin: 0 auto;
+        }
+        .preview-skeleton-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            flex-grow: 1;
+        }
+        .preview-skeleton-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .preview-skeleton-img {
+            width: 100%;
+            height: 100px;
+            border-radius: 6px;
+        }
+        .preview-skeleton-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .preview-skeleton-name {
+            width: 45%;
+            height: 12px;
+        }
+        .preview-skeleton-price {
+            width: 25%;
+            height: 12px;
+        }
+        .preview-skeleton-desc {
+            width: 100%;
+            height: 22px;
         }
         @media (max-width: 575.98px) {
             #selection-bar.floating-bar {
-                border-radius: 24px !important;
-                padding: 10px !important;
-                width: min(480px, calc(100vw - 16px)) !important;
-                bottom: 12px !important;
+                border-radius: 100px !important;
+                padding: 6px 8px !important;
+                width: fit-content !important;
+                min-width: 280px !important;
+                max-width: 98vw !important;
+                bottom: 16px !important;
             }
             #selection-bar .bar-actions {
-                display: grid !important;
-                grid-template-columns: 1fr;
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 6px !important;
             }
-            #selection-bar .bar-btn {
+            #selection-bar .bar-pill-btn {
+                padding: 5px 12px !important;
+                font-size: 11.5px !important;
+                min-height: 36px;
+            }
+            #selection-bar .bar-pill-btn i {
+                font-size: 13px !important;
+                margin-right: 4px !important;
+            }
+            .share-image-preview-grid {
+                /* On mobile: 2 equal columns filling full width */
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px;
+                padding: 10px;
+            }
+            .share-image-preview-card {
                 width: 100% !important;
+                height: auto !important;
+                aspect-ratio: 1 / 1 !important;
             }
+            #pdf-preview-frame-details,
+            #pdf-preview-frame-images {
+                min-height: 320px !important;
+                max-width: 100%;
+            }
+            #pdf-preview-scale-wrap-details,
+            #pdf-preview-scale-wrap-images {
+                justify-content: center !important;
+            }
+            #sharingModal .modal-body {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+            #sharingModal .btn {
+                min-height: 42px;
+                white-space: normal;
+            }
+        }
+        
+        .progress-bar-animated-premium {
+            background: linear-gradient(90deg, #4f46e5, #818cf8, #4f46e5);
+            background-size: 200% 100%;
+            animation: premium-progress-flow 2s linear infinite;
+        }
+        @keyframes premium-progress-flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
         }
     </style>
 </head>
@@ -144,7 +335,7 @@
             <!-- Brand Logo -->
             <a class="navbar-brand d-flex align-items-center gap-3" href="{{ route('home') }}">
                 @if($settings && $settings->logo)
-                    <img src="{{ asset('uploads/settings/' . $settings->logo) }}" alt="{{ $settings->site_title ?? 'Catasky' }}" style="max-height: 40px; object-fit: contain;">
+                    <img src="{{ asset('uploads/settings/' . $settings->logo) }}" alt="{{ $settings->site_title ?? 'Catasky' }}" decoding="async" style="max-height: 40px; object-fit: contain;">
                 @else
                     <div class="logo-icon">C</div>
                 @endif
@@ -273,7 +464,7 @@
                 <div class="col-lg-4 col-md-6 col-12">
                     <a href="{{ route('home') }}" class="d-flex align-items-center gap-2 text-decoration-none mb-3">
                         @if($footerLogoUrl)
-                            <img src="{{ $footerLogoUrl }}" alt="{{ $siteTitle }}" style="max-height: 42px; max-width: 170px; object-fit: contain;">
+                            <img src="{{ $footerLogoUrl }}" alt="{{ $siteTitle }}" loading="lazy" decoding="async" style="max-height: 42px; max-width: 170px; object-fit: contain;">
                         @else
                             <div class="logo-icon bg-white text-dark fw-bold shadow-sm">C</div>
                         @endif
@@ -367,15 +558,18 @@
 
     <!-- Floating Sticky Multi-Selection Glass Bar -->
     <div id="selection-bar" class="floating-bar">
-        <div class="bar-actions w-100 d-flex justify-content-center gap-3">
-            <button class="bar-btn" onclick="openSharingModal('selection')" style="background: linear-gradient(135deg, #374151 0%, #111827 100%); border: none; box-shadow: 0 4px 10px rgba(17, 24, 39, 0.25); color: white; font-weight: 700;">
-                <i class="bi bi-list-stars text-white d-none d-sm-inline-block"></i> <span class="d-none d-sm-inline">Selected (<span id="selected-count">0</span>)</span><span class="d-inline d-sm-none">Selected (<span class="selected-count-span">0</span>)</span>
+        <div class="bar-actions">
+            <!-- Left button: Selected count -->
+            <button class="bar-pill-btn selected-btn" onclick="openSharingModal('selection')" title="View Selected Blueprints">
+                <i class="bi bi-list-task me-2"></i>Selected (<span id="selected-count">0</span>)
             </button>
-            <button class="bar-btn" onclick="openSharingModal('pdf')" style="background: var(--primary-gradient); border: none; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35); color: white; font-weight: 700;">
-                <i class="bi bi-file-earmark-pdf-fill text-white d-none d-sm-inline-block"></i> <span class="d-none d-sm-inline">Details PDF</span><span class="d-inline d-sm-none">Details PDF</span>
+            <!-- Center button: Details PDF -->
+            <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
+                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
             </button>
-            <button class="bar-btn" onclick="openSharingModal('image')" style="background: var(--accent-gradient); border: none; box-shadow: 0 4px 10px rgba(6, 182, 212, 0.35); color: white; font-weight: 700;">
-                <i class="bi bi-images text-white d-none d-sm-inline-block"></i> <span class="d-none d-sm-inline">Image Share</span><span class="d-inline d-sm-none">Images</span>
+            <!-- Right button: Image Share -->
+            <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
+                <i class="bi bi-images me-2"></i>Image Share
             </button>
         </div>
     </div>
@@ -483,11 +677,11 @@
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Watermark</label>
-                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-watermark" type="checkbox" checked style="width: 42px; height: 22px;">
+                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-watermark" type="checkbox" style="width: 42px; height: 22px;">
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Notes</label>
-                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-note" type="checkbox" checked style="width: 42px; height: 22px;">
+                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-note" type="checkbox" style="width: 42px; height: 22px;">
                                         </div>
                                         <input type="text" class="form-control rounded-3 p-2 share-setting-mirror" data-share-setting="share-note-text" value="An Award For Every Achievement & Effort" style="font-size: 0.8rem;">
                                         <div>
@@ -535,9 +729,53 @@
                                         </div>
                                         
                                         <!-- Loader -->
-                                        <div id="pdf-preview-loader-details" class="d-flex flex-column justify-content-center align-items-center flex-grow-1 py-5">
-                                            <div class="spinner-border text-danger mb-3" style="width: 2.5rem; height: 2.5rem;" role="status"></div>
-                                            <span class="text-secondary small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Building details preview...</span>
+                                        <div id="pdf-preview-loader-details" class="w-100 flex-grow-1" style="min-height: 460px; overflow: hidden; background: #f1f5f9; display: flex; align-items: center; justify-content: center; position: relative;">
+                                            <div class="preview-skeleton-page" style="pointer-events: none; opacity: 0.7; width: 100%; height: 100%;">
+                                                <div class="preview-skeleton-header">
+                                                    <div class="skeleton-pulse preview-skeleton-logo"></div>
+                                                    <div class="skeleton-pulse preview-skeleton-date"></div>
+                                                </div>
+                                                <div class="skeleton-pulse preview-skeleton-title" style="margin-top: 10px; margin-bottom: 10px;"></div>
+                                                <div class="preview-skeleton-grid">
+                                                    <div class="preview-skeleton-card">
+                                                        <div class="skeleton-pulse preview-skeleton-img"></div>
+                                                        <div class="preview-skeleton-row">
+                                                            <div class="skeleton-pulse preview-skeleton-name"></div>
+                                                            <div class="skeleton-pulse preview-skeleton-price"></div>
+                                                        </div>
+                                                        <div class="skeleton-pulse preview-skeleton-desc"></div>
+                                                    </div>
+                                                    <div class="preview-skeleton-card">
+                                                        <div class="skeleton-pulse preview-skeleton-img"></div>
+                                                        <div class="preview-skeleton-row">
+                                                            <div class="skeleton-pulse preview-skeleton-name"></div>
+                                                            <div class="skeleton-pulse preview-skeleton-price"></div>
+                                                        </div>
+                                                        <div class="skeleton-pulse preview-skeleton-desc"></div>
+                                                    </div>
+                                                    <div class="preview-skeleton-card">
+                                                        <div class="skeleton-pulse preview-skeleton-img"></div>
+                                                        <div class="preview-skeleton-row">
+                                                            <div class="skeleton-pulse preview-skeleton-name"></div>
+                                                            <div class="skeleton-pulse preview-skeleton-price"></div>
+                                                        </div>
+                                                        <div class="skeleton-pulse preview-skeleton-desc"></div>
+                                                    </div>
+                                                    <div class="preview-skeleton-card">
+                                                        <div class="skeleton-pulse preview-skeleton-img"></div>
+                                                        <div class="preview-skeleton-row">
+                                                            <div class="skeleton-pulse preview-skeleton-name"></div>
+                                                            <div class="skeleton-pulse preview-skeleton-price"></div>
+                                                        </div>
+                                                        <div class="skeleton-pulse preview-skeleton-desc"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Centered Status Text Box -->
+                                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 23, 42, 0.88); color: #ffffff; border-radius: 12px; padding: 16px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); z-index: 5; min-width: 220px;">
+                                                <div class="spinner-border text-light mb-2 spinner-border-sm" role="status" style="width: 1.2rem; height: 1.2rem;"></div>
+                                                <div id="pdf-preview-loader-text-details" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Preparing Preview...</div>
+                                            </div>
                                         </div>
                                         
                                         <!-- Preview Frame: fills the entire box, no padding -->
@@ -615,7 +853,7 @@
                                                     <p class="text-secondary small mb-0" style="max-width: 280px;">Show your logo watermark on each photo while sharing</p>
                                                 </div>
                                                 <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-watermark" checked style="width: 42px; height: 22px; cursor: pointer;">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-watermark" style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
 
@@ -626,7 +864,7 @@
                                                     <p class="text-secondary small mb-0" style="max-width: 280px;">Add additional information on your photos like special offers, etc</p>
                                                 </div>
                                                 <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-note" checked style="width: 42px; height: 22px; cursor: pointer;">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-note" style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
                                         </div>
@@ -663,6 +901,41 @@
                                     <!-- Status Message Overlay -->
                                     <div id="dt-status-log-images" class="alert alert-info py-2 px-3 small rounded-3 d-none mb-3" style="font-size: 0.75rem;"></div>
 
+                                    <!-- Professional Real-time Progress UI -->
+                                    <div id="image-share-progress-container" class="d-none mb-3 p-3.5 rounded-4" style="background:#f8fafc; border:1px solid #e2e8f0; font-family:'Outfit',sans-serif;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 id="isp-title" class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">Preparing WhatsApp Images...</h6>
+                                            <span id="isp-speed" class="badge bg-success text-white px-2.5 py-1 rounded-pill" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Processing: Fast</span>
+                                        </div>
+                                        
+                                        <div style="width:100%; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin:12px 0 10px; position:relative;">
+                                            <div id="isp-bar" class="progress-bar-animated-premium" style="width:0%; height:100%; border-radius:999px; transition:width 0.2s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mb-3" style="font-size: 0.8rem; font-weight: 700;">
+                                            <span id="isp-count" class="text-secondary">0 / 0 Images Ready</span>
+                                            <span id="isp-percent" class="text-primary">0% Completed</span>
+                                        </div>
+                                        
+                                        <div id="isp-status-box" class="p-2.5 rounded-3" style="background:#ffffff; font-size:0.75rem; color:#64748b; font-weight:600; border:1px solid #f1f5f9; box-sizing:border-box;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span>Estimated Time Left:</span>
+                                                <span id="isp-time" class="text-dark fw-bold">Estimating...</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mt-1.5">
+                                                <span>Status:</span>
+                                                <span id="isp-status" class="text-dark fw-bold">Initializing...</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Interactive Batch Share Button for User Gesture Constraints -->
+                                        <div id="isp-action-box" class="mt-2.5 d-none">
+                                            <button type="button" id="isp-action-btn" class="btn btn-success w-100 py-2.5 fw-bold text-white font-outfit btn-custom-pulse" style="font-size: 0.85rem; border: 0; border-radius: 12px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;">
+                                                <i class="bi bi-whatsapp me-2"></i> Share Next Batch
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div class="d-flex flex-column gap-3 mt-auto">
                                         <button id="pdf-share-btn-images" class="btn btn-premium w-100 py-2.5" onclick="shareImageSystem()" disabled style="opacity: 0.6; pointer-events: none; background: var(--primary-gradient); color: white; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);">
                                             <i class="bi bi-share-fill me-2"></i> Share Images to Any App
@@ -687,9 +960,36 @@
                                         </div>
                                         
                                         <!-- Loader -->
-                                        <div id="pdf-preview-loader-images" class="d-flex flex-column justify-content-center align-items-center flex-grow-1 py-5">
-                                            <div class="spinner-border text-accent mb-3" style="width: 2.5rem; height: 2.5rem;" role="status"></div>
-                                            <span class="text-secondary small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Building image share preview...</span>
+                                        <div id="pdf-preview-loader-images" class="w-100 flex-grow-1" style="min-height: 460px; overflow: hidden; background: #f1f5f9; display: flex; align-items: center; justify-content: center; position: relative;">
+                                            <div class="preview-skeleton-page" style="pointer-events: none; opacity: 0.7; width: 100%; height: 100%; padding: 16px;">
+                                                <div class="share-image-preview-grid" style="padding: 0; gap: 10px; pointer-events: none; opacity: 0.7;">
+                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
+                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    </div>
+                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
+                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    </div>
+                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
+                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    </div>
+                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
+                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
+                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Centered Status Text Box -->
+                                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 23, 42, 0.88); color: #ffffff; border-radius: 12px; padding: 16px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); z-index: 5; min-width: 220px;">
+                                                <div class="spinner-border text-accent mb-2 spinner-border-sm" role="status" style="width: 1.2rem; height: 1.2rem;"></div>
+                                                <div id="pdf-preview-loader-text-images" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Preparing Preview...</div>
+                                            </div>
                                         </div>
                                         
                                         <!-- Preview Frame: fills the entire box, no padding -->
@@ -738,6 +1038,8 @@
         </div>
     </div>
 
+
+
     <!-- Off-screen PDF Catalogue Layout Container (Invisible to user but rendered in viewport for high-fidelity captures) -->
     <div id="pdf-rendering-container" style="position: fixed; top: 0; left: -10000px; width: 790px; z-index: -9999; opacity: 1; visibility: visible; pointer-events: none; background: white;">
         <div id="pdf-template-wrapper" style="width: 790px; background: white; padding: 40px; font-family: 'Poppins', sans-serif;">
@@ -764,6 +1066,109 @@
         // ============================================================
         var selectedProducts = [];
         window.companyLogoBase64 = "@if($settings && $settings->logo && !empty($logoBase64)){{ $logoBase64 }}@else @endif";
+        const exportSettings = {
+            showTitle: true,
+            showPrice: true,
+            showGallery: true,
+            showWatermark: false,
+            showNotes: false,
+            catalogTitle: 'Premium Selection',
+            noteText: 'An Award For Every Achievement & Effort',
+            logoPos: 'bottom-right'
+        };
+        let currentExportMode = 'pdf';
+        window.exportSettings = exportSettings;
+        window.currentExportMode = currentExportMode;
+        window.renderedPreviews = { details: false, images: false };
+        window.preparedShareDocs = window.preparedShareDocs || {};
+        window.exportBuildTokens = { details: 0, images: 0 };
+        window.imageCache = new Map();
+
+        function getRelativeImageUrl(url) {
+            if (!url) return '';
+            try {
+                if (url.indexOf('http://') === 0 || url.indexOf('https://') === 0) {
+                    const parsed = new URL(url);
+                    if (parsed.pathname.indexOf('/uploads/') > -1 || parsed.pathname.indexOf('/storage/') > -1) {
+                        return parsed.pathname;
+                    }
+                }
+            } catch (e) {
+                console.error("Error sanitizing URL:", e);
+            }
+            return url;
+        }
+        window.getRelativeImageUrl = getRelativeImageUrl;
+
+        function setCurrentExportMode(mode) {
+            currentExportMode = mode === 'image' ? 'image' : 'pdf';
+            window.currentExportMode = currentExportMode;
+            return currentExportMode;
+        }
+
+        function getCurrentExportType() {
+            return currentExportMode === 'image' ? 'images' : 'details';
+        }
+
+        function normalizeExportType(type) {
+            if (type === 'images' || type === 'image') return 'images';
+            if (type === 'details' || type === 'pdf') return 'details';
+            return getCurrentExportType();
+        }
+
+        function formatProductPrice(product, fallback = 'On Request') {
+            if (!product) return fallback;
+            const rawPrice = product.price !== null && product.price !== undefined && String(product.price).trim() !== ''
+                ? product.price
+                : null;
+            if (rawPrice !== null && !Number.isNaN(Number(rawPrice))) {
+                return '&#8377; ' + Number(rawPrice).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+            return product.variant || fallback;
+        }
+        window.formatProductPrice = formatProductPrice;
+
+        function setExportButtonsState(type, enabled, loadingText) {
+            type = normalizeExportType(type);
+            const buttons = $(`#pdf-download-btn-${type}, #pdf-direct-btn-${type}, #pdf-share-btn-${type}, #pdf-api-btn-${type}`);
+            buttons.each(function() {
+                const btn = $(this);
+                if (!btn.data('ready-html')) {
+                    btn.data('ready-html', btn.html());
+                }
+                if (enabled) {
+                    btn.removeAttr('disabled')
+                        .css({ opacity: '1', 'pointer-events': 'auto' })
+                        .html(btn.data('ready-html'));
+                    return;
+                }
+                btn.attr('disabled', true)
+                    .css({ opacity: '0.5', 'pointer-events': 'none' });
+                if (loadingText) {
+                    btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>' + loadingText);
+                }
+            });
+        }
+
+        function updateProgressText(type, text) {
+            type = normalizeExportType(type);
+            const textEl = document.getElementById(`pdf-preview-loader-text-${type}`);
+            if (textEl) {
+                textEl.textContent = text;
+            }
+            const buttons = $(`#pdf-download-btn-${type}, #pdf-direct-btn-${type}, #pdf-share-btn-${type}, #pdf-api-btn-${type}`);
+            buttons.each(function() {
+                const btn = $(this);
+                if (btn.is(':disabled')) {
+                    btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>' + text);
+                }
+            });
+        }
+        window.updateProgressText = updateProgressText;
+        window.setExportButtonsState = setExportButtonsState;
         try {
             selectedProducts = JSON.parse(localStorage.getItem('selected_products')) || [];
             if (!Array.isArray(selectedProducts)) {
@@ -879,6 +1284,11 @@
             }
 
             localStorage.setItem('selected_products', JSON.stringify(selectedProducts));
+            if (typeof window.invalidatePreparedShareDocs === 'function') {
+                window.invalidatePreparedShareDocs();
+            } else if (window.preparedShareDocs) {
+                window.preparedShareDocs = {};
+            }
             updateSelectionUISafe();
 
             // If drawer is open, sync its select button too
@@ -891,6 +1301,8 @@
                 }
             }
         }
+
+        window.toggleSelection = toggleSelection;
 
         // Safe wrappers that call the ready-block functions if available
         function updateSelectionUISafe() {
@@ -991,16 +1403,17 @@
                     if (!data || !data.success) return;
                     
                     const p = data.product;
-                    const imgUrl = data.thumbnail_url || '';
+                    const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
                     
                     $('#preview-img-src').attr('src', imgUrl);
                     
-                    const showTitle = $('#share-show-title').is(':checked');
-                    const showPrice = $('#share-show-price').is(':checked');
-                    const showWatermark = $('#share-add-watermark').is(':checked');
-                    const showNote = $('#share-add-note').is(':checked');
-                    const noteText = $('#share-note-text').val() || '';
-                    const logoPos = $('#share-logo-pos').val() || 'bottom-right';
+                    const settings = getShareSettings();
+                    const showTitle = settings.showTitle;
+                    const showPrice = settings.showPrice;
+                    const showWatermark = settings.showWatermark;
+                    const showNote = settings.showNotes;
+                    const noteText = settings.noteText || '';
+                    const logoPos = settings.logoPos || 'bottom-right';
 
                     // Toggles
                     if (showTitle) {
@@ -1009,9 +1422,9 @@
                         $('#preview-footer-title').hide();
                     }
 
-                    const displayPrice = String(p.variant || 'On Request').includes('₹') ? String(p.variant || 'On Request') : '₹ ' + String(p.variant || 'On Request');
+                    const displayPrice = formatProductPrice(p);
                     if (showPrice) {
-                        $('#preview-footer-price').text(displayPrice).show();
+                        $('#preview-footer-price').html(displayPrice).show();
                     } else {
                         $('#preview-footer-price').hide();
                     }
@@ -1050,8 +1463,10 @@
                 });
             };
 
-            // Bind settings changes to live CSS preview updates
-            $(document).on('change keyup', '#share-catalog-title, #share-show-title, #share-show-price, #share-show-gallery, #share-add-watermark, #share-add-note, #share-note-text', function() {
+            // Bind settings changes to live CSS preview updates (only on change, preventing keyup rendering storms)
+            $(document).on('change', '#share-catalog-title, #share-show-title, #share-show-price, #share-show-gallery, #share-add-watermark, #share-add-note, #share-note-text', function() {
+                updateExportSettingsFromControls();
+                invalidatePreparedShareDocs();
                 syncShareSettingMirrors();
                 if ($('#image-tab').hasClass('active')) {
                     generateLiveImagePreview();
@@ -1076,7 +1491,7 @@
                 });
             }
 
-            $(document).on('change keyup', '.share-setting-mirror', function() {
+            $(document).on('change', '.share-setting-mirror', function() {
                 const targetId = $(this).data('share-setting');
                 const target = $('#' + targetId);
                 if (!target.length) return;
@@ -1085,7 +1500,9 @@
                 } else {
                     target.val($(this).val());
                 }
+                updateExportSettingsFromControls();
                 target.trigger('change');
+                invalidatePreparedShareDocs();
                 if ($('#pdf-tab').hasClass('active')) {
                     generateLivePDFPreview('details');
                 }
@@ -1098,6 +1515,8 @@
                 $('.logo-pos-btn').removeClass('active');
                 $(this).addClass('active');
                 $('#share-logo-pos').val($(this).data('pos'));
+                updateExportSettingsFromControls();
+                invalidatePreparedShareDocs();
                 if ($('#image-tab').hasClass('active')) {
                     generateLiveImagePreview();
                 } else if ($('#pdf-tab').hasClass('active')) {
@@ -1120,321 +1539,949 @@
                 $('#watermark-pos-group').toggle($('#share-add-watermark').is(':checked'));
             }
 
+            applyExportSettingsToControls();
+            syncShareSettingMirrors();
             syncWatermarkPositionControls();
             $(document).on('change', '#share-add-watermark', syncWatermarkPositionControls);
 
+            function updateExportSettingsFromControls() {
+                exportSettings.catalogTitle = $('#share-catalog-title').val() || 'Premium Selection';
+                exportSettings.showTitle = $('#share-show-title').is(':checked');
+                exportSettings.showPrice = $('#share-show-price').is(':checked');
+                exportSettings.showGallery = $('#share-show-gallery').is(':checked');
+                exportSettings.showWatermark = $('#share-add-watermark').is(':checked');
+                exportSettings.showNotes = $('#share-add-note').is(':checked');
+                exportSettings.showNote = exportSettings.showNotes;
+                exportSettings.noteText = $('#share-note-text').val() || '';
+                exportSettings.logoPos = $('#share-logo-pos').val() || 'bottom-right';
+                return exportSettings;
+            }
+
+            function applyExportSettingsToControls() {
+                $('#share-catalog-title').val(exportSettings.catalogTitle);
+                $('#share-show-title').prop('checked', !!exportSettings.showTitle);
+                $('#share-show-price').prop('checked', !!exportSettings.showPrice);
+                $('#share-show-gallery').prop('checked', !!exportSettings.showGallery);
+                $('#share-add-watermark').prop('checked', !!exportSettings.showWatermark);
+                $('#share-add-note').prop('checked', !!exportSettings.showNotes);
+                $('#share-note-text').val(exportSettings.noteText || '');
+                $('#share-logo-pos').val(exportSettings.logoPos || 'bottom-right');
+            }
+
+            function getShareSettings() {
+                return updateExportSettingsFromControls();
+            }
+            window.getShareSettings = getShareSettings;
+
+            function getShareCacheKey(type) {
+                type = normalizeExportType(type);
+                return JSON.stringify({
+                    type: type,
+                    products: (selectedProducts || []).map(String),
+                    settings: getShareSettings()
+                });
+            }
+
+            let _webpSupported = null;
+            function isWebPSupported() {
+                if (_webpSupported !== null) return _webpSupported;
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = 1;
+                    _webpSupported = canvas.toDataURL('image/webp').indexOf('image/webp') > -1;
+                } catch (e) {
+                    _webpSupported = false;
+                }
+                return _webpSupported;
+            }
+
+            function getCardCacheKey(productId, imgUrl) {
+                const settings = getShareSettings();
+                return JSON.stringify({
+                    id: productId,
+                    url: imgUrl,
+                    showTitle: settings.showTitle,
+                    showPrice: settings.showPrice,
+                    showWatermark: settings.showWatermark,
+                    showNote: settings.showNotes,
+                    noteText: settings.noteText,
+                    logoPos: settings.logoPos
+                });
+            }
+
+            async function processInParallelBatches(items, concurrencyLimit, workerFn, progressFn) {
+                const results = new Array(items.length);
+                let currentIndex = 0;
+                window.imageExportCancelled = false;
+
+                async function worker() {
+                    while (currentIndex < items.length) {
+                        if (window.imageExportCancelled) {
+                            throw new Error('Export cancelled by user');
+                        }
+                        const index = currentIndex++;
+                        if (index >= items.length) break;
+                        const item = items[index];
+                        try {
+                            if (window.imageExportCancelled) {
+                                throw new Error('Export cancelled by user');
+                            }
+                            results[index] = await workerFn(item, index);
+                        } catch (err) {
+                            console.error(`Error processing batch item at index ${index}:`, err);
+                            results[index] = null;
+                        }
+                        if (progressFn) {
+                            progressFn(results.filter(r => r !== undefined).length, items.length);
+                        }
+                    }
+                }
+
+                const workers = [];
+                const actualLimit = Math.min(concurrencyLimit, items.length);
+                for (let i = 0; i < actualLimit; i++) {
+                    workers.push(worker());
+                }
+
+                await Promise.all(workers);
+                return results.filter(r => r !== null);
+            }
+
+            async function preloadProductCardImages(imageItems) {
+                const promises = imageItems.map(item => {
+                    return new Promise(resolve => {
+                        const img = new Image();
+                        img.src = getRelativeImageUrl(item.imageUrl || '');
+                        if (img.complete) {
+                            img.decode().then(resolve).catch(resolve);
+                        } else {
+                            img.onload = () => img.decode().then(resolve).catch(resolve);
+                            img.onerror = resolve;
+                        }
+                    });
+                });
+                await Promise.all(promises);
+            }
+
+            // Performance-optimized Image Loader with CORS and DOM Element Cache
+            window.imageElementCache = window.imageElementCache || {};
+            function loadImage(url) {
+                return new Promise((resolve) => {
+                    if (!url) {
+                        resolve(null);
+                        return;
+                    }
+                    if (window.imageElementCache[url]) {
+                        resolve(window.imageElementCache[url]);
+                        return;
+                    }
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        window.imageElementCache[url] = img;
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        // Fallback loading without crossOrigin if CORS fails
+                        const fallbackImg = new Image();
+                        fallbackImg.onload = () => {
+                            window.imageElementCache[url] = fallbackImg;
+                            resolve(fallbackImg);
+                        };
+                        fallbackImg.onerror = () => resolve(null);
+                        fallbackImg.src = url;
+                    };
+                    img.src = url;
+                });
+            }
+
+            async function preloadImage(url) {
+                return loadImage(url);
+            }
+            window.preloadImage = preloadImage;
+
+
+            // Real-time sharing progress UI inside Export Selection modal
+            function showImageProgressUI(total, mode = 'share') {
+                $('#isp-title').text('Preparing Images...');
+                $('#image-share-progress-container').removeClass('d-none').addClass('d-block');
+                
+                // Reset progress values
+                $('#isp-bar').css('width', '0%');
+                $('#isp-count').text(`0 / ${total} Ready`);
+                $('#isp-percent').text('0% Completed');
+                $('#isp-time').text('Estimating...');
+                $('#isp-status').text('Initializing graphics...');
+                $('#isp-speed').text('Processing: Fast').removeClass('bg-warning bg-danger').addClass('bg-success');
+                
+                // Reset monotonic counter — progress can only go FORWARD
+                window._imageProgressMax = 0;
+
+                window.imageExportCancelled = false;
+            }
+
+            function hideImageProgressUI() {
+                $('#image-share-progress-container').removeClass('d-block').addClass('d-none');
+            }
+
+            function updateImageProgressUI(completed, total, elapsed) {
+                if (window.imageExportCancelled) return;
+
+                const percent = Math.min(Math.round((completed / total) * 100), 100);
+                $('#isp-bar').css('width', `${percent}%`);
+                $('#isp-count').text(`${completed} / ${total} Ready`);
+                $('#isp-percent').text(`${percent}% Completed`);
+
+                if (completed > 0) {
+                    const avgTime = elapsed / completed;
+                    const remaining = total - completed;
+                    const timeLeft = Math.max(Math.round(avgTime * remaining), 0);
+                    $('#isp-time').text(`${timeLeft}s`);
+                    
+                    let speedText = 'Fast';
+                    if (avgTime < 0.1) {
+                        speedText = 'Ultra-Fast';
+                    } else if (avgTime < 0.25) {
+                        speedText = 'Fast';
+                    } else if (avgTime < 0.6) {
+                        speedText = 'Normal';
+                    } else {
+                        speedText = 'Slow';
+                    }
+                    $('#isp-speed').text(`Processing: ${speedText}`);
+                    
+                    if (completed === total) {
+                        $('#isp-status').text('All product card images compiled!');
+                    } else {
+                        // Highlight preparing count
+                        $('#isp-status').text(`Rendering card ${completed} of ${total}...`);
+                    }
+                } else {
+                    $('#isp-time').text('Estimating...');
+                    $('#isp-status').text('Preloading product graphics...');
+                }
+            }
+
+
+            function invalidatePreparedShareDocs(type) {
+                if (window.imageCache) {
+                    window.imageCache.clear();
+                }
+                if (!window.preparedShareDocs) {
+                    window.preparedShareDocs = {};
+                    return;
+                }
+                window.exportBuildTokens.details++;
+                window.exportBuildTokens.images++;
+                if (type) {
+                    delete window.preparedShareDocs[type];
+                    setExportButtonsState(type, false);
+                } else {
+                    window.preparedShareDocs = {};
+                    setExportButtonsState('details', false);
+                    setExportButtonsState('images', false);
+                }
+            }
+            window.invalidatePreparedShareDocs = invalidatePreparedShareDocs;
+
+            function downloadBlob(blob, filename) {
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(function() { URL.revokeObjectURL(objectUrl); }, 1500);
+            }
+
+            function notifyInfo(title, message) {
+                if (window.alertService && typeof window.alertService.infoAlert === 'function') {
+                    window.alertService.infoAlert(title, message);
+                } else {
+                    alert(message || title);
+                }
+            }
+
+            function notifyError(title, message) {
+                if (window.alertService && typeof window.alertService.errorAlert === 'function') {
+                    window.alertService.errorAlert(title, message);
+                } else {
+                    alert(message || title);
+                }
+            }
+
+            async function fallbackDownloadFiles(files, message) {
+                for (let i = 0; i < (files || []).length; i++) {
+                    const file = files[i];
+                    downloadBlob(file, file.name || 'catasky-share-file');
+                    if (i < files.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 600));
+                    }
+                }
+                notifyInfo('Files downloaded', message || 'Direct sharing was not available, so the files were downloaded instead.');
+            }
+
+            function canShareFiles(files) {
+                return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files }));
+            }
+
+            function showToast(message, title = 'Catalogue export') {
+                if (window.alertService && typeof window.alertService.infoAlert === 'function') {
+                    window.alertService.infoAlert(title, message);
+                } else {
+                    alert(message);
+                }
+            }
+
+            function getPreparedPdf(type) {
+                type = normalizeExportType(type);
+                const prepared = window.preparedShareDocs && window.preparedShareDocs[type];
+                if (!prepared || prepared.cacheKey !== getShareCacheKey(type)) return null;
+                if (!prepared.file && prepared.blob) {
+                    prepared.file = new File([prepared.blob], prepared.filename || 'catasky_catalogue.pdf', { type: 'application/pdf' });
+                }
+                return prepared && prepared.file ? prepared : null;
+            }
+
+            function getPreparedImages() {
+                const prepared = window.preparedShareDocs && window.preparedShareDocs.images;
+                if (!prepared || prepared.cacheKey !== getShareCacheKey('images')) return null;
+                return prepared.files && prepared.files.length ? prepared : null;
+            }
+
+            function downloadPreparedPdf(prepared) {
+                if (!prepared) return;
+                if (prepared.pdf && typeof prepared.pdf.save === 'function') {
+                    prepared.pdf.save(prepared.filename || 'catasky_catalogue.pdf');
+                    return;
+                }
+                if (prepared.blob) {
+                    downloadBlob(prepared.blob, prepared.filename || 'catasky_catalogue.pdf');
+                } else if (prepared.file) {
+                    downloadBlob(prepared.file, prepared.file.name || 'catasky_catalogue.pdf');
+                }
+            }
+
+            async function nativeShareFiles(files, title, text) {
+                if (!navigator.share || !canShareFiles(files)) {
+                    return { shared: false, unsupported: true };
+                }
+                const payload = { files: files, title: title || document.title };
+                if (text) payload.text = text;
+                await navigator.share(payload);
+                return { shared: true };
+            }
+
+            function preparePDFShareDoc(type, options = {}) {
+                type = normalizeExportType(type);
+                const cacheKey = getShareCacheKey(type);
+                const existing = window.preparedShareDocs[type];
+                if (existing && existing.cacheKey === cacheKey && existing.blob) {
+                    return Promise.resolve(existing);
+                }
+
+                if (options.btn) {
+                    $(options.btn).attr('disabled', true).css({ opacity: '0.5', 'pointer-events': 'none' });
+                }
+
+                return generatePDFBlob(type).then(function(pdfData) {
+                    const prepared = {
+                        ...pdfData,
+                        cacheKey: cacheKey,
+                        file: new File([pdfData.blob], pdfData.filename, { type: 'application/pdf' })
+                    };
+                    window.preparedShareDocs[type] = prepared;
+                    return prepared;
+                });
+            }
+
+             function prepareImageShareDocs(options = {}) {
+                const type = 'images';
+                const cacheKey = getShareCacheKey(type);
+                const existing = window.preparedShareDocs[type];
+                if (existing && existing.cacheKey === cacheKey && existing.files && existing.files.length) {
+                    return Promise.resolve(existing);
+                }
+
+                const shareBtn = $('#pdf-share-btn-images');
+                const directBtn = $('#pdf-direct-btn-images');
+                const downloadBtn = $('#pdf-download-btn-images');
+
+                if (options.showProgressUI && selectedProducts && selectedProducts.length > 0) {
+                    showImageProgressUI(selectedProducts.length, options.mode);
+                }
+
+                // Disable all action buttons while compiling
+                shareBtn.attr('disabled', true).css({ opacity: '0.6', 'pointer-events': 'none' });
+                directBtn.attr('disabled', true).css({ opacity: '0.6', 'pointer-events': 'none' });
+                downloadBtn.attr('disabled', true).css({ opacity: '0.6', 'pointer-events': 'none' });
+
+                const startTime = Date.now();
+
+                const progressFn = (completed, total) => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    
+                    if (window._imageProgressMax === undefined) window._imageProgressMax = 0;
+                    // Monotonic guard: only update UI if the completed count goes forward or finishes
+                    if (completed > window._imageProgressMax || completed === total) {
+                        window._imageProgressMax = Math.max(window._imageProgressMax, completed);
+                        const displayCompleted = window._imageProgressMax;
+
+                        if (options.showProgressUI) {
+                            updateImageProgressUI(displayCompleted, total, elapsed);
+                        }
+
+                        const msg = `<span class="spinner-border spinner-border-sm me-2" role="status"></span> Preparing ${total} Images (${displayCompleted}/${total})...`;
+                        if (shareBtn.is(':disabled') && shareBtn.html().indexOf('spinner-border') > -1) {
+                            shareBtn.html(msg);
+                        }
+                        if (directBtn.is(':disabled') && directBtn.html().indexOf('spinner-border') > -1) {
+                            directBtn.html(msg);
+                        }
+                        $('#pdf-preview-status-images').removeClass('bg-success bg-danger text-white').addClass('bg-warning text-dark').text(`Rendering (${displayCompleted}/${total})`);
+                    }
+                };
+
+                return buildShareImageFiles(progressFn).then(function(files) {
+                    const prepared = { cacheKey: cacheKey, files: files };
+                    window.preparedShareDocs[type] = prepared;
+
+                    // Re-enable and restore action buttons
+                    shareBtn.removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+                    directBtn.removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+                    downloadBtn.removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+
+                    if (options.showProgressUI) {
+                        hideImageProgressUI();
+                    }
+                    return prepared;
+                }).catch(function(err) {
+                    // Re-enable on failure
+                    shareBtn.removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+                    directBtn.removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+                    downloadBtn.removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+
+                    if (options.showProgressUI) {
+                        hideImageProgressUI();
+                    }
+                    throw err;
+                });
+            }
+
+            function sharePreparedPdfDocument(type, pdfData, options = {}) {
+                const btn = options.btn ? $(options.btn) : null;
+                const originalHtml = options.originalHtml || (btn ? btn.html() : '');
+                const shareTitle = options.title || pdfData.filename;
+                const shareText = options.text || '';
+                const successEvent = options.successEvent || 'system_share_pdf_success';
+
+                const restoreButton = function() {
+                    if (btn) {
+                        btn.removeAttr('disabled').html(originalHtml);
+                    }
+                };
+
+                const downloadFallback = function(message) {
+                    restoreButton();
+                    if (window.alertService && typeof window.alertService.infoAlert === 'function') {
+                        window.alertService.infoAlert('PDF downloaded', message || 'Your browser could not complete the share action, so the PDF was downloaded instead.');
+                    } else {
+                        alert(message || 'Your browser could not complete the share action, so the PDF was downloaded instead.');
+                    }
+                    if (pdfData.pdf && typeof pdfData.pdf.save === 'function') {
+                        pdfData.pdf.save(pdfData.filename);
+                    } else if (pdfData.blob) {
+                        const objectUrl = URL.createObjectURL(pdfData.blob);
+                        const link = document.createElement('a');
+                        link.href = objectUrl;
+                        link.download = pdfData.filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        setTimeout(function() { URL.revokeObjectURL(objectUrl); }, 1500);
+                    }
+                };
+
+                try {
+                    const file = new File([pdfData.blob], pdfData.filename, { type: 'application/pdf' });
+                    const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+                    if (navigator.share && canShareFiles) {
+                        const sharePayload = { files: [file], title: shareTitle };
+                        if (shareText) {
+                            sharePayload.text = shareText;
+                        }
+                        return navigator.share(sharePayload).then(function() {
+                            restoreButton();
+                            trackAnalyticsEventSafe(successEvent, selectedProducts.length);
+                        }).catch(function(err) {
+                            if (err && err.name === 'NotAllowedError') {
+                                downloadFallback('Sharing was blocked by your browser. The PDF has been downloaded instead.');
+                            } else {
+                                console.log('Native sharing cancelled or failed:', err);
+                                restoreButton();
+                            }
+                        });
+                    }
+
+                    downloadFallback('Your browser or device does not support direct file sharing sheets. We have downloaded the PDF file for you instead.');
+                } catch (err) {
+                    downloadFallback('Your browser could not share this PDF. It has been downloaded instead.');
+                }
+            }
+
             window.downloadAllCards = function() {
+                setCurrentExportMode('image');
                 if (selectedProducts.length === 0) {
-                    alertService.warningAlert("Please select at least one product first.");
+                    window.alertService.warningAlert("Please select at least one product first.");
                     return;
                 }
 
-                const btn = $('#pdf-download-btn-images');
-                const origHtml = btn.html();
-                fetchMultipleProductDetails(selectedProducts).then(() => {
-                    let promises = selectedProducts.map(id => fetchProductDetailsCached(id));
+                const prepared = getPreparedImages();
+                if (prepared) {
+                    fallbackDownloadFiles(prepared.files, `Successfully generated and downloaded ${prepared.files.length} product card images.`);
+                    trackAnalyticsEventSafe('image_cards_downloaded', prepared.files.length);
+                    return;
+                }
 
-                    Promise.all(promises).then(async dataList => {
-                        const validDataList = dataList.filter(d => d && d.success);
-                        let count = 0;
-
-                        for (let i = 0; i < validDataList.length; i++) {
-                            const data = validDataList[i];
-                            const p = data.product;
-                            
-                            // Primary image
-                            const imgUrl = data.thumbnail_url || '';
-                            await captureAndDownloadCard(p, imgUrl, `card_${p.id}_primary.png`);
-                            count++;
-
-                            // Gallery images (if enabled)
-                            const showGallery = $('#share-show-gallery').is(':checked');
-                            if (showGallery && data.gallery_urls && data.gallery_urls.length > 0) {
-                                for (let gIndex = 0; gIndex < data.gallery_urls.length; gIndex++) {
-                                    const gImgUrl = data.gallery_urls[gIndex];
-                                    await captureAndDownloadCard(p, gImgUrl, `card_${p.id}_gallery_${gIndex+1}.png`);
-                                    count++;
-                                }
-                            }
-                        }
-
-                        btn.removeAttr('disabled').html(origHtml);
-                        window.alertService.successAlert('Cards downloaded', `Successfully generated and downloaded ${count} product card images.`);
-                    }).catch(err => {
-                        console.error("Download failed:", err);
-                        btn.removeAttr('disabled').html(origHtml);
-                        window.alertService.errorAlert("Failed to download cards", err.message);
-                    });
+                prepareImageShareDocs({ showProgressUI: true, mode: 'download' }).then(prepared => {
+                    fallbackDownloadFiles(prepared.files, `Successfully generated and downloaded ${prepared.files.length} product card images.`);
+                    trackAnalyticsEventSafe('image_cards_downloaded', prepared.files.length);
+                }).catch(err => {
+                    console.error("Download failed:", err);
+                    window.alertService.errorAlert("Failed to download cards", err.message);
                 });
             };
 
-            async function captureAndDownloadCard(p, imgUrl, filename) {
-                const wrapper = document.getElementById('share-card-template-wrapper');
-                const container = document.getElementById('share-card-render-container');
+            // Opens WhatsApp directly with a prefilled message (catalogue link + optional caption)
+            function openWhatsAppWithLink(settings, extraMsg) {
+                const catalogUrl = `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
+                const msg = `*${title}*\n\n${extraMsg ? extraMsg + '\n\n' : ''}View our curated catalogue:\n👉 ${catalogUrl}`;
+                openWhatsAppChat(msg);
+            }
 
-                // Build the high-fidelity 800px x 800px social image template
-                const cardHtml = renderImagePdfBoxHtml({ product: p, imageUrl: imgUrl });
-                wrapper.innerHTML = cardHtml;
+            async function whatsappImageShareFallback(files, settings, reason) {
+                console.warn('Native file share unavailable:', reason);
+                // On desktop/unsupported browsers, instead of downloading or showing alerts,
+                // we open WhatsApp Web with a beautiful prefilled catalogue link containing all selected products!
+                if (typeof openWhatsAppWithLink === 'function') {
+                    openWhatsAppWithLink(settings, 'Check out these premium products I selected from the catalogue:');
+                } else if (typeof showToast === 'function') {
+                    showToast('Sharing is only supported on mobile devices.', 'Desktop Browser', 'warning');
+                }
+            }
 
-                // Shift off-screen container slightly to paint
-                const prevStyle = container.getAttribute('style');
-                container.setAttribute('style', 'position:fixed;top:0;left:0;width:800px;height:800px;z-index:-99999;opacity:0.02;visibility:visible;pointer-events:none;background:white;overflow:visible;');
+            function chunkArray(arr, size = 10) {
+                const chunks = [];
+                for (let i = 0; i < arr.length; i += size) {
+                    chunks.push(arr.slice(i, i + size));
+                }
+                return chunks;
+            }
 
-                // Wait for image inside compiled page to fully load & decode offscreen
-                const img = wrapper.querySelector('img');
-                if (img) {
-                    await new Promise(resolve => {
-                        if (img.complete && img.naturalWidth > 0) {
-                            img.decode().then(resolve).catch(resolve);
-                            return;
-                        }
-                        img.onload = () => {
-                            img.decode().then(resolve).catch(resolve);
-                        };
-                        img.onerror = resolve;
-                        setTimeout(resolve, 4000); // 4s timeout
-                    });
+            function updateShareProgress(data) {
+                $('#image-share-progress-container').removeClass('d-none').addClass('d-block');
+                
+                // Title matches required progress UI: Sharing Batch X / Y
+                $('#isp-title').text(`Sharing Batch ${data.currentBatch} / ${data.totalBatches}`);
+                
+                // Count and status format exactly matched to specifications
+                $('#isp-count').text(`${data.sharedImages} / ${data.totalImages} Images Shared`);
+                
+                if (data.sharedImages === data.totalImages) {
+                    $('#isp-status').text('100% Completed');
+                } else {
+                    $('#isp-status').text(`Sharing batch ${data.currentBatch}... (Send current batch to auto-start next)`);
+                }
+                
+                const percent = Math.min(Math.round((data.sharedImages / data.totalImages) * 100), 100);
+                $('#isp-bar').css('width', `${percent}%`);
+                $('#isp-percent').text(`${percent}% Completed`);
+            }
+
+            async function sequentialNativeShare(files, settings) {
+                if (!navigator.share) return { shared: false, unsupported: true };
+
+                // Check if file sharing is supported at all
+                if (files.length > 0 && !canShareFiles([files[0]])) {
+                    return { shared: false, unsupported: true };
                 }
 
-                // Extra render paint delay
-                await new Promise(resolve => setTimeout(resolve, 200));
+                const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+                const batches = chunkArray(files, 10);
+                let sharedCount = 0;
 
-                const canvas = await html2canvas(wrapper, {
-                    scale: 1.5, // 1.5 is extremely fast (2-3x speedup) and crisp!
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    windowWidth: 800,
-                    windowHeight: 800,
-                    scrollX: 0,
-                    scrollY: 0
+                showImageProgressUI(files.length, 'share');
+
+                // Initialize: Preparing Images... 15 / 15 Ready
+                $('#isp-title').text('Preparing Images...');
+                $('#isp-count').text(`${files.length} / ${files.length} Ready`);
+                $('#isp-bar').css('width', '100%');
+                $('#isp-percent').text('100% Completed');
+                $('#isp-status').text('All product card images compiled!');
+                
+                // Show ready state briefly
+                await delay(600);
+
+                // Hide any previous action button
+                $('#isp-action-box').addClass('d-none');
+
+                for (let i = 0; i < batches.length; i++) {
+                    const sharedSoFar = Math.min((i + 1) * 10, files.length);
+                    
+                    updateShareProgress({
+                        currentBatch: i + 1,
+                        totalBatches: batches.length,
+                        sharedImages: sharedSoFar,
+                        totalImages: files.length
+                    });
+
+                    let sharedSuccess = false;
+                    
+                    // We attempt direct automatic native share first!
+                    try {
+                        await navigator.share({
+                            files: batches[i],
+                            title: 'CATASKY Products'
+                        });
+                        sharedCount += batches[i].length;
+                        sharedSuccess = true;
+                    } catch (shareErr) {
+                        console.warn(`Automatic share for Batch ${i+1} failed/blocked:`, shareErr);
+                        
+                        // If it fails (e.g. because of browser user gesture rule, or if the user dismissed it by mistake),
+                        // we show the premium "Tap to Share Next Batch" action button to let them trigger it manually!
+                        $('#isp-action-box').removeClass('d-none');
+                        $('#isp-action-btn').html(`<i class="bi bi-whatsapp me-2"></i> Tap to Share Batch ${i+1} / ${batches.length} (${batches[i].length} Images)`).off('click').on('click', async function() {
+                            $(this).attr('disabled', true).addClass('opacity-50');
+                            try {
+                                await navigator.share({
+                                    files: batches[i],
+                                    title: 'CATASKY Products'
+                                });
+                                sharedCount += batches[i].length;
+                                sharedSuccess = true;
+                                $('#isp-action-box').addClass('d-none');
+                                $(this).removeAttr('disabled').removeClass('opacity-50');
+                                
+                                // Resolve the gesture wait
+                                if (window._resolveGestureWait) window._resolveGestureWait();
+                            } catch (manualErr) {
+                                console.error("Manual share trigger failed:", manualErr);
+                                $(this).removeAttr('disabled').removeClass('opacity-50');
+                                // Keep the button visible so they can try again
+                            }
+                        });
+
+                        // We pause the loop and wait until the user clicks and successfully shares this batch!
+                        await new Promise(resolve => {
+                            window._resolveGestureWait = resolve;
+                        });
+                    }
+
+                    // delay prevents WhatsApp/browser crash
+                    await delay(1200);
+                }
+
+                // Display final 100% completed progress
+                updateShareProgress({
+                    currentBatch: batches.length,
+                    totalBatches: batches.length,
+                    sharedImages: files.length,
+                    totalImages: files.length
                 });
 
-                // Restore styling
-                container.setAttribute('style', prevStyle);
-                wrapper.innerHTML = '';
+                setTimeout(() => {
+                    hideImageProgressUI();
+                }, 2500);
 
-                const dataUrl = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.download = filename;
-                link.href = dataUrl;
-                link.click();
+                return {
+                    shared: true,
+                    unsupported: false,
+                    sharedCount: files.length,
+                    totalCount: files.length
+                };
             }
 
             window.shareSeparateImages = async function() {
-                let phone = $('#share-customer-phone').val();
-                const title = $('#share-catalog-title').val() || 'Premium Selection';
+                // Global lock: prevent multiple simultaneous share operations
+                if (window._isSharingImages) return;
+                window._isSharingImages = true;
+                try {
+                    setCurrentExportMode('image');
+                    const settings = getShareSettings();
+                    if (!selectedProducts || selectedProducts.length === 0) {
+                        window.alertService.warningAlert('Selection empty', 'Your selection cart is empty.');
+                        return;
+                    }
 
-                if (!phone || phone.trim() === '') {
-                    const promptResult = await window.alertService.promptText({
-                        title: 'WhatsApp number',
-                        message: "Enter customer's WhatsApp number with country code to share separate cards.",
-                        placeholder: '91xxxxxxxxxx'
-                    });
-                    phone = promptResult.isConfirmed ? promptResult.value : '';
-                }
-
-                if (!phone || phone.trim() === '') {
-                    return;
-                }
-
-                if (selectedProducts.length === 0) {
-                    window.alertService.warningAlert('Selection empty', 'Your selection cart is empty.');
-                    return;
-                }
-
-                const btn = $('#pdf-direct-btn-images');
-                const statusLog = $('#dt-status-log-images');
-                const originalHtml = btn.html();
-                
-                btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Generating...');
-                statusLog.removeClass('d-none alert-success alert-danger').addClass('alert-info').html(`
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Fetching and preparing selection details...
-                `);
-
-                fetchMultipleProductDetails(selectedProducts).then(() => {
-                    let promises = selectedProducts.map(id => fetchProductDetailsCached(id));
-
-                    Promise.all(promises).then(async dataList => {
-                        const validDataList = dataList.filter(d => d && d.success);
-                        const cardsToProcess = [];
-
-                        // 1. Flatten all cards to render
-                        validDataList.forEach(data => {
-                            const p = data.product;
-                            
-                            // Primary image card
-                            cardsToProcess.push({
-                                product: p,
-                                imageUrl: data.thumbnail_url || '',
-                                filename: `card_${p.id}_primary.png`
-                            });
-
-                            // Gallery image cards
-                            const showGallery = $('#share-show-gallery').is(':checked');
-                            if (showGallery && Array.isArray(data.gallery_urls)) {
-                                data.gallery_urls.forEach((gImgUrl, gIndex) => {
-                                    if (gImgUrl) {
-                                        cardsToProcess.push({
-                                            product: p,
-                                            imageUrl: gImgUrl,
-                                            filename: `card_${p.id}_gallery_${gIndex+1}.png`
-                                        });
-                                    }
-                                });
-                            }
-                        });
-
-                        const imageUrls = [];
-                        let completedUploads = 0;
-                        const uploadPromises = [];
-
-                        // 2. Process sequential captures & concurrent pipelined uploads
-                        for (let i = 0; i < cardsToProcess.length; i++) {
-                            const card = cardsToProcess[i];
-                            
-                            // Update capture progress
-                            statusLog.html(`
-                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                Compiling product card image ${i + 1} of ${cardsToProcess.length}...
-                            `);
-
-                            // DOM Capture (sequential, extremely fast offscreen)
-                            const blob = await captureCardAsBlob(card.product, card.imageUrl);
-                            
-                            if (blob) {
-                                // Pipelined background parallel upload
-                                const uploadPromise = uploadTempImageBlob(blob, card.filename).then(uploadUrl => {
-                                    if (uploadUrl) {
-                                        imageUrls.push(uploadUrl);
-                                    }
-                                    completedUploads++;
-                                    statusLog.html(`
-                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                        Uploading card images... (${completedUploads} of ${cardsToProcess.length} completed)
-                                    `);
-                                });
-                                uploadPromises.push(uploadPromise);
-                            }
-                        }
-
-                        // 3. Await all pipelined uploads concurrently!
-                        if (uploadPromises.length > 0) {
-                            statusLog.html(`
-                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                Finalizing parallel image card uploads...
-                            `);
-                            await Promise.all(uploadPromises);
-                        }
-
-                        if (imageUrls.length === 0) {
-                            btn.removeAttr('disabled').html(originalHtml);
-                            statusLog.removeClass('alert-info').addClass('alert-danger').html(`
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i> Failed to generate/upload any product cards.
-                            `);
+                    let prepared = getPreparedImages();
+                    if (!prepared) {
+                        try {
+                            prepared = await prepareImageShareDocs({ showProgressUI: true, mode: 'share' });
+                        } catch (err) {
+                            console.error('Failed to prepare images:', err);
+                            window.alertService.errorAlert('Image sharing failed', err.message || err);
                             return;
                         }
+                    }
 
-                        statusLog.html(`
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Dispatching separate images to WhatsApp via DoubleTick.io API...
-                        `);
 
-                        // Dispatch share request to DoubleTick
-                        $.ajax({
-                            url: "/api/doubletick/share",
-                            type: "POST",
-                            headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                            },
-                            data: {
-                                phone: phone,
-                                product_ids: selectedProducts,
-                                catalog_title: title,
-                                image_urls: imageUrls,
-                                send_type: 'images'
-                            },
-                            success: function(dtResponse) {
-                                btn.removeAttr('disabled').html(originalHtml);
-                                statusLog.removeClass('alert-info alert-danger').addClass('alert-success').html(`
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
-                                        <div>
-                                            <span class="fw-bold">Product Cards Shared Successfully!</span>
-                                            <br><small class="d-block mt-1">Sent <b>${imageUrls.length} separate product cards</b> to <b>${phone}</b>.</small>
-                                            <small class="d-block mt-2"><a href="{{ route('admin.tracking.analytics') }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill py-1 px-3 mt-1 fw-bold text-decoration-none">Open Live Tracking Panel</a></small>
-                                        </div>
-                                    </div>
-                                `);
-                                trackAnalyticsEvent('whatsapp_share_images_success', imageUrls.length);
-                            },
-                            error: function(xhr) {
-                                btn.removeAttr('disabled').html(originalHtml);
-                                const errMsg = xhr.responseJSON?.message || 'Error occurred while sharing cards.';
-                                statusLog.removeClass('alert-info alert-success').addClass('alert-danger').html(`
-                                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Failed to share cards: ${errMsg}
-                                `);
-                            }
-                        });
 
-                    }).catch(err => {
-                        console.error("Sharing failed:", err);
-                        btn.removeAttr('disabled').html(originalHtml);
-                        statusLog.removeClass('alert-info alert-success').addClass('alert-danger').html(`
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Error: ${err.message || err}
-                        `);
-                    });
-                });
+                    const result = await sequentialNativeShare(prepared.files, settings);
+
+                    if (result.cancelled) return; // User dismissed — do nothing
+
+                    if (result.unsupported) {
+                        await whatsappImageShareFallback(prepared.files, settings, 'not supported');
+                        return;
+                    }
+
+                    if (result.shared) {
+                        trackAnalyticsEventSafe('whatsapp_share_images_native_success', result.sharedCount);
+                        showToast(`Successfully shared ${result.sharedCount} of ${result.totalCount} product flyers!`, 'Images Shared', 'success');
+                    }
+                } catch (err) {
+                    console.error('shareSeparateImages error:', err);
+                    window.alertService && window.alertService.errorAlert('Sharing failed', err.message || String(err));
+                } finally {
+                    window._isSharingImages = false;
+                }
             };
 
-            async function captureCardAsBlob(p, imgUrl) {
-                const wrapper = document.getElementById('share-card-template-wrapper');
-                const container = document.getElementById('share-card-render-container');
+            // Helper for drawing object-fit: cover on 2D Canvas
+            function drawCoverImage(ctx, img, x, y, w, h) {
+                if (!img) {
+                    ctx.fillStyle = '#f1f5f9';
+                    ctx.fillRect(x, y, w, h);
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = 'bold 24px "Outfit", "Poppins", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('No Image', x + w / 2, y + h / 2);
+                    return;
+                }
+                const imgW = img.naturalWidth || img.width;
+                const imgH = img.naturalHeight || img.height;
+                const imgRatio = imgW / imgH;
+                const containerRatio = w / h;
+                
+                let sx, sy, sw, sh;
+                if (imgRatio > containerRatio) {
+                    sh = imgH;
+                    sw = imgH * containerRatio;
+                    sx = (imgW - sw) / 2;
+                    sy = 0;
+                } else {
+                    sw = imgW;
+                    sh = imgW / containerRatio;
+                    sx = 0;
+                    sy = (imgH - sh) / 2;
+                }
+                
+                ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+            }
 
-                // Build the template
-                const cardHtml = renderImagePdfBoxHtml({ product: p, imageUrl: imgUrl });
-                wrapper.innerHTML = cardHtml;
+            // Helper for drawing object-fit: contain on 2D Canvas
+            function drawContainImage(ctx, img, x, y, w, h) {
+                if (!img) return;
+                const imgW = img.naturalWidth || img.width;
+                const imgH = img.naturalHeight || img.height;
+                const imgRatio = imgW / imgH;
+                const containerRatio = w / h;
+                
+                let dx, dy, dw, dh;
+                if (imgRatio > containerRatio) {
+                    dw = w;
+                    dh = w / imgRatio;
+                    dx = x;
+                    dy = y + (h - dh) / 2;
+                } else {
+                    dh = h;
+                    dw = h * imgRatio;
+                    dx = x + (w - dw) / 2;
+                    dy = y;
+                }
+                
+                ctx.drawImage(img, dx, dy, dw, dh);
+            }
 
-                const prevStyle = container.getAttribute('style');
-                container.setAttribute('style', 'position:fixed;top:0;left:0;width:800px;height:800px;z-index:-99999;opacity:0.02;visibility:visible;pointer-events:none;background:white;overflow:visible;');
+            // Helper for drawing rounded rectangles on 2D Canvas
+            function drawRoundRect(ctx, x, y, w, h, radius, fillStyle, strokeStyle) {
+                ctx.beginPath();
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(x, y, w, h, radius);
+                } else {
+                    ctx.moveTo(x + radius, y);
+                    ctx.lineTo(x + w - radius, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+                    ctx.lineTo(x + w, y + h - radius);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+                    ctx.lineTo(x + radius, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+                    ctx.lineTo(x, y + radius);
+                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                }
+                ctx.closePath();
+                if (fillStyle) {
+                    ctx.fillStyle = fillStyle;
+                    ctx.fill();
+                }
+                if (strokeStyle) {
+                    ctx.strokeStyle = strokeStyle;
+                    ctx.stroke();
+                }
+            }
 
-                // Wait for image inside compiled page to fully load & decode offscreen
-                const img = wrapper.querySelector('img');
-                if (img) {
-                    await new Promise(resolve => {
-                        if (img.complete && img.naturalWidth > 0) {
-                            img.decode().then(resolve).catch(resolve);
-                            return;
-                        }
-                        img.onload = () => {
-                            img.decode().then(resolve).catch(resolve);
-                        };
-                        img.onerror = resolve;
-                        setTimeout(resolve, 4000);
-                    });
+            async function captureCardAsBlob(pOrItem, imgUrlFallback) {
+                let item = pOrItem;
+                if (pOrItem && !pOrItem.product && pOrItem.id) {
+                    // Supporting legacy signature: captureCardAsBlob(product, imgUrl)
+                    item = { product: pOrItem, imageUrl: imgUrlFallback };
+                }
+                
+                const p = item.product || {};
+                const imgUrl = getRelativeImageUrl(item.imageUrl || '');
+                const settings = getShareSettings();
+                const showTitle = settings.showTitle;
+                const showPrice = settings.showPrice;
+                const showWatermark = settings.showWatermark;
+                const showNote = settings.showNotes;
+                const noteText = settings.noteText || 'An Award For Every Achievement & Effort';
+                const logoPos = settings.logoPos || 'bottom-right';
+                const productName = p.name || 'Product';
+                const partCode = p.part_code || '';
+                const displayPrice = formatProductPrice(p);
+                
+                // Dynamic Quality Tuning: Use HD (1200) for large batches to load 3.2x faster, 2K (2160) for smaller ones!
+                const CANVAS_SIZE = (selectedProducts && selectedProducts.length > 6) ? 1200 : 2160;
+                const DESIGN     = 800;     // internal design coordinate space
+                const SCALE      = CANVAS_SIZE / DESIGN; // 2.7
+
+                const canvas = document.createElement('canvas');
+                canvas.width  = CANVAS_SIZE;
+                canvas.height = CANVAS_SIZE;
+                const ctx = canvas.getContext('2d', { alpha: false });
+
+                // High-quality image smoothing for crisp product photos
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
+                // All drawing uses 800×800 design coords; ctx.scale maps → 2160×2160
+                ctx.scale(SCALE, SCALE);
+
+                const footerHeight   = 104;
+                const noteHeight     = showNote ? 58 : 0;
+                const imageAreaBottom = footerHeight + noteHeight;
+
+                // ── WHITE BACKGROUND ───────────────────────────────────────────────────
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, DESIGN, DESIGN);
+
+                // ── PRODUCT IMAGE ──────────────────────────────────────────────────────
+                const img  = await loadImage(imgUrl);
+                const imgY = showTitle ? 95 : 28;
+                const imgH = showTitle ? 515 : 582;
+                drawContainImage(ctx, img, 26, imgY, 748, imgH);
+
+                // ── TOP TITLE + SHORT DESCRIPTION ─────────────────────────────────────
+                if (showTitle) {
+                    ctx.textAlign    = 'left';
+                    ctx.textBaseline = 'top';
+
+                    ctx.fillStyle = '#000000';
+                    ctx.font      = '900 23px "Outfit", "Poppins", sans-serif';
+                    ctx.fillText(productName, 44, 34);
+
+                    if (p.short_description) {
+                        ctx.font      = '700 13px "Outfit", "Poppins", sans-serif';
+                        ctx.fillStyle = '#111111';
+                        ctx.fillText(p.short_description, 44, 62);
+                    }
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 200));
+                // ── WATERMARK LOGO ────────────────────────────────────────────────────
+                if (showWatermark && window.companyLogoBase64) {
+                    const logoImg = await loadImage(window.companyLogoBase64);
+                    if (logoImg) {
+                        let logoX = 686;
+                        let logoY = DESIGN - imageAreaBottom - 18 - 42; // default: bottom-right
+                        if (logoPos === 'top-left')    { logoX = 24;  logoY = 22; }
+                        else if (logoPos === 'top-right')   { logoX = 686; logoY = 22; }
+                        else if (logoPos === 'bottom-left') { logoX = 24;  logoY = DESIGN - imageAreaBottom - 18 - 42; }
+                        drawContainImage(ctx, logoImg, logoX, logoY, 90, 42);
+                    }
+                }
 
-                const canvas = await html2canvas(wrapper, {
-                    scale: 1.5, // 1.5 is extremely fast (2-3x speedup) and crisp!
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    windowWidth: 800,
-                    windowHeight: 800,
-                    scrollX: 0,
-                    scrollY: 0
-                });
+                // ── YELLOW NOTE BAR ───────────────────────────────────────────────────
+                if (showNote) {
+                    const noteY = DESIGN - footerHeight - noteHeight;
+                    ctx.fillStyle = '#FFD000';
+                    ctx.fillRect(0, noteY, DESIGN, noteHeight);
 
-                container.setAttribute('style', prevStyle);
-                wrapper.innerHTML = '';
+                    ctx.fillStyle    = '#000000';
+                    ctx.font         = '900 17px "Outfit", "Poppins", sans-serif';
+                    ctx.textBaseline = 'middle';
 
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`CODE: ${partCode}`, 48, noteY + noteHeight / 2);
+
+                    ctx.textAlign = 'right';
+                    ctx.fillText(noteText, DESIGN - 48, noteY + noteHeight / 2);
+                }
+
+                // ── BLACK FOOTER ──────────────────────────────────────────────────────
+                const footerY = DESIGN - footerHeight;
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, footerY, DESIGN, footerHeight);
+
+                ctx.textBaseline = 'middle';
+
+                // Part code — yellow
+                ctx.fillStyle = '#FFD000';
+                ctx.font      = '900 14px "Outfit", "Poppins", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`CODE: ${partCode}`, 48, footerY + 32);
+
+                // Product name — white
+                if (showTitle) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font      = '900 25px "Outfit", "Poppins", sans-serif';
+                    const maxTitleW = showPrice ? 420 : 600;
+                    let displayTitle = productName;
+                    while (displayTitle.length > 0 && ctx.measureText(displayTitle + '...').width > maxTitleW) {
+                        displayTitle = displayTitle.slice(0, -1);
+                    }
+                    if (displayTitle !== productName) displayTitle += '...';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(displayTitle, 48, footerY + 66);
+                }
+
+                // Price — white, right-aligned
+                if (showPrice) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font      = '900 28px "Outfit", "Poppins", sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(displayPrice, DESIGN - 48, footerY + 32);
+                }
+
+                // "TAP TO VIEW" pill
+                const pillW = 110, pillH = 32;
+                const pillX = DESIGN - 48 - pillW;
+                const pillY = footerY + 52;
+                drawRoundRect(ctx, pillX, pillY, pillW, pillH, 16, '#ffffff', null);
+                ctx.fillStyle = '#000000';
+                ctx.font      = '900 13px "Outfit", "Poppins", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('TAP TO VIEW', pillX + pillW / 2, pillY + pillH / 2);
+
+                // ── EXPORT: ULTRA HIGH-RESOLUTION (SUPER SHARP & OPTIMIZED FILE SIZE) ───────────────────
+                // We ALWAYS use 'image/jpeg' for sharing because WebP is not fully supported 
+                // by the receiving intents of many apps (like WhatsApp, Gmail, etc.) on mobile.
+                // JPEG has 100% compatibility across all platforms and apps.
                 return new Promise(resolve => {
-                    canvas.toBlob(blob => resolve(blob), 'image/png');
+                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.82);
                 });
             }
 
@@ -1467,12 +2514,14 @@
             }
 
             function renderCardForExportHtml(p, imgUrl) {
-                const showTitle = $('#share-show-title').is(':checked');
-                const showPrice = $('#share-show-price').is(':checked');
-                const showWatermark = $('#share-add-watermark').is(':checked');
-                const showNote = $('#share-add-note').is(':checked');
-                const noteText = $('#share-note-text').val() || '';
-                const logoPos = $('#share-logo-pos').val() || 'bottom-right';
+                imgUrl = getRelativeImageUrl(imgUrl);
+                const settings = getShareSettings();
+                const showTitle = settings.showTitle;
+                const showPrice = settings.showPrice;
+                const showWatermark = settings.showWatermark;
+                const showNote = settings.showNotes;
+                const noteText = settings.noteText || '';
+                const logoPos = settings.logoPos || 'bottom-right';
 
                 let logoPosStyle = 'bottom: 150px; right: 30px;'; // Default BR
                 if (logoPos === 'top-left') {
@@ -1483,19 +2532,19 @@
                     logoPosStyle = 'bottom: 150px; left: 30px;';
                 }
 
-                const companyLogo = window.companyLogoBase64 || '';
-                const displayPrice = String(p.variant || 'On Request').includes('₹') ? String(p.variant || 'On Request') : '₹ ' + String(p.variant || 'On Request');
+                const companyLogo = getRelativeImageUrl(window.companyLogoBase64 || '');
+                const displayPrice = formatProductPrice(p);
 
                 return `
                 <div style="width: 800px; height: 800px; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; position: relative; box-sizing: border-box; font-family: 'Outfit', 'Poppins', sans-serif;">
                     ${showWatermark && companyLogo ? `
                     <div style="position: absolute; ${logoPosStyle} width: 100px; height: 100px; z-index: 5; pointer-events: none; opacity: 0.7; display: flex; align-items: center; justify-content: center;">
-                        <img src="${companyLogo}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <img src="${companyLogo}" decoding="async" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                     </div>` : ''}
 
                     <!-- Product Image Centered -->
                     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 15px; box-sizing: border-box; width: 100%; height: 580px;">
-                        <img src="${imgUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <img src="${imgUrl}" decoding="async" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                     </div>
 
                     <!-- Yellow Note Bar -->
@@ -1525,18 +2574,18 @@
 
             function formatDisplayPrice(value) {
                 const price = String(value || 'On Request').trim();
-                return price.includes('\u20B9') || price.toLowerCase().includes('request') ? price : '&#8377; ' + price;
+                return price.includes('\u20B9') || price.includes('&#8377;') || price.toLowerCase().includes('request') ? price : '&#8377; ' + price;
             }
 
             function getImagePdfItems(validDataList) {
-                const showGallery = $('#share-show-gallery').is(':checked');
+                const showGallery = getShareSettings().showGallery;
                 const items = [];
 
                 validDataList.forEach(data => {
                     if (!data || !data.success) return;
                     items.push({
                         product: data.product,
-                        imageUrl: data.thumbnail_url || '',
+                        imageUrl: getRelativeImageUrl(data.thumbnail_url || ''),
                         label: 'primary'
                     });
 
@@ -1545,7 +2594,7 @@
                             if (url) {
                                 items.push({
                                     product: data.product,
-                                    imageUrl: url,
+                                    imageUrl: getRelativeImageUrl(url),
                                     label: 'gallery_' + (index + 1)
                                 });
                             }
@@ -1558,17 +2607,18 @@
 
             function renderImagePdfBoxHtml(item, options = {}) {
                 const p = item.product || {};
-                const imgUrl = item.imageUrl || '';
-                const companyLogo = String(options.companyLogo || window.companyLogoBase64 || '').trim();
-                const showTitle = $('#share-show-title').is(':checked');
-                const showPrice = $('#share-show-price').is(':checked');
-                const showWatermark = $('#share-add-watermark').is(':checked');
-                const showNote = $('#share-add-note').is(':checked');
-                const noteText = escapeHtml($('#share-note-text').val() || 'An Award For Every Achievement & Effort');
-                const logoPos = $('#share-logo-pos').val() || 'top-right';
+                const imgUrl = getRelativeImageUrl(item.imageUrl || '');
+                const settings = getShareSettings();
+                const companyLogo = getRelativeImageUrl(String(options.companyLogo || window.companyLogoBase64 || '').trim());
+                const showTitle = settings.showTitle;
+                const showPrice = settings.showPrice;
+                const showWatermark = settings.showWatermark;
+                const showNote = settings.showNotes;
+                const noteText = escapeHtml(settings.noteText || 'An Award For Every Achievement & Effort');
+                const logoPos = settings.logoPos || 'bottom-right';
                 const productName = escapeHtml(p.name || 'Product');
                 const partCode = escapeHtml(p.part_code || '');
-                const displayPrice = formatDisplayPrice(p.variant || 'On Request');
+                const displayPrice = formatProductPrice(p);
                 const footerHeight = 104;
                 const noteHeight = showNote ? 58 : 0;
                 const imageAreaBottom = footerHeight + noteHeight;
@@ -1583,39 +2633,41 @@
                 }
 
                 return `
-                <div style="box-sizing:border-box;width:800px;height:800px;background:#ffffff;position:relative;overflow:hidden;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
-                    <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background:#ffffff;">
-                        ${showTitle ? `
-                        <div style="position:absolute;top:34px;left:44px;right:210px;z-index:4;color:#000000;">
-                            <div style="font-size:23px;font-weight:900;line-height:1.12;letter-spacing:0;">${productName}</div>
-                            ${p.short_description ? `<div style="font-size:13px;font-weight:700;line-height:1.2;margin-top:4px;">${escapeHtml(p.short_description)}</div>` : ''}
-                        </div>` : ''}
+                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1080px;overflow:hidden;position:relative;background:#ffffff;will-change:transform;contain:layout paint;">
+                    <div style="width:800px;height:800px;transform:scale(1.35);transform-origin:top left;position:absolute;top:0;left:0;will-change:transform;contain:layout paint;box-sizing:border-box;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
+                        <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background:#ffffff;">
+                            ${showTitle ? `
+                            <div style="position:absolute;top:34px;left:44px;right:210px;z-index:4;color:#000000;">
+                                <div style="font-size:23px;font-weight:900;line-height:1.12;letter-spacing:0;">${productName}</div>
+                                ${p.short_description ? `<div style="font-size:13px;font-weight:700;line-height:1.2;margin-top:4px;">${escapeHtml(p.short_description)}</div>` : ''}
+                            </div>` : ''}
 
-                        ${showWatermark && companyLogo ? `
-                        <div style="position:absolute;${logoPosStyle}width:90px;height:42px;z-index:5;display:flex;align-items:center;justify-content:center;">
-                            <img src="${companyLogo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
-                        </div>` : ''}
+                            ${showWatermark && companyLogo ? `
+                            <div style="position:absolute;${logoPosStyle}width:90px;height:42px;z-index:5;display:flex;align-items:center;justify-content:center;">
+                                <img src="${companyLogo}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
+                            </div>` : ''}
 
-                        ${imgUrl
-                            ? `<img src="${imgUrl}" style="position:absolute;left:26px;right:26px;top:${showTitle ? '95px' : '28px'};bottom:26px;width:748px;height:${showTitle ? '515px' : '582px'};object-fit:contain;display:block;">`
-                            : `<div style="position:absolute;left:26px;right:26px;top:80px;bottom:40px;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;">No Image</div>`
-                        }
-                    </div>
-
-                    ${showNote ? `
-                    <div style="position:absolute;left:0;right:0;bottom:${footerHeight}px;height:${noteHeight}px;background:#FFD000;color:#000000;display:flex;align-items:center;justify-content:space-between;padding:0 48px;box-sizing:border-box;font-weight:900;">
-                        <div style="font-size:17px;">CODE: ${partCode}</div>
-                        <div style="font-size:17px;text-transform:uppercase;text-align:right;max-width:430px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${noteText}</div>
-                    </div>` : ''}
-
-                    <div style="position:absolute;left:0;right:0;bottom:0;height:${footerHeight}px;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:space-between;padding:0 48px;box-sizing:border-box;">
-                        <div style="min-width:0;max-width:${showPrice ? '500px' : '680px'};">
-                            <div style="font-size:14px;color:#FFD000;font-weight:900;text-transform:uppercase;margin-bottom:6px;">CODE: ${partCode}</div>
-                            ${showTitle ? `<div style="font-size:25px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${productName}</div>` : ''}
+                            ${imgUrl
+                                ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:26px;right:26px;top:${showTitle ? '95px' : '28px'};bottom:26px;width:748px;height:${showTitle ? '515px' : '582px'};object-fit:contain;display:block;">`
+                                : `<div style="position:absolute;left:26px;right:26px;top:80px;bottom:40px;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;">No Image</div>`
+                            }
                         </div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-                            ${showPrice ? `<div style="font-size:28px;font-weight:900;white-space:nowrap;">${displayPrice}</div>` : ''}
-                            <div style="background:#ffffff;color:#000000;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0;">Tap to view</div>
+
+                        ${showNote ? `
+                        <div style="position:absolute;left:0;right:0;bottom:${footerHeight}px;height:${noteHeight}px;background:#FFD000;color:#000000;display:flex;align-items:center;justify-content:space-between;padding:0 48px;box-sizing:border-box;font-weight:900;">
+                            <div style="font-size:17px;">CODE: ${partCode}</div>
+                            <div style="font-size:17px;text-transform:uppercase;text-align:right;max-width:430px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${noteText}</div>
+                        </div>` : ''}
+
+                        <div style="position:absolute;left:0;right:0;bottom:0;height:${footerHeight}px;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:space-between;padding:0 48px;box-sizing:border-box;">
+                            <div style="min-width:0;max-width:${showPrice ? '500px' : '680px'};">
+                                <div style="font-size:14px;color:#FFD000;font-weight:900;text-transform:uppercase;margin-bottom:6px;">CODE: ${partCode}</div>
+                                ${showTitle ? `<div style="font-size:25px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${productName}</div>` : ''}
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                                ${showPrice ? `<div style="font-size:28px;font-weight:900;white-space:nowrap;">${displayPrice}</div>` : ''}
+                                <div style="background:#ffffff;color:#000000;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0;">Tap to view</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1623,7 +2675,7 @@
             }
 
             function renderImagePdfPageHtml(items, options = {}) {
-                const companyLogo = String(options.companyLogo || window.companyLogoBase64 || '').trim();
+                const companyLogo = getRelativeImageUrl(String(options.companyLogo || window.companyLogoBase64 || '').trim());
                 const catalogTitle = escapeHtml(options.catalogTitle || 'Compact Visual Matrix Portfolio');
                 const productCount = options.productCount || items.length;
                 const titleWords = catalogTitle.split(/\s+/).filter(Boolean);
@@ -1638,7 +2690,7 @@
                     if (item) {
                         slotsHtml += `
                         <div style="width:218px;height:218px;position:relative;border-radius:8px;overflow:hidden;background:#ffffff;border:1.5px solid #E2E8F0;box-sizing:border-box;">
-                            <div style="width:800px;height:800px;transform:scale(0.2725);transform-origin:top left;">
+                            <div style="width:1080px;height:1080px;transform:scale(0.20185);transform-origin:top left;will-change:transform;contain:layout paint;">
                                 ${renderImagePdfBoxHtml(item, { companyLogo })}
                             </div>
                         </div>
@@ -1657,7 +2709,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;">
                         <div style="display:flex;align-items:flex-start;gap:18px;">
                             ${companyLogo
-                                ? `<img src="${companyLogo}" style="max-width:112px;max-height:42px;object-fit:contain;display:block;">`
+                                ? `<img src="${companyLogo}" loading="lazy" decoding="async" style="max-width:112px;max-height:42px;object-fit:contain;display:block;">`
                                 : `<div style="width:44px;height:44px;border-radius:10px;background:#1D6FEB;color:white;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.25rem;">C</div>`
                             }
                            
@@ -1792,9 +2844,11 @@
 
                     let targetTab = 'selection';
                     if (activeTabKey === 'pdf') {
+                        setCurrentExportMode('pdf');
                         $('#pdf-tab').click();
                         targetTab = 'pdf';
                     } else if (activeTabKey === 'image') {
+                        setCurrentExportMode('image');
                         $('#image-tab').click();
                         targetTab = 'image';
                     } else {
@@ -1810,6 +2864,12 @@
                     } else if (targetTab === 'image') {
                         generateLiveImagePreview();
                     }
+
+                    // Background prepare images for sharing to achieve instant clicks!
+                    setTimeout(() => {
+                        prepareImageShareDocs().catch(err => console.log('Background image prep skipped:', err));
+                    }, 150);
+
                 }).catch(err => {
                     console.error("openSharingModal pre-fetch error:", err);
                     $('#modal-selection-list').html(`
@@ -1832,13 +2892,15 @@
 
             // Bind tab click events to lazily compile PDF previews on demand
             $(document).ready(function() {
-                $('#pdf-tab').on('click', function() {
+                $('#pdf-tab').off('click.catalogueExport').on('click.catalogueExport', function() {
+                    setCurrentExportMode('pdf');
                     if (!window.renderedPreviews.details && selectedProducts.length > 0) {
                         generateLivePDFPreview('details');
                     }
                 });
 
-                $('#image-tab').on('click', function() {
+                $('#image-tab').off('click.catalogueExport').on('click.catalogueExport', function() {
+                    setCurrentExportMode('image');
                     if (!window.renderedPreviews.images && selectedProducts.length > 0) {
                         generateLiveImagePreview();
                     }
@@ -1869,8 +2931,8 @@
                     return;
                 }
                 
-                // Enable sharing buttons
-                $('#pdf-share-btn-details, #pdf-download-btn-details, #pdf-direct-btn-details, #pdf-api-btn-details, #pdf-share-btn-images, #pdf-download-btn-images, #pdf-direct-btn-images, #pdf-api-btn-images').removeAttr('disabled').css({ 'opacity': '1', 'pointer-events': 'auto' });
+                setExportButtonsState('details', false);
+                setExportButtonsState('images', false);
                 
                 listContainer.html(`
                     <div class="d-flex justify-content-center align-items-center py-5">
@@ -1890,27 +2952,27 @@
                                 validCount++;
                                 const p = data.product;
                                 const moq = p.part_code || 'MOQ: 100 pcs';
-                                const price = p.variant || 'Price on Request';
+                                const price = formatProductPrice(p);
                                 const thumbnailUrl = data.thumbnail_url || '';
                                 
                                 html += `
                                     <div class="d-flex align-items-center justify-content-between p-3 bg-white border rounded-4 mb-2" id="modal-selected-item-${p.id}" style="transition: all 0.25s ease;">
-                                        <div class="d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center gap-3" style="min-width: 0; flex-grow: 1; margin-right: 12px;">
                                             <div style="width: 55px; height: 55px; border-radius: 12px; background: #ffffff; border: 1.5px solid #F1F5F9; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
                                                 ` + (thumbnailUrl 
-                                                    ? `<img src="${thumbnailUrl}" style="max-width: 48px; max-height: 48px; object-fit: contain;">`
+                                                    ? `<img src="${thumbnailUrl}" loading="lazy" decoding="async" style="max-width: 48px; max-height: 48px; object-fit: contain;">`
                                                     : `<div style="font-size: 0.7rem; color: #94A3B8;">No Image</div>`
                                                 ) + `
                                             </div>
-                                            <div>
-                                                <h6 class="fw-bold mb-1 text-dark text-truncate" style="max-width: 480px; font-size: 0.85rem;">${p.name}</h6>
+                                            <div style="min-width: 0; flex-grow: 1;">
+                                                <h6 class="fw-bold mb-1 text-dark text-truncate" style="max-width: 100% !important; font-size: 0.85rem;" title="${p.name}">${p.name}</h6>
                                                 <div class="d-flex gap-2 align-items-center">
                                                     <span class="badge bg-light text-secondary border small-text" style="font-size: 0.65rem; font-weight: 600;">${moq}</span>
                                                     <span class="text-primary fw-bold" style="font-size: 0.8rem;">${price}</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <button class="btn btn-premium-danger btn-sm rounded-circle d-flex align-items-center justify-content-center" onclick="toggleSelection('${p.id}'); populateModalSelectionList();" style="width: 36px; height: 36px; padding: 0; background: rgba(239, 68, 68, 0.08); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.15); transition: all 0.2s ease;">
+                                        <button class="btn btn-premium-danger btn-sm rounded-circle d-flex align-items-center justify-content-center" onclick="toggleSelection('${p.id}'); populateModalSelectionList();" style="width: 36px; height: 36px; padding: 0; background: rgba(239, 68, 68, 0.08); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.15); transition: all 0.2s ease; flex-shrink: 0;">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
@@ -2099,147 +3161,55 @@
             }
 
             // WhatsApp structured PDF sharing triggers
-            window.sharePDFOnWhatsApp = function(type) {
-                const typeName = (type === 'details') ? 'B2B Specifications' : 'Image Share';
-                const catalogTitle = $('#share-catalog-title').val() || 'Premium Selection';
+            window.sharePDFOnWhatsApp = async function(type) {
+                type = normalizeExportType(type);
+                if (type === 'images') {
+                    return window.shareSeparateImages();
+                }
+                if (!selectedProducts || selectedProducts.length === 0) {
+                    window.alertService.warningAlert('No products selected', 'Please select at least one product first.');
+                    return;
+                }
 
-                // Shift sharing button to loading state
-                const btn = $(`#pdf-direct-btn-${type}`);
-                const originalHtml = btn.html();
-                btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Generating PDF...');
+                setCurrentExportMode('pdf');
+                const settings = getShareSettings();
+                let prepared = getPreparedPdf(type);
+                
+                const btn = $('#pdf-direct-btn-details');
+                const origHtml = btn.html();
 
-                // 1. First trigger the PDF generation and get blob
-                generatePDFBlob(type).then(async (pdfData) => {
-                    // Create a File object from the blob so it can be shared via Web Share API
-                    const file = new File([pdfData.blob], pdfData.filename, { type: 'application/pdf' });
-                    
-                    // Check if Web Share API supports file sharing natively (mobile devices etc.)
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Sharing Document...');
-                        navigator.share({
-                            files: [file],
-                            title: pdfData.filename,
-                            text: `Please review our B2B Product Specifications Portfolio: ${catalogTitle}`
-                        })
-                        .then(() => {
-                            btn.removeAttr('disabled').html(originalHtml);
-                            trackAnalyticsEventSafe('whatsapp_share_pdf_native_success', type);
-                        })
-                        .catch((err) => {
-                            console.log('Native document sharing cancelled or failed:', err);
-                            btn.removeAttr('disabled').html(originalHtml);
-                        });
-                    } else {
-                        // Desktop/fallback: collect WhatsApp number in the CATASKY modal system.
-                        const phonePrompt = await window.alertService.promptText({
-                            title: 'WhatsApp number',
-                            message: "Enter customer's WhatsApp number with country code to send the PDF document.",
-                            placeholder: '91xxxxxxxxxx'
-                        });
-                        const phone = phonePrompt.isConfirmed ? phonePrompt.value : '';
+                try {
+                    if (!prepared) {
+                        btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Compiling PDF...');
+                        showToast('Preparing your PDF Proposal... Please wait.', 'Compiling PDF');
                         
-                        if (phone && phone.trim() !== '') {
-                            btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Uploading PDF...');
-                            
-                            const formData = new FormData();
-                            formData.append('pdf', pdfData.blob, pdfData.filename);
-                            formData.append('filename', pdfData.filename);
-                            formData.append('_token', '{{ csrf_token() }}');
-                            
-                            $.ajax({
-                                url: "{{ route('pdf.upload-temp') }}",
-                                type: "POST",
-                                data: formData,
-                                processData: false,
-                                contentType: false,
-                                success: function(response) {
-                                    if (response.success && response.url) {
-                                        const pdfUrlForApi = response.public_url || response.url;
-                                        
-                                        btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Dispatching WhatsApp PDF...');
-                                        
-                                        $.ajax({
-                                            url: "/api/doubletick/share",
-                                            type: "POST",
-                                            data: {
-                                                phone: phone,
-                                                product_ids: selectedProducts,
-                                                catalog_title: catalogTitle,
-                                                pdf_url: pdfUrlForApi,
-                                                send_type: 'pdf',
-                                                _token: '{{ csrf_token() }}'
-                                            },
-                                            success: function(dtResponse) {
-                                                btn.removeAttr('disabled').html(originalHtml);
-                                                window.alertService.successAlert('PDF sent', `PDF file successfully sent to WhatsApp number: ${phone}`);
-                                                trackAnalyticsEvent('whatsapp_share_pdf_api_success', type);
-                                            },
-                                            error: function(xhr) {
-                                                btn.removeAttr('disabled').html(originalHtml);
-                                                window.alertService.errorAlert("Failed to send PDF", xhr.responseJSON?.message || 'Error sending PDF via API');
-                                            }
-                                        });
-                                    } else {
-                                        btn.removeAttr('disabled').html(originalHtml);
-                                        window.alertService.errorAlert("PDF upload failed", "The server could not store the PDF.");
-                                    }
-                                },
-                                error: function(xhr, status, error) {
-                                    console.error("PDF upload failed:", error);
-                                    btn.removeAttr('disabled').html(originalHtml);
-                                    window.alertService.errorAlert("Server upload error", "Server upload error occurred.");
-                                }
-                            });
-                        } else {
-                            // If they cancel the prompt, fall back to opening WhatsApp Web chat with standard links and download URL
-                            btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Preparing chat link...');
-                            
-                            const formData = new FormData();
-                            formData.append('pdf', pdfData.blob, pdfData.filename);
-                            formData.append('filename', pdfData.filename);
-                            formData.append('_token', '{{ csrf_token() }}');
-                            
-                            $.ajax({
-                                url: "{{ route('pdf.upload-temp') }}",
-                                type: "POST",
-                                data: formData,
-                                processData: false,
-                                contentType: false,
-                                success: function(response) {
-                                    if (response.success && response.url) {
-                                        const downloadUrl = response.url;
-                                        
-                                        registerProposalAndGetTrackingUrl(catalogTitle, function(trackingUrl) {
-                                            btn.removeAttr('disabled').html(originalHtml);
-
-                                            let msg = `📘 *CATASKY SMART CATALOGUE*\n\n`;
-                                            msg += `🔗 *Press to Open Catalogue:*\n`;
-                                            msg += `${trackingUrl}\n\n`;
-                                            msg += `📄 *Download PDF Brochure:*\n`;
-                                            msg += `${downloadUrl}\n\n`;
-
-                                            openWhatsAppChat(msg);
-                                            trackAnalyticsEvent('whatsapp_share_pdf', type);
-                                            
-                                            window.alertService.infoAlert("Opening WhatsApp", "No WhatsApp number entered. Opening WhatsApp chat with tracking links, and downloaded the PDF for manual attachment.");
-                                            pdfData.pdf.save(pdfData.filename);
-                                        });
-                                    } else {
-                                        handleShareError(btn, originalHtml, "Invalid upload response");
-                                    }
-                                },
-                                error: function(xhr, status, error) {
-                                    console.error("PDF upload failed:", error);
-                                    handleShareError(btn, originalHtml, "PDF Upload failed");
-                                }
-                            });
-                        }
+                        const prepData = await preparePDFShareDoc(type);
+                        prepared = prepData;
+                        
+                        btn.removeAttr('disabled').html(origHtml);
                     }
-                }).catch((err) => {
-                    console.error("PDF auto-generation failed during share:", err);
-                    handleShareError(btn, originalHtml, "PDF Generation failed");
-                });
+
+                    const result = await nativeShareFiles(
+                        [prepared.file],
+                        prepared.filename || document.title,
+                        `Please review our B2B Product Specifications Portfolio: ${settings.catalogTitle}`
+                    );
+                    if (result.unsupported) {
+                        downloadPreparedPdf(prepared);
+                        showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                        return;
+                    }
+                    trackAnalyticsEventSafe('whatsapp_share_pdf_native_success', type);
+                } catch (error) {
+                    btn.removeAttr('disabled').html(origHtml);
+                    if (error && error.name === 'AbortError') return;
+                    console.error(error);
+                    downloadPreparedPdf(prepared ? prepared : null);
+                    showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                }
             };
+
+
 
             function handleShareError(btn, originalHtml, reason) {
                 btn.removeAttr('disabled').html(originalHtml);
@@ -2369,6 +3339,7 @@
             };
 
             window.generateLiveImagePreview = function() {
+                setCurrentExportMode('image');
                 const type = 'images';
                 if (selectedProducts.length === 0) return;
                 window.renderedPreviews.images = true;
@@ -2376,29 +3347,33 @@
                 const badge = $('#pdf-preview-status-images');
                 const loader = $('#pdf-preview-loader-images');
                 const frame = $('#pdf-preview-frame-images');
-                const downloadBtn = $('#pdf-download-btn-images');
-                const shareBtn = $('#pdf-direct-btn-images');
-                const shareSystemBtn = $('#pdf-share-btn-images');
+                const token = ++window.exportBuildTokens.images;
 
                 badge.removeClass('bg-success bg-danger text-dark text-white').addClass('bg-warning text-dark').text('Rendering...');
                 loader.removeClass('d-none').addClass('d-flex');
                 frame.removeClass('d-flex').addClass('d-none');
-                downloadBtn.add(shareBtn).add(shareSystemBtn).attr('disabled', true).css({ opacity: '0.5', 'pointer-events': 'none' });
+                setExportButtonsState(type, false, 'Rendering images...');
 
                 fetchMultipleProductDetails(selectedProducts).then(() => {
                     return Promise.all(selectedProducts.map(id => fetchProductDetailsCached(id)));
                 }).then(dataList => {
                     const validDataList = dataList.filter(d => d && d.success);
                     const imageItems = getImagePdfItems(validDataList);
-                    const previewItems = imageItems.slice(0, 12);
+                    // Show ALL selected products in the preview (no 12-item cap)
+                    const previewItems = imageItems;
+                    // preview-scale maps the 1080px internal card to the displayed card width.
+                    // We use CSS grid 1fr columns; approximate card width from container.
+                    // The card inner div is 1080px wide; scale = cardDisplayWidth / 1080.
+                    // We target ~2 columns on mobile (~160px each) and 176px on desktop.
+                    const previewScale = (176 / 1080).toFixed(4); // 0.1630
                     const html = `
                         <div class="share-image-preview-grid">
                             ${previewItems.map(item => {
                                 const slug = item.product && item.product.slug ? item.product.slug : '';
                                 const url = slug ? `${window.location.origin}/product/${slug}` : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
                                 return `
-                                    <a class="share-image-preview-card" href="${url}" target="_blank" style="width:176px;height:176px;">
-                                        <div style="--preview-scale:0.22;">${renderImagePdfBoxHtml(item)}</div>
+                                    <a class="share-image-preview-card" href="${url}" target="_blank">
+                                        <div style="--preview-scale:${previewScale};">${renderImagePdfBoxHtml(item)}</div>
                                     </a>
                                 `;
                             }).join('')}
@@ -2409,69 +3384,120 @@
                     $('#pdf-preview-scale-wrap-images').css({ height: 'auto', display: 'block', overflow: 'auto' });
                     loader.removeClass('d-flex').addClass('d-none');
                     frame.removeClass('d-none').addClass('d-flex');
-                    badge.removeClass('bg-warning bg-danger text-dark text-white').addClass('bg-success text-white').text('Ready');
-                    downloadBtn.add(shareBtn).add(shareSystemBtn).removeAttr('disabled').css({ opacity: '1', 'pointer-events': 'auto' });
+
+                    badge.removeClass('bg-warning bg-danger text-white').addClass('bg-warning text-dark').text('Compiling images...');
+                    return prepareImageShareDocs().then(() => {
+                        if (token !== window.exportBuildTokens.images) return;
+                        badge.removeClass('bg-warning bg-danger text-dark').addClass('bg-success text-white').text('Ready');
+                        setExportButtonsState(type, true);
+                    });
                 }).catch(err => {
                     console.error("Error generating image preview", err);
                     badge.removeClass('bg-warning bg-success text-dark text-white').addClass('bg-danger text-white').text('Load Error');
                     loader.removeClass('d-flex').addClass('d-none');
+                    setExportButtonsState(type, false);
                 });
             };
 
-            async function buildShareImageFiles() {
+            async function buildShareImageFiles(progressFn) {
                 if (!selectedProducts || selectedProducts.length === 0) {
                     throw new Error('Please select at least one product first.');
                 }
                 await fetchMultipleProductDetails(selectedProducts);
                 const dataList = await Promise.all(selectedProducts.map(id => fetchProductDetailsCached(id)));
                 const imageItems = getImagePdfItems(dataList.filter(d => d && d.success));
-                const files = [];
 
-                for (let i = 0; i < imageItems.length; i++) {
-                    const item = imageItems[i];
-                    const p = item.product || {};
-                    const blob = await captureCardAsBlob(p, item.imageUrl || '');
-                    const filename = `${String(p.slug || p.id || 'product').replace(/[^a-z0-9_-]+/gi, '_')}_${item.label || i + 1}.png`;
-                    files.push(new File([blob], filename, { type: 'image/png' }));
+                const totalItems = imageItems.length;
+                
+                // PERFORMANCE OPTIMIZATION: Preload ALL images in parallel upfront to utilize browser parallel connection pool!
+                await Promise.all(imageItems.map(item => preloadImage(item.imageUrl)));
+
+                const BATCH_SIZE = 8;
+                const CONCURRENT_RENDERS = 8; // Double the rendering concurrency for ultra super fast loading!
+                const results = [];
+
+                for (let i = 0; i < imageItems.length; i += BATCH_SIZE) {
+                    const batchItems = imageItems.slice(i, i + BATCH_SIZE);
+
+                    // Process this batch with a concurrent worker queue of CONCURRENT_RENDERS = 8
+                    const batchResults = await processInParallelBatches(batchItems, CONCURRENT_RENDERS, async (item, batchIdx) => {
+                        const globalIdx = i + batchIdx;
+                        const p = item.product || {};
+                        const cacheKey = getCardCacheKey(p.id, item.imageUrl);
+
+                        let blob = window.imageCache.get(cacheKey);
+                        if (!blob) {
+                            blob = await captureCardAsBlob(p, item.imageUrl || '');
+                            window.imageCache.set(cacheKey, blob);
+                        }
+
+                        const ext = 'jpg';
+                        const mime = 'image/jpeg';
+                        const filename = `${String(p.slug || p.id || 'product').replace(/[^a-z0-9_-]+/gi, '_')}_${item.label || (globalIdx + 1)}.${ext}`;
+                        return new File([blob], filename, { type: mime });
+                    }, (completedInBatch, totalInBatch) => {
+                        if (progressFn) {
+                            const completedTotal = results.length + completedInBatch;
+                            progressFn(completedTotal, totalItems);
+                        }
+                    });
+
+                    results.push(...batchResults);
                 }
-                return files;
+
+                return results;
             }
 
             window.shareImageSystem = async function() {
-                const btn = $('#pdf-share-btn-images');
-                const originalHtml = btn.html();
+                // Global lock: prevent multiple simultaneous share operations
+                if (window._isSharingImages) return;
+                window._isSharingImages = true;
                 try {
-                    btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Generating images...');
-                    const files = await buildShareImageFiles();
-                    btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Opening share sheet...');
-                    const title = $('#share-catalog-title').val() || 'Premium Selection';
-                    const catalogueUrl = `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
-                    if (navigator.canShare && navigator.canShare({ files })) {
-                        await navigator.share({
-                            files,
-                            title,
-                            text: `${title}\nOpen catalogue: ${catalogueUrl}`
-                        });
-                        trackAnalyticsEventSafe('system_share_images_success', files.length);
-                    } else {
-                        for (const file of files) {
-                            const link = document.createElement('a');
-                            link.download = file.name;
-                            link.href = URL.createObjectURL(file);
-                            link.click();
-                            setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+                    setCurrentExportMode('image');
+                    const settings = getShareSettings();
+                    if (!selectedProducts || selectedProducts.length === 0) {
+                        window.alertService.warningAlert('No products selected', 'Please select at least one product first.');
+                        return;
+                    }
+
+                    let prepared = getPreparedImages();
+                    if (!prepared) {
+                        try {
+                            prepared = await prepareImageShareDocs({ showProgressUI: true, mode: 'system_share' });
+                        } catch (err) {
+                            console.error('Failed to prepare images:', err);
+                            window.alertService.errorAlert('Image sharing failed', err.message || err);
+                            return;
                         }
-                        window.alertService.infoAlert('Images downloaded', 'This browser does not support direct image file sharing, so the generated images were downloaded.');
+                    }
+
+
+
+                    const result = await sequentialNativeShare(prepared.files, settings);
+
+                    if (result.cancelled) return; // User dismissed — do nothing
+
+                    if (result.unsupported) {
+                        await whatsappImageShareFallback(prepared.files, settings, 'not supported');
+                        return;
+                    }
+
+                    if (result.shared) {
+                        trackAnalyticsEventSafe('system_share_images_success', result.sharedCount);
+                        showToast(`Successfully shared ${result.sharedCount} of ${result.totalCount} product flyers!`, 'Images Shared', 'success');
                     }
                 } catch (err) {
-                    console.error('Image share failed:', err);
-                    window.alertService.errorAlert('Image share failed', err.message || err);
+                    console.error('shareImageSystem error:', err);
+                    window.alertService && window.alertService.errorAlert('Sharing failed', err.message || String(err));
                 } finally {
-                    btn.removeAttr('disabled').html(originalHtml);
+                    window._isSharingImages = false;
                 }
             };
 
             window.generateLivePDFPreview = function(type = 'details') {
+                type = normalizeExportType(type);
+                if (type === 'details') setCurrentExportMode('pdf');
+                if (type === 'images') setCurrentExportMode('image');
                 if (selectedProducts.length === 0) return;
 
                 // Mark preview as compiled
@@ -2484,19 +3510,14 @@
                 const badge = $(`#pdf-preview-status-${type}`);
                 const loader = $(`#pdf-preview-loader-${type}`);
                 const frame = $(`#pdf-preview-frame-${type}`);
-                const downloadBtn = $(`#pdf-download-btn-${type}`);
-                const shareBtn = $(`#pdf-direct-btn-${type}`);
-                const shareSystemBtn = $(`#pdf-share-btn-${type}`);
+                const token = ++window.exportBuildTokens[type];
 
                 // Shift previews into loading mode
                 badge.removeClass('bg-success bg-danger text-dark text-white').addClass('bg-warning text-dark').text('Compiling...');
                 loader.removeClass('d-none').addClass('d-flex');
                 frame.removeClass('d-block').addClass('d-none');
-                
-                // Disable exporter triggers
-                downloadBtn.attr('disabled', true).css({ 'opacity': '0.5', 'pointer-events': 'none' });
-                shareBtn.attr('disabled', true).css({ 'opacity': '0.5', 'pointer-events': 'none' });
-                shareSystemBtn.attr('disabled', true).css({ 'opacity': '0.5', 'pointer-events': 'none' });
+                setExportButtonsState(type, false, type === 'details' ? 'Compiling PDF...' : 'Compiling images...');
+                updateProgressText(type, 'Preparing Preview...');
 
                 const companyName = "CataSky";
                 const companyPhone = "{{ $settings->phone ?? '+91 919871376205' }}";
@@ -2508,9 +3529,13 @@
                 const dateStr = String(today.getDate()).padStart(2, '0') + '-' + today.toLocaleString('default', { month: 'short' }) + '-' + today.getFullYear();
 
                 fetchMultipleProductDetails(selectedProducts).then(() => {
+                    if (token !== window.exportBuildTokens[type]) return;
+                    updateProgressText(type, 'Optimizing Images...');
+                    
                     let promises = selectedProducts.map(id => fetchProductDetailsCached(id));
 
                     Promise.all(promises).then(dataList => {
+                        if (token !== window.exportBuildTokens[type]) return;
                         const validDataList = dataList.filter(d => d && d.success);
                         
                         // A4 Page styling variables
@@ -2528,74 +3553,71 @@
                             font-family: 'Outfit', 'Poppins', 'Helvetica Neue', Arial, sans-serif;
                         `;
 
-                        // Cover page layout style (exactly like A4 size in proportion)
-                        const coverStyle = `
-                            box-sizing: border-box;
-                            width: 790px;
-                            height: 1117px;
-                            padding: 60px 50px;
-                            background: linear-gradient(135deg, #090A1A 0%, #15183E 50%, #2A0E3C 100%);
-                            position: relative;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: space-between;
-                            overflow: hidden;
-                            font-family: 'Outfit', 'Poppins', 'Helvetica Neue', Arial, sans-serif;
-                        `;
-
                         let previewPageHtml = '';
 
                         if (type === 'details') {
-                            // Generate the first page of the product table (exactly items 1 to 5)
-                            const chunk = validDataList.slice(0, 5);
-                            let rowsHtml = '';
+                            const shareSettings = getShareSettings();
+                            // Generate the first page of the product cards in a 2x2 grid (exactly items 1 to 4)
+                            const chunk = validDataList.slice(0, 4);
+                            let gridHtml = '';
+                            
                             chunk.forEach((data, index) => {
                                 const p = data.product;
                                 const name = p.name || 'Product Model';
-                                const priceVal = p.variant || 'Price on Request';
-                                const imgUrl = data.thumbnail_url || '';
-                                const serialNo = index + 1;
-                                const brandName = escapeHtml((p.brand && p.brand.name) ? p.brand.name : 'CATASKY');
-                                const categoryName = escapeHtml((p.category && p.category.name) ? p.category.name : 'Catalogue');
+                                const priceVal = formatProductPrice(p);
+                                const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
                                 const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
-                                const galleryHtml = (data.gallery_urls || []).slice(0, 3).map(url => `<img src="${url}" style="width:38px;height:38px;object-fit:contain;border:1px solid #E2E8F0;border-radius:6px;margin-right:5px;">`).join('');
-                                const displayPrice = String(priceVal).includes('₹') ? priceVal : '₹ ' + priceVal;
+                                
+                                // Extract MRP and Offer price
+                                const mrpValue = p.price !== null && p.price !== undefined && String(p.price).trim() !== '' 
+                                    ? '₹ ' + Number(p.price).toLocaleString('en-IN') 
+                                    : 'On Request';
+                                
+                                const offerValue = p.sale_price !== null && p.sale_price !== undefined && String(p.sale_price).trim() !== '' 
+                                    ? '₹ ' + Number(p.sale_price).toLocaleString('en-IN') 
+                                    : 'On Request';
 
-                                rowsHtml += `
-                                <tr style="font-family: 'Outfit', sans-serif; font-size: 0.95rem; color: #000000; height: 130px;">
-                                    <td style="padding: 10px; border-left: 1.5px solid #000000; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; text-align: center; font-weight: bold; vertical-align: middle;">
-                                        ${serialNo}
-                                    </td>
-                                    <td style="padding: 10px; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; text-align: center; vertical-align: middle;">
+                                gridHtml += `
+                                <div style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif;">
+                                    <!-- Image Box -->
+                                    <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
                                         ${imgUrl 
-                                            ? `<img src="${imgUrl}" style="max-height: 100px; max-width: 120px; object-fit: contain; display: inline-block;">`
-                                            : `<div style="font-size: 0.75rem; color: #94A3B8;">No Image</div>`
+                                            ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
+                                            : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
                                         }
-                                    </td>
-                                    <td style="padding: 10px 15px; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; font-weight: 700; font-size: 0.85rem; text-align: left; vertical-align: middle;">
-                                        <div style="font-size:0.92rem;font-weight:900;margin-bottom:6px;">${name}</div>
-                                        <div style="font-size:0.7rem;color:#475569;line-height:1.35;font-weight:600;">${description}</div>
-                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:0.66rem;font-weight:800;color:#334155;">
-                                            <span style="background:#F1F5F9;border-radius:999px;padding:3px 8px;">Brand: ${brandName}</span>
-                                            <span style="background:#F1F5F9;border-radius:999px;padding:3px 8px;">Category: ${categoryName}</span>
+                                        <!-- MRP overlay inside image box at bottom-left -->
+                                        ${shareSettings.showPrice ? `
+                                        <div style="position: absolute; bottom: 8px; left: 8px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000000; background: rgba(255, 255, 255, 0.85); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+                                            MRP: ${mrpValue}
+                                        </div>` : ''}
+                                    </div>
+                                    <!-- Below Image text -->
+                                    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; text-align: left; width: 100%;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-family: Arial, sans-serif; color: #000000;">
+                                            <span style="font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
+                                                Name: ${escapeHtml(name)}
+                                            </span>
+                                            ${shareSettings.showPrice ? `
+                                            <span style="font-weight: normal; white-space: nowrap;">
+                                                Offer: ${offerValue}
+                                            </span>` : ''}
                                         </div>
-                                        ${galleryHtml ? `<div style="margin-top:8px;">${galleryHtml}</div>` : ''}
-                                    </td>
-                                    <td style="padding: 8px 12px; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; font-weight: 800; font-size: 0.82rem; text-align: left; vertical-align: middle; line-height: 1.5; word-break: break-word;">
-                                        ${displayPrice}
-                                    </td>
-                                </tr>
+                                        <div style="font-size: 11px; color: #555555; font-family: Arial, sans-serif; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 28px;">
+                                            Description: ${description}
+                                        </div>
+                                    </div>
+                                </div>
                                 `;
                             });
 
-                            const totalPages = Math.ceil(validDataList.length / 5);
+                            const totalPages = Math.ceil(validDataList.length / 4);
 
                             previewPageHtml = `
                             <div class="pdf-page" style="${pageStyle}">
-                                <!-- Logo Only Header -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
+                                <!-- Logo and Header -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1.5px solid #d2d2d2; font-family: 'Outfit', sans-serif;">
                                     <div style="display: flex; align-items: center;">
-                                        ${companyLogo && companyLogo.trim().length > 0 
+                                        ${shareSettings.showWatermark && companyLogo && companyLogo.trim().length > 0
                                             ? `<img src="${companyLogo}" style="max-height: 44px; object-fit: contain;">`
                                             : `<div style="width: 40px; height: 40px; border-radius: 8px; background: #1D6FEB; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem;">C</div>`
                                         }
@@ -2606,30 +3628,21 @@
                                 </div>
 
                                 <!-- Catalogue Title -->
-                                <div style="text-align: center; font-size: 1.6rem; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
-                                    ${catalogTitle}
+                                ${shareSettings.showTitle ? `
+                                <div style="text-align: center; font-size: 1.5rem; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
+                                    ${escapeHtml(catalogTitle)}
+                                </div>` : ''}
+
+                                <!-- 2x2 Grid Container -->
+                                <div style="flex-grow: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px 24px; margin-top: 10px; width: 100%; box-sizing: border-box;">
+                                    ${gridHtml}
                                 </div>
 
-                                <!-- Simple & Clean Table -->
-                                <div style="flex-grow: 1; width: 100%;">
-                                    <table style="width: 100%; border-collapse: collapse; box-sizing: border-box;">
-                                        <thead>
-                                            <tr style="font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: bold; text-align: left; height: 35px; border-top: 2.5px solid #000000; border-bottom: 2.5px solid #000000;">
-                                                <th style="padding: 10px; width: 60px; border-left: 1.5px solid #000000; border-right: 1.5px solid #000000; text-align: center;">No.</th>
-                                                <th style="padding: 10px; width: 150px; border-right: 1.5px solid #000000; text-align: left;">Product</th>
-                                                <th style="padding: 10px; border-right: 1.5px solid #000000; text-align: left;">Detail</th>
-                                                <th style="padding: 10px; width: 130px; border-right: 1.5px solid #000000; text-align: left;">Price</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${rowsHtml}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Simple Footer -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #000000; padding-top: 15px; font-size: 0.78rem; color: #555555; font-family: 'Outfit', sans-serif; margin-top: auto; padding-bottom: 5px;">
-                                    <div style="font-weight: bold;">{{ $settings->phone ?? '+91 919871376205' }} &bull; ${$('#share-add-note').is(':checked') ? escapeHtml($('#share-note-text').val() || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}</div>
+                                <!-- Page Footer -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #d2d2d2; padding-top: 12px; font-size: 0.78rem; color: #555555; font-family: 'Outfit', sans-serif; margin-top: 15px;">
+                                    <div style="font-weight: bold;">
+                                        ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}
+                                    </div>
                                     <div style="font-weight: bold;">Page 1 of ${totalPages}</div>
                                 </div>
                             </div>
@@ -2672,17 +3685,25 @@
                             }, 30);
                         }
 
-                        // Update badge to ready
-                        badge.removeClass('bg-warning bg-danger text-dark text-white').addClass('bg-success text-white').text('Ready');
-
-                        // Enable exporter buttons!
-                        downloadBtn.removeAttr('disabled').css({ 'opacity': '1', 'pointer-events': 'auto' });
-                        shareBtn.removeAttr('disabled').css({ 'opacity': '1', 'pointer-events': 'auto' });
-                        shareSystemBtn.removeAttr('disabled').css({ 'opacity': '1', 'pointer-events': 'auto' });
+                        // Set preview frame as ready, but keep buttons disabled while pre-compiling the actual document in the background!
+                        badge.removeClass('bg-warning bg-danger text-dark text-white').addClass('bg-warning text-dark').text('Compiling PDF...');
+                        setExportButtonsState(type, false, 'Compiling PDF...');
+                        
+                        return preparePDFShareDoc(type).then(() => {
+                            if (token !== window.exportBuildTokens[type]) return;
+                            badge.removeClass('bg-warning bg-danger text-dark').addClass('bg-success text-white').text('Ready');
+                            setExportButtonsState(type, true);
+                        }).catch(compileErr => {
+                            console.error("Background PDF compilation failed:", compileErr);
+                            if (token !== window.exportBuildTokens[type]) return;
+                            badge.removeClass('bg-warning bg-danger text-dark text-white').addClass('bg-success text-white').text('Ready');
+                            setExportButtonsState(type, true);
+                        });
                     }).catch(err => {
                         console.error("Error generating PDF preview", err);
                         badge.removeClass('bg-warning bg-success text-dark text-white').addClass('bg-danger text-white').text('Load Error');
                         loader.removeClass('d-flex').addClass('d-none');
+                        setExportButtonsState(type, false);
                     });
                 });
             };
@@ -2715,6 +3736,7 @@
             // Generates beautiful discrete pages and fits them exactly on A4.
             // ================================================================
             async function buildPDFDocument(type) {
+                type = normalizeExportType(type);
                 const updateExporterProgress = (t, text) => {
                     const spinners = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> ';
                     $(`#pdf-download-btn-${t}:disabled`).html(spinners + text);
@@ -2866,57 +3888,68 @@
 
                 // ── 2. PRODUCT DETAILS OR IMAGE GRID PAGES ──────────────────
                 if (type === 'details') {
-                    // Split products into pages (exactly 5 per page for A4 fit)
-                    const productChunks = chunkArray(validDataList, 5);
+                    const shareSettings = getShareSettings();
+                    // Split products into pages (exactly 4 per page for 2x2 grid)
+                    const productChunks = chunkArray(validDataList, 4);
                     const totalProductPages = productChunks.length;
 
                     productChunks.forEach((chunk, pageIndex) => {
-                        let rowsHtml = '';
+                        let gridHtml = '';
                         chunk.forEach((data, index) => {
                             const p = data.product;
                             const name = p.name || 'Product Model';
-                            const priceVal = p.variant || 'Price on Request';
-                            const imgUrl = data.thumbnail_url || '';
-                            const serialNo = (pageIndex * 5) + index + 1;
-                            const brandName = escapeHtml((p.brand && p.brand.name) ? p.brand.name : 'CATASKY');
-                            const categoryName = escapeHtml((p.category && p.category.name) ? p.category.name : 'Catalogue');
+                            const priceVal = formatProductPrice(p);
+                            const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
                             const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
-                            const galleryHtml = (data.gallery_urls || []).slice(0, 3).map(url => `<img src="${url}" style="width:38px;height:38px;object-fit:contain;border:1px solid #E2E8F0;border-radius:6px;margin-right:5px;">`).join('');
-                            const displayPrice = priceVal.includes('₹') ? priceVal : '₹ ' + priceVal;
+                            
+                            // Extract MRP and Offer price
+                            const mrpValue = p.price !== null && p.price !== undefined && String(p.price).trim() !== '' 
+                                ? '₹ ' + Number(p.price).toLocaleString('en-IN') 
+                                : 'On Request';
+                            
+                            const offerValue = p.sale_price !== null && p.sale_price !== undefined && String(p.sale_price).trim() !== '' 
+                                ? '₹ ' + Number(p.sale_price).toLocaleString('en-IN') 
+                                : 'On Request';
 
-                            rowsHtml += `
-                            <tr style="font-family: 'Outfit', sans-serif; font-size: 0.95rem; color: #000000; height: 130px;">
-                                <td style="padding: 10px; border-left: 1.5px solid #000000; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; text-align: center; font-weight: bold; vertical-align: middle;">
-                                    ${serialNo}
-                                </td>
-                                <td style="padding: 10px; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; text-align: center; vertical-align: middle;">
+                            gridHtml += `
+                            <div style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: inline-flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif;">
+                                <!-- Image Box -->
+                                <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
                                     ${imgUrl 
-                                        ? `<img src="${imgUrl}" style="max-height: 100px; max-width: 120px; object-fit: contain; display: inline-block;">`
-                                        : `<div style="font-size: 0.75rem; color: #94A3B8;">No Image</div>`
+                                        ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
+                                        : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
                                     }
-                                </td>
-                                <td style="padding: 10px 15px; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; font-weight: 700; font-size: 0.85rem; text-align: left; vertical-align: middle;">
-                                    <div style="font-size:0.92rem;font-weight:900;margin-bottom:6px;">${name}</div>
-                                    <div style="font-size:0.7rem;color:#475569;line-height:1.35;font-weight:600;">${description}</div>
-                                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:0.66rem;font-weight:800;color:#334155;">
-                                        <span style="background:#F1F5F9;border-radius:999px;padding:3px 8px;">Brand: ${brandName}</span>
-                                        <span style="background:#F1F5F9;border-radius:999px;padding:3px 8px;">Category: ${categoryName}</span>
+                                    <!-- MRP overlay inside image box at bottom-left -->
+                                    ${shareSettings.showPrice ? `
+                                    <div style="position: absolute; bottom: 8px; left: 8px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000000; background: rgba(255, 255, 255, 0.85); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+                                        MRP: ${mrpValue}
+                                    </div>` : ''}
+                                </div>
+                                <!-- Below Image text -->
+                                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; text-align: left; width: 100%;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-family: Arial, sans-serif; color: #000000;">
+                                        <span style="font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
+                                            Name: ${escapeHtml(name)}
+                                        </span>
+                                        ${shareSettings.showPrice ? `
+                                        <span style="font-weight: normal; white-space: nowrap;">
+                                            Offer: ${offerValue}
+                                        </span>` : ''}
                                     </div>
-                                    ${galleryHtml ? `<div style="margin-top:8px;">${galleryHtml}</div>` : ''}
-                                </td>
-                                <td style="padding: 8px 12px; border-right: 1.5px solid #000000; border-bottom: 1.5px solid #E2E8F0; font-weight: 800; font-size: 0.82rem; text-align: left; vertical-align: middle; line-height: 1.5; word-break: break-word;">
-                                    ${displayPrice}
-                                </td>
-                            </tr>
+                                    <div style="font-size: 11px; color: #555555; font-family: Arial, sans-serif; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 28px;">
+                                        Description: ${description}
+                                    </div>
+                                </div>
+                            </div>
                             `;
                         });
 
                         pagesHtml += `
                         <div class="pdf-page" style="${pageStyle}">
-                            <!-- Logo Only Header -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
+                            <!-- Logo and Header -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1.5px solid #d2d2d2; font-family: 'Outfit', sans-serif;">
                                 <div style="display: flex; align-items: center;">
-                                    ${companyLogo && companyLogo.trim().length > 0 
+                                    ${shareSettings.showWatermark && companyLogo && companyLogo.trim().length > 0
                                         ? `<img src="${companyLogo}" style="max-height: 44px; object-fit: contain;">`
                                         : `<div style="width: 40px; height: 40px; border-radius: 8px; background: #1D6FEB; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem;">C</div>`
                                     }
@@ -2927,30 +3960,21 @@
                             </div>
 
                             <!-- Catalogue Title -->
-                            <div style="text-align: center; font-size: 1.6rem; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
-                                ${catalogTitle}
-                            </div>
+                            ${shareSettings.showTitle ? `
+                            <div style="text-align: center; font-size: 1.5rem; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
+                                ${escapeHtml(catalogTitle)}
+                            </div>` : ''}
 
-                            <!-- Simple & Clean Table -->
-                            <div style="flex-grow: 1; width: 100%;">
-                                <table style="width: 100%; border-collapse: collapse; box-sizing: border-box;">
-                                    <thead>
-                                        <tr style="font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: bold; text-align: left; height: 35px; border-top: 2.5px solid #000000; border-bottom: 2.5px solid #000000;">
-                                            <th style="padding: 10px; width: 60px; border-left: 1.5px solid #000000; border-right: 1.5px solid #000000; text-align: center;">No.</th>
-                                            <th style="padding: 10px; width: 150px; border-right: 1.5px solid #000000; text-align: left;">Product</th>
-                                            <th style="padding: 10px; border-right: 1.5px solid #000000; text-align: left;">Detail</th>
-                                            <th style="padding: 10px; width: 130px; border-right: 1.5px solid #000000; text-align: left;">Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${rowsHtml}
-                                    </tbody>
-                                </table>
+                            <!-- 2x2 Grid Container -->
+                            <div style="flex-grow: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px 24px; margin-top: 10px; width: 100%; box-sizing: border-box;">
+                                ${gridHtml}
                             </div>
 
                             <!-- Simple Footer -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #000000; padding-top: 15px; font-size: 0.78rem; color: #555555; font-family: 'Outfit', sans-serif; margin-top: auto; padding-bottom: 5px;">
-                                <div style="font-weight: bold;">{{ $settings->phone ?? '+91 919871376205' }} &bull; ${$('#share-add-note').is(':checked') ? escapeHtml($('#share-note-text').val() || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #d2d2d2; padding-top: 12px; font-size: 0.78rem; color: #555555; font-family: 'Outfit', sans-serif; margin-top: 15px;">
+                                <div style="font-weight: bold;">
+                                    ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}
+                                </div>
                                 <div style="font-weight: bold;">Page ${pageIndex + 1} of ${totalProductPages}</div>
                             </div>
                         </div>
@@ -3006,8 +4030,8 @@
                 const pageCanvases = new Array(pageElements.length);
 
                 try {
-                    // Process in parallel batches of 4 pages to balance memory and speed
-                    const batchSize = 4;
+                    // Process in parallel batches of 12 pages to maximize multi-threaded canvas compiling speed
+                    const batchSize = 12;
                     for (let i = 0; i < pageElements.length; i += batchSize) {
                         const batch = [];
                         for (let j = i; j < Math.min(i + batchSize, pageElements.length); j++) {
@@ -3019,11 +4043,12 @@
                                 updateExporterProgress(type, `Compiling Page ${pageIdx + 1} of ${pageElements.length}...`);
                             }
 
-                            batch.push(
-                                html2canvas(pageEl, {
-                                    scale:           1.5, // 1.5 is extremely fast (2-3x speedup) and crisp!
+                                const renderScale = (selectedProducts && selectedProducts.length > 8) ? 1.5 : 2.25;
+                                batch.push(
+                                    html2canvas(pageEl, {
+                                        scale:           renderScale, // 2.25 is extremely crisp and fast!
                                     useCORS:         true,
-                                    allowTaint:      true,
+                                    allowTaint:      false,
                                     backgroundColor: '#ffffff',
                                     logging:         false,
                                     windowWidth:     790,
@@ -3091,6 +4116,10 @@
             }
 // ── Download PDF (triggers browser save-as dialog) ────────────
             window.generatePDFCatalogue = function(type = 'details') {
+                type = normalizeExportType(type);
+                if (type === 'images') {
+                    return window.downloadAllCards();
+                }
                 if (!selectedProducts || selectedProducts.length === 0) {
                     window.alertService.warningAlert('No products selected', 'Please select at least one product first.');
                     return;
@@ -3099,6 +4128,14 @@
                 const btn = $(`#pdf-download-btn-${type}`);
                 const origHtml = btn.html();
                 btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Building PDF...');
+
+                const prepared = getPreparedPdf(type);
+                if (prepared) {
+                    downloadPreparedPdf(prepared);
+                    trackAnalyticsEventSafe('pdf_generated_' + type, selectedProducts.length);
+                    btn.removeAttr('disabled').html(origHtml);
+                    return;
+                }
 
                 buildPDFDocument(type).then(function({ pdf, filename }) {
                     pdf.save(filename);
@@ -3113,6 +4150,7 @@
 
             // ── Generate Blob for server upload / WhatsApp share ──────────
             window.generatePDFBlob = function(type = 'details') {
+                type = normalizeExportType(type);
                 return buildPDFDocument(type).then(function({ pdf, filename }) {
                     const blob = pdf.output('blob');
                     // Validate: a real PDF must be > 1KB
@@ -3124,43 +4162,52 @@
             };
 
             // Web Share API System Sharing for any app (WhatsApp, Gmail, Instagram, Facebook etc.)
-            window.sharePDFSystem = function(type) {
-                const btn = $(`#pdf-share-btn-${type}`);
-                const originalHtml = btn.html();
+            window.sharePDFSystem = async function(type) {
+                type = normalizeExportType(type);
+                if (type === 'images') {
+                    return window.shareImageSystem();
+                }
+                if (!selectedProducts || selectedProducts.length === 0) {
+                    window.alertService.warningAlert('No products selected', 'Please select at least one product first.');
+                    return;
+                }
+
+                setCurrentExportMode('pdf');
+                const settings = getShareSettings();
+                let prepared = getPreparedPdf(type);
                 
-                // Show loading spinner
-                btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Generating PDF for sharing...');
-                
-                generatePDFBlob(type).then((pdfData) => {
-                    btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Opening Share Sheet...');
-                    
-                    // Create a File object from the blob so it can be shared via Web Share API
-                    const file = new File([pdfData.blob], pdfData.filename, { type: 'application/pdf' });
-                    
-                    // Check if Web Share API and file sharing is supported
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        navigator.share({
-                            files: [file]
-                        })
-                        .then(() => {
-                            btn.removeAttr('disabled').html(originalHtml);
-                            trackAnalyticsEventSafe('system_share_pdf_success', selectedProducts.length);
-                        })
-                        .catch((err) => {
-                            console.log('Native sharing cancelled or failed:', err);
-                            btn.removeAttr('disabled').html(originalHtml);
-                        });
-                    } else {
-                        btn.removeAttr('disabled').html(originalHtml);
-                        // Fallback: If sharing files is not supported (like on desktop), trigger download and tell user
-                        window.alertService.infoAlert('PDF downloaded', 'Your browser or device does not support direct file sharing sheets. We have downloaded the PDF file for you instead.');
-                        pdfData.pdf.save(pdfData.filename);
+                const btn = $('#pdf-share-btn-details');
+                const origHtml = btn.html();
+
+                try {
+                    if (!prepared) {
+                        btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Compiling PDF...');
+                        showToast('Preparing your PDF Proposal... Please wait.', 'Compiling PDF');
+                        
+                        const prepData = await preparePDFShareDoc(type);
+                        prepared = prepData;
+                        
+                        btn.removeAttr('disabled').html(origHtml);
                     }
-                }).catch((err) => {
-                    console.error("PDF generation failed for system share:", err);
-                    btn.removeAttr('disabled').html(originalHtml);
-                    window.alertService.errorAlert("Failed to generate PDF", err.message || err);
-                });
+
+                    const result = await nativeShareFiles(
+                        [prepared.file],
+                        prepared.filename || document.title,
+                        `Please review our B2B Product Specifications Portfolio: ${settings.catalogTitle}`
+                    );
+                    if (result.unsupported) {
+                        downloadPreparedPdf(prepared);
+                        showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                        return;
+                    }
+                    trackAnalyticsEventSafe('system_share_pdf_success', selectedProducts.length);
+                } catch (error) {
+                    btn.removeAttr('disabled').html(origHtml);
+                    if (error && error.name === 'AbortError') return;
+                    console.error(error);
+                    downloadPreparedPdf(prepared ? prepared : null);
+                    showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                }
             };
 
             /*
@@ -3214,6 +4261,8 @@
             }
 
             window.trackAnalyticsEvent = trackAnalyticsEvent;
+
+
 
             // Re-sync selectedProducts with localStorage and run initial UI sync at the end of ready block
             try {

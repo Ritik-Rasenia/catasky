@@ -57,7 +57,7 @@
                         <div class="d-flex gap-2 overflow-x-auto pb-2 justify-content-center">
                             <!-- Thumbnail 1: Main Image -->
                             <div class="gallery-thumb active rounded-3 border p-1 bg-white cursor-pointer overflow-hidden" onclick="changeMainImage('{{ $product->thumbnail_url }}', this)" style="width: 80px; height: 80px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center;">
-                                <img src="{{ $product->thumbnail_url }}" style="max-height: 100%; object-fit: contain;">
+                                <img src="{{ $product->thumbnail_url }}" loading="lazy" decoding="async" style="max-height: 100%; object-fit: contain;">
                             </div>
                             <!-- Loop other gallery images -->
                             @foreach($product->images as $img)
@@ -65,7 +65,7 @@
                                     $imgUrl = filter_var($img->image, FILTER_VALIDATE_URL) ? $img->image : asset('uploads/products/gallery/' . $img->image);
                                 @endphp
                                 <div class="gallery-thumb rounded-3 border p-1 bg-white cursor-pointer overflow-hidden" onclick="changeMainImage('{{ $imgUrl }}', this)" style="width: 80px; height: 80px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center;">
-                                    <img src="{{ $imgUrl }}" style="max-height: 100%; object-fit: contain;">
+                                    <img src="{{ $imgUrl }}" loading="lazy" decoding="async" style="max-height: 100%; object-fit: contain;">
                                 </div>
                             @endforeach
                         </div>
@@ -92,7 +92,13 @@
                         <h1 class="display-6 fw-bold text-dark mb-2" style="letter-spacing: -1px; font-family: 'Outfit', sans-serif;">{{ $product->name }}</h1>
                         
                         <div class="d-flex align-items-center gap-3 mt-3">
-                            <div class="fs-3 fw-bold text-primary">{{ $product->variant ?: 'Price on Request' }}</div>
+                            <div class="fs-3 fw-bold text-primary">
+                                @if($product->price)
+                                    &#8377;{{ number_format($product->price, 2) }}
+                                @else
+                                    {{ $product->variant ?: 'On Request' }}
+                                @endif
+                            </div>
                             @if($product->part_code)
                                 <div class="text-secondary small border-start ps-3"><i class="bi bi-boxes"></i> Min. MOQ: 100 units</div>
                             @endif
@@ -217,7 +223,7 @@
                     <div class="col-xl-3 col-lg-4 col-md-6 col-12">
                         <div class="premium-card bg-white p-3 border-0 rounded-4 shadow-sm h-100 d-flex flex-column transition-transform cursor-pointer" onclick="window.location.href='{{ route('product.details', $rel->slug) }}'" style="transition: transform 0.2s, box-shadow 0.2s;">
                             <div class="position-relative overflow-hidden bg-light rounded-3 mb-3 text-center d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
-                                <img src="{{ $rel->thumbnail_url }}" alt="{{ $rel->name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                <img src="{{ $rel->thumbnail_url }}" alt="{{ $rel->name }}" loading="lazy" decoding="async" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                             </div>
                             <div class="d-flex flex-column flex-grow-1">
                                 <h6 class="fw-bold text-dark mb-2 text-truncate">{{ $rel->name }}</h6>
@@ -225,7 +231,13 @@
                                     {{ $rel->short_description ?: 'Corporate grade customizable selection.' }}
                                 </p>
                                 <div class="d-flex justify-content-between align-items-center mt-auto border-top pt-2">
-                                    <div class="small fw-bold text-primary">{{ $rel->variant ?: 'On Request' }}</div>
+                                    <div class="small fw-bold text-primary">
+                                        @if($rel->price)
+                                            &#8377;{{ number_format($rel->price, 2) }}
+                                        @else
+                                            {{ $rel->variant ?: 'On Request' }}
+                                        @endif
+                                    </div>
                                     <span class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold text-white small" style="background: var(--primary-gradient); border: none; font-size: 0.75rem;">View</span>
                                 </div>
                             </div>

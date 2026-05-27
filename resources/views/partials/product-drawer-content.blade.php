@@ -9,7 +9,7 @@
 <!-- Image Showcase with branding mockup overlay support -->
 <div class="position-relative bg-light rounded-4 overflow-hidden mb-3 border p-3" style="aspect-ratio: 16/11; display:flex; align-items:center; justify-content:center;">
     <!-- Core Product Image -->
-    <img src="{{ $thumbnail }}" id="drawer-main-preview-img" style="max-height:100%; max-width:100%; object-fit:contain; mix-blend-mode:multiply; transition: all 0.3s ease;">
+    <img src="{{ $thumbnail }}" id="drawer-main-preview-img" loading="lazy" decoding="async" style="max-height:100%; max-width:100%; object-fit:contain; mix-blend-mode:multiply; transition: all 0.3s ease;">
     
     <!-- Branding Logo Mockup Overlay -->
     <div id="mockup-logo-overlay" class="position-absolute top-50 start-50 translate-middle text-center p-2 rounded-3 border border-primary border-dashed bg-white bg-opacity-75 backdrop-blur-sm" style="display:none; max-width: 130px; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.15);">
@@ -27,7 +27,7 @@
 <!-- Gallery Swatch Thumbnails -->
 @if(count($gallery) > 0)
     <div class="d-flex gap-2 overflow-x-auto pb-3 mb-4 border-bottom">
-        <img src="{{ $thumbnail }}" class="img-swatch active" onclick="swapDrawerImage('{{ $thumbnail }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--primary);">
+        <img src="{{ $thumbnail }}" class="img-swatch active" loading="lazy" decoding="async" onclick="swapDrawerImage('{{ $thumbnail }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--primary);">
         @foreach($gallery as $idx => $g)
             @php
                 $gUrl = $g->image;
@@ -35,7 +35,7 @@
                     $gUrl = asset('uploads/products/gallery/' . $gUrl);
                 }
             @endphp
-            <img src="{{ $gUrl }}" class="img-swatch" onclick="swapDrawerImage('{{ $gUrl }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--border);">
+            <img src="{{ $gUrl }}" class="img-swatch" loading="lazy" decoding="async" onclick="swapDrawerImage('{{ $gUrl }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--border);">
         @endforeach
     </div>
 @endif
@@ -56,7 +56,11 @@
             {{ $product->part_code ?: 'MOQ: 100 pcs' }}
         </span>
         <span class="text-gradient fw-bold fs-5 ms-auto">
-            {{ $product->variant ?: 'Price on Request' }}
+            @if($product->price)
+                &#8377;{{ number_format($product->price, 2) }}
+            @else
+                {{ $product->variant ?: 'On Request' }}
+            @endif
         </span>
     </div>
 

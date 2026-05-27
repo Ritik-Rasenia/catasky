@@ -12,23 +12,11 @@
 <!-- Catalog Header & Categories Pill bar -->
 <section class="py-4 border-bottom bg-white">
     <div class="container">
-        <!-- Breadcrumbs -->
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb mb-0 small-text">
-                <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-secondary"><i class="bi bi-house-door-fill"></i> Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalogue</a></li>
-                <li class="breadcrumb-item active fw-bold text-primary" aria-current="page">{{ $category->name ?? 'All Products' }}</li>
-            </ol>
-        </nav>
+      
 
         <div class="d-flex flex-column gap-3">
-            <div>
-                <h1 class="h2 fw-bold text-gradient mb-1">{{ $category->name ?? 'All Collections' }}</h1>
-                <p class="text-secondary small mb-0">Browse and select corporate-ready products for your next custom catalog proposal.</p>
-            </div>
-
             <!-- Horizontal Scrollable Category Chips -->
-            <div class="category-scroll border-top pt-2">
+            <div class="category-scroll pt-2">
                 <a href="{{ route('catalogue') }}" class="category-chip {{ ($category->id ?? 0) == 0 ? 'active' : '' }}">
                     🔥 All Collections
                 </a>
@@ -243,7 +231,7 @@
                                         $thumbnail = asset('uploads/products/' . $thumbnail);
                                     }
                                 @endphp
-                                <img src="{{ $thumbnail }}" alt="{{ $product->name }}" loading="lazy">
+                                <img src="{{ $thumbnail }}" alt="{{ $product->name }}" loading="lazy" decoding="async">
                                 
                                 <!-- Floating Quick Look button -->
                                 <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-75 opacity-0 card-hover-btn" style="transition: all 0.3s ease;">
@@ -271,7 +259,7 @@
                                         @if($product->price)
                                             ₹{{ number_format($product->price, 2) }}
                                         @else
-                                            {{ $product->variant ?: 'Price on Request' }}
+                                            {{ $product->variant ?: 'On Request' }}
                                         @endif
                                     </div>
                                     <button class="btn btn-premium btn-premium-outline select-btn-main py-2 px-3" onclick="toggleSelection('{{ $product->id }}', this)">
@@ -354,14 +342,39 @@
         box-shadow: 0 6px 14px rgba(79, 70, 229, 0.2) !important;
     }
 
-    /* Grid layout spacing & mobile product cards optimizations */
-    @media (min-width: 1024px) {
+    /* Grid layout spacing & mobile/tablet/desktop product cards optimizations */
+    .product-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important; /* Default 2 columns for mobile */
+        gap: 16px !important;
+        padding: 20px 0 !important;
+    }
+
+    /* Large Mobile / Phablet View */
+    @media (min-width: 576px) {
         .product-grid {
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 24px;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 20px !important;
         }
     }
 
+    /* Tablet View (Sidebar collapsed, full width container) */
+    @media (min-width: 768px) and (max-width: 1023.98px) {
+        .product-grid {
+            grid-template-columns: repeat(3, 1fr) !important; /* 3 columns look extremely spacious on full-width tablet */
+            gap: 20px !important;
+        }
+    }
+
+    /* Desktop/Laptop View (Sidebar visible, exactly 4 columns per row) */
+    @media (min-width: 1024px) {
+        .product-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 20px !important;
+        }
+    }
+
+    /* Mobile product cards styles override */
     @media (max-width: 767px) {
         .product-grid {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -378,13 +391,16 @@
             aspect-ratio: 1/1 !important;
             height: auto !important;
         }
+        .product-image-container img {
+            object-fit: cover !important;
+        }
         .product-title {
             font-size: 0.85rem !important;
             height: 34px !important;
             line-height: 1.3 !important;
             margin-bottom: 4px !important;
-            -webkit-line-clamp: 2 !important;
             display: -webkit-box;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }

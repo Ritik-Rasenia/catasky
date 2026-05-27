@@ -34,6 +34,7 @@
             <img src="{{ $product->thumbnail_url }}" 
                  alt="{{ $product->name }}" 
                  loading="lazy" 
+                 decoding="async"
                  onload="this.previousElementSibling.style.display='none';" 
                  class="img-fluid rounded-3" 
                  style="max-height: 90%; max-width: 90%; object-fit: contain; z-index: 2; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);">
@@ -88,7 +89,7 @@
                         @endif
                     @else
                         <div class="product-price-val text-secondary fw-semibold" style="font-size: 0.85rem;">
-                            Price on Request
+                            {{ $product->variant ?: 'On Request' }}
                         </div>
                     @endif
                 </div>

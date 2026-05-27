@@ -414,13 +414,13 @@
             </div>
 
             <!-- 14-Day Free Trial Badge -->
-            <div class="trial-badge">
+            <!-- <div class="trial-badge">
                 <div class="trial-icon">🎁</div>
                 <div>
                     <div class="trial-title">14-Day Free Trial</div>
                     <div class="trial-text">Full access to all catalogue features. No credit card required.</div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Error Alert -->
             @if ($errors->any())
