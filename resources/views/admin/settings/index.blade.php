@@ -17,13 +17,13 @@
             <h1>General Settings</h1>
             <p>Manage SEO, contact details, social links, logos, favicon, and PDF branding from one place.</p>
         </div>
-        <a href="{{ route('home') }}" target="_blank" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm">
+        <a href="{{ route('home') }}" target="_blank" class="btn btn-light rounded-pill px-4 fw-bold ">
             <i class="bi bi-box-arrow-up-right me-2"></i> View Site
         </a>
     </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger rounded-4 border-0 shadow-sm">
+        <div class="alert alert-danger rounded-4 border-0 ">
             <div class="fw-bold mb-1">Please fix these fields</div>
             <ul class="mb-0 small">
                 @foreach ($errors->all() as $error)

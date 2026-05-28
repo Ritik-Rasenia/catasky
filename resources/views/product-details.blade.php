@@ -23,7 +23,7 @@
     <div class="container">
         <!-- Alert Success for enquiry logging -->
         @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm p-4 mb-4" role="alert">
+            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0  p-4 mb-4" role="alert">
                 <div class="d-flex align-items-center gap-3">
                     <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                         <i class="bi bi-check-lg fs-5"></i>
@@ -42,11 +42,11 @@
             <div class="col-lg-6">
                 <div class="position-sticky" style="top: 100px;">
                     <!-- Main Product Image Frame -->
-                    <div class="premium-card bg-white p-3 border-0 rounded-4 shadow-sm mb-3 position-relative overflow-hidden text-center d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
+                    <div class="premium-card bg-white p-3 border-0 rounded-4  mb-3 position-relative overflow-hidden text-center d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
                         <img id="main-product-image" src="{{ $product->thumbnail_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3" style="max-height: 100%; object-fit: contain; transition: transform 0.3s ease;">
                         
                         @if($product->part_code)
-                            <span class="position-absolute top-3 start-3 badge rounded-pill px-3 py-2 small fw-bold bg-dark text-white shadow-sm" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                            <span class="position-absolute top-3 start-3 badge rounded-pill px-3 py-2 small fw-bold bg-dark text-white " style="font-size: 0.75rem; letter-spacing: 0.5px;">
                                 <i class="bi bi-tag-fill me-1 text-primary"></i> {{ $product->part_code }}
                             </span>
                         @endif
@@ -106,7 +106,7 @@
                     </div>
 
                     <!-- Product Short Description -->
-                    <div class="bg-white p-4 rounded-4 border-0 shadow-sm">
+                    <div class="bg-white p-4 rounded-4 border-0 ">
                         <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-text-fill text-primary me-2"></i> Short Description</h6>
                         <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.6;">
                             {{ $product->short_description ?: 'No description provided. Please submit an inquiry for detailed customized corporate specifications, packaging variants, and branding mockups.' }}
@@ -114,7 +114,7 @@
                     </div>
 
                     <!-- Custom B2B Inquiry Card Form -->
-                    <div class="card border-0 rounded-4 shadow-sm overflow-hidden bg-white">
+                    <div class="card border-0 rounded-4  overflow-hidden bg-white">
                         <div class="card-header bg-dark p-4 border-0 position-relative text-white overflow-hidden">
                             <div class="position-relative z-index-1">
                                 <h5 class="fw-bold mb-1 text-white" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-send-fill text-primary me-2"></i> B2B Corporate Inquiry</h5>
@@ -167,7 +167,7 @@
         <!-- Details & Description Tabs -->
         <div class="row mt-5 pt-3">
             <div class="col-12">
-                <div class="premium-card bg-white p-4 p-md-5 border-0 rounded-4 shadow-sm">
+                <div class="premium-card bg-white p-4 p-md-5 border-0 rounded-4 ">
                     <ul class="nav nav-tabs border-bottom-2 mb-4" id="productTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active fw-bold px-4 py-2 border-0 bg-transparent text-primary position-relative" id="details-tab" data-bs-toggle="tab" data-bs-target="#details-pane" type="button" role="tab" aria-controls="details-pane" aria-selected="true" style="transition: all 0.3s; border-bottom: 2px solid transparent;">
@@ -221,7 +221,7 @@
                 
                 @foreach($relatedProducts as $rel)
                     <div class="col-xl-3 col-lg-4 col-md-6 col-12">
-                        <div class="premium-card bg-white p-3 border-0 rounded-4 shadow-sm h-100 d-flex flex-column transition-transform cursor-pointer" onclick="window.location.href='{{ route('product.details', $rel->slug) }}'" style="transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="premium-card bg-white p-3 border-0 rounded-4  h-100 d-flex flex-column transition-transform cursor-pointer" onclick="window.location.href='{{ route('product.details', $rel->slug) }}'" style="transition: transform 0.2s, box-shadow 0.2s;">
                             <div class="position-relative overflow-hidden bg-light rounded-3 mb-3 text-center d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
                                 <img src="{{ $rel->thumbnail_url }}" alt="{{ $rel->name }}" loading="lazy" decoding="async" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                             </div>

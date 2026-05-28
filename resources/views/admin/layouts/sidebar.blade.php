@@ -3,12 +3,11 @@
         $setting = \App\Models\Setting::first();
         $user = auth()->user();
         $unreadEnquiriesCount = \App\Models\Enquiry::where('is_read', false)->count();
-            // Pending approvals across SaaS (stores, products, shares) and attribute approvals
-            $pendingStoresCount = \App\Models\SubscriberProfile::where('status', 'pending')->count();
-            $pendingProductsCount = \App\Models\SubscriberProduct::where('approval_status', 'pending')->count();
-            $pendingSharesCount = \App\Models\SubscriberShareLink::where('approval_status', 'pending')->count();
+            // Pending approvals across SaaS (accounts, store configs) and attribute approvals
+            $pendingAccountsCount = \App\Models\SubscriberProfile::where('status', 'pending')->count();
+            $pendingStoreConfigsCount = \App\Models\SubscriberProfile::where('status', 'approved')->where('store_status', 'pending')->count();
             $pendingAttributeApprovals = \App\Models\Attribute::where('approval_status', 'pending')->count();
-            $pendingApprovalsCount = $pendingStoresCount + $pendingProductsCount + $pendingSharesCount + $pendingAttributeApprovals;
+            $pendingApprovalsCount = $pendingAccountsCount + $pendingStoreConfigsCount + $pendingAttributeApprovals;
 
         $isActive = function (array $patterns): bool {
             foreach ($patterns as $pattern) {
@@ -94,6 +93,14 @@
                         'permission' => 'enquiries.view',
                         'active' => ['admin.enquiries.*'],
                         'badge' => $unreadEnquiriesCount > 0 ? $unreadEnquiriesCount : null,
+                    ],
+                    [
+                        'label' => 'Notifications',
+                        'icon' => 'bi-bell-fill',
+                        'route' => 'admin.notifications.index',
+                        'permission' => 'system.manage',
+                        'active' => ['admin.notifications.*'],
+                        'badge' => $pendingApprovalsCount > 0 ? $pendingApprovalsCount : null,
                     ],
                     [
                         'label' => 'Newsletters',
@@ -202,17 +209,14 @@
 
     <div class="sidebar-header">
         <div class="sidebar-logo">
-            <span class="sidebar-logo-badge">
-                <i class="bi bi-cast fs-6"></i>
-            </span>
-            <span class="sidebar-title-text">
-                {{ $setting->site_title ?? 'Catasky' }}
-            </span>
+            @if($setting->logo)
+                <img src="{{ asset('uploads/settings/' . $setting->logo) }}" alt="{{ $setting->site_title ?? 'Catasky' }}" class="sidebar-logo-img" style="width:150px;margin:auto;" />
+            @else
+                <span class="sidebar-logo-badge">
+                    <i class="bi bi-cast fs-6"></i>
+                </span>
+            @endif
         </div>
-
-        <button type="button" class="btn btn-sm btn-outline-light border-0 text-white d-none d-lg-inline-flex align-items-center justify-content-center" onclick="toggleSidebarState()" title="Collapse sidebar" aria-label="Collapse sidebar">
-            <i class="bi bi-layout-sidebar-inset"></i>
-        </button>
     </div>
 
     <div class="sidebar-scroll">

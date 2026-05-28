@@ -11,7 +11,7 @@
             <p class="text-muted">Monitor subscriber registrations, subscriptions, invoices, and suspend/reactivate subscriber accounts.</p>
         </div>
         <div class="col-md-4 text-md-end">
-            <a href="{{ route('admin.subscription-plans.index') }}" class="btn btn-primary shadow-sm rounded-pill px-4">
+            <a href="{{ route('admin.subscription-plans.index') }}" class="btn btn-primary  rounded-pill px-4">
                 <i class="fa-solid fa-tags me-2"></i>Subscription Plans
             </a>
         </div>
@@ -21,7 +21,7 @@
     <div class="row mb-4 g-3">
         <!-- Total Subscribers -->
         <div class="col-xl-3 col-sm-6">
-            <div class="stats-card border-0 shadow-sm">
+            <div class="stats-card border-0 ">
                 <div class="stats-icon bg-primary bg-opacity-10 text-primary">
                     <i class="fa-solid fa-users-viewfinder"></i>
                 </div>
@@ -33,7 +33,7 @@
         </div>
         <!-- Active Subscribers -->
         <div class="col-xl-3 col-sm-6">
-            <div class="stats-card border-0 shadow-sm">
+            <div class="stats-card border-0 ">
                 <div class="stats-icon bg-success bg-opacity-10 text-success">
                     <i class="fa-solid fa-user-check"></i>
                 </div>
@@ -45,7 +45,7 @@
         </div>
         <!-- Suspended Subscribers -->
         <div class="col-xl-3 col-sm-6">
-            <div class="stats-card border-0 shadow-sm">
+            <div class="stats-card border-0 ">
                 <div class="stats-icon bg-danger bg-opacity-10 text-danger">
                     <i class="fa-solid fa-user-slash"></i>
                 </div>
@@ -57,7 +57,7 @@
         </div>
         <!-- Trial Subscribers -->
         <div class="col-xl-3 col-sm-6">
-            <div class="stats-card border-0 shadow-sm">
+            <div class="stats-card border-0 ">
                 <div class="stats-icon bg-warning bg-opacity-10 text-warning">
                     <i class="fa-solid fa-hourglass-half"></i>
                 </div>
@@ -72,7 +72,7 @@
     <!-- Filters & List -->
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card border-0  rounded-4 mb-4">
                 <div class="card-body p-4">
                     <!-- Filters Form -->
                     <form action="{{ route('admin.subscribers.index') }}" method="GET" class="row g-3 mb-4 align-items-end">
@@ -123,7 +123,7 @@
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center">
                                             @if($subscriber->subscriberProfile && $subscriber->subscriberProfile->logo)
-                                                <img src="{{ asset('uploads/subscriber-products/' . $subscriber->subscriberProfile->logo) }}" alt="Logo" class="rounded-3 me-3" style="width: 48px; height: 48px; object-fit: cover; border: 1px solid #e2e8f0;">
+                                                <img src="{{ str_starts_with($subscriber->subscriberProfile->logo, 'http') ? $subscriber->subscriberProfile->logo : asset('uploads/subscriber-products/' . $subscriber->subscriberProfile->logo) }}" alt="Logo" class="rounded-3 me-3" style="width: 48px; height: 48px; object-fit: cover; border: 1px solid #e2e8f0;">
                                             @else
                                                 <div class="rounded-3 bg-indigo bg-opacity-10 text-indigo p-2 me-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: var(--primary-color);">
                                                     {{ strtoupper(substr($subscriber->subscriberProfile->company_name ?? $subscriber->name, 0, 2)) }}
@@ -173,7 +173,7 @@
                                     </td>
                                     <td class="text-muted small">{{ $subscriber->created_at->format('d M, Y') }}</td>
                                     <td class="text-end pe-4">
-                                        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                        <div class="btn-group  rounded-3 overflow-hidden">
                                             <a href="{{ route('admin.subscribers.show', $subscriber->id) }}" class="btn btn-white btn-sm px-3" title="View Detail Profile">
                                                 <i class="fa-solid fa-eye text-primary"></i>
                                             </a>

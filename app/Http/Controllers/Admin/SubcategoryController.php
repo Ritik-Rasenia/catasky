@@ -78,7 +78,9 @@ class SubcategoryController extends Controller
     {
         $subcategory = Subcategory::findOrFail($id);
         $categories = Category::where('status', 1)->get();
-        return view('admin.subcategories.edit', compact('subcategory', 'categories'));
+        $attributes = \App\Models\Attribute::where('is_global', true)->orderBy('name')->get();
+        $selectedAttributeIds = \App\Models\SubcategoryAttribute::where('subcategory_id', $id)->pluck('attribute_id')->toArray();
+        return view('admin.subcategories.edit', compact('subcategory', 'categories', 'attributes', 'selectedAttributeIds'));
     }
 
     /**
@@ -114,6 +116,23 @@ class SubcategoryController extends Controller
             'image'       => $imageName,
             'status'      => $request->status,
         ]);
+
+        // Sync subcategory attributes
+        \App\Models\SubcategoryAttribute::where('subcategory_id', $subcategory->id)->delete();
+        if ($request->has('attributes')) {
+            foreach ($request->input('attributes') as $attrId) {
+                $attr = \App\Models\Attribute::find($attrId);
+                if ($attr) {
+                    \App\Models\SubcategoryAttribute::create([
+                        'subcategory_id' => $subcategory->id,
+                        'attribute_id' => $attrId,
+                        'attribute_group_id' => $attr->attribute_group_id,
+                        'is_required' => $attr->is_required,
+                        'sort_order' => 0,
+                    ]);
+                }
+            }
+        }
 
         return redirect()
             ->route('admin.subcategories.index')

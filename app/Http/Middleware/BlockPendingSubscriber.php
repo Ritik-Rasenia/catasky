@@ -38,20 +38,11 @@ class BlockPendingSubscriber
             'subscriber.logout',
         ];
 
-        // Before first successful payment, a pending subscriber may complete billing.
-        if ($status === 'pending' && ! $user->hasActiveSubscription()) {
-            $allowed = array_merge($allowed, [
-                'subscriber.subscription.plans',
-                'subscriber.subscription.checkout',
-                'subscriber.subscription.pay',
-            ]);
-        }
-
         if (in_array($routeName, $allowed, true)) {
             return $next($request);
         }
 
-        if ($user->hasActiveSubscription() || in_array($status, ['pending', 'rejected', 'suspended'], true) || !$status) {
+        if (in_array($status, ['pending', 'rejected', 'suspended'], true) || !$status) {
             return redirect()->route('subscriber.pending-approval');
         }
 

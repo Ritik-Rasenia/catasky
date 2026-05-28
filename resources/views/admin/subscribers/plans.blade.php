@@ -11,7 +11,7 @@
             <p class="text-muted">Configure and manage multi-subscriber SaaS subscription pricing tiers, feature lists, and limit thresholds.</p>
         </div>
         <div class="col-md-4 text-md-end">
-            <button type="button" class="btn btn-primary shadow-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+            <button type="button" class="btn btn-primary  rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createPlanModal">
                 <i class="fa-solid fa-plus me-2"></i>Add New Plan
             </button>
         </div>
@@ -21,7 +21,7 @@
     <div class="row mb-5 g-4">
         @foreach($plans as $plan)
         <div class="col-xl-4 col-md-6">
-            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative {{ !$plan->is_active ? 'opacity-75' : '' }}" style="border-top: 5px solid {{ $plan->price > 1000 ? 'var(--secondary-color)' : 'var(--primary-color)' }} !important;">
+            <div class="card h-100 border-0  rounded-4 overflow-hidden position-relative {{ !$plan->is_active ? 'opacity-75' : '' }}" style="border-top: 5px solid {{ $plan->price > 1000 ? 'var(--secondary-color)' : 'var(--primary-color)' }} !important;">
                 @if(!$plan->is_active)
                     <span class="badge bg-danger rounded-0 position-absolute end-0 top-0 px-3 py-1 text-uppercase small">Inactive</span>
                 @endif
@@ -61,7 +61,7 @@
     <!-- Table List -->
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-header border-0 pb-0">
                     <h5 class="fw-bold text-dark mb-0">Plans Reference Directory</h5>
                 </div>

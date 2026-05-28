@@ -13,7 +13,7 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle" id="enquiryTable">
@@ -34,7 +34,7 @@
                                         @if($enquiry->is_read)
                                             <span class="badge bg-light text-muted border rounded-pill px-3">Read</span>
                                         @else
-                                            <span class="badge bg-primary rounded-pill px-3 shadow-sm">New</span>
+                                            <span class="badge bg-primary rounded-pill px-3 ">New</span>
                                         @endif
                                     </td>
                                     <td>
@@ -63,7 +63,7 @@
                                         @endif
                                     </td>
                                     <td class="text-end pe-4">
-                                        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                        <div class="btn-group  rounded-3 overflow-hidden">
                                             @can('view-enquiries')
                                             <a href="{{ route('admin.enquiries.show', $enquiry->id) }}" class="btn btn-white btn-sm px-3" title="View Enquiry">
                                                 <i class="fa-solid fa-eye text-primary"></i>
@@ -141,13 +141,4 @@
 </script>
 @endpush
 
-<style>
-    .btn-white {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-    }
-    .btn-white:hover {
-        background: #f8fafc;
-    }
-</style>
 @endsection

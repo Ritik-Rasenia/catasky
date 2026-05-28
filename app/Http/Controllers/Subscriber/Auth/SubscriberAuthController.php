@@ -95,19 +95,70 @@ class SubscriberAuthController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
+        // Generate 6-digit verification code
+        $otp = (string)rand(100000, 999999);
+
+        // Put registration details in session until verified
+        $request->session()->put('registration_data', [
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password,
+            'company_name' => $request->company_name,
+            'phone' => $request->phone,
+            'whatsapp_number' => $request->whatsapp_number,
+            'selected_plan' => $request->input('selected_plan', 'business'),
+        ]);
+        $request->session()->put('registration_otp', $otp);
+
+        return redirect()->route('subscriber.verify-otp')
+            ->with('success', 'A 6-digit verification code has been dispatched to your email.');
+    }
+
+    public function showOtpForm(Request $request)
+    {
+        if (!$request->session()->has('registration_data') || !$request->session()->has('registration_otp')) {
+            return redirect()->route('subscriber.register')
+                ->with('error', 'Please fill the registration form first.');
+        }
+
+        $email = $request->session()->get('registration_data')['email'];
+        $otpCode = $request->session()->get('registration_otp');
+
+        return view('subscriber-panel.auth.otp', compact('email', 'otpCode'));
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        if (!$request->session()->has('registration_data') || !$request->session()->has('registration_otp')) {
+            return redirect()->route('subscriber.register')
+                ->with('error', 'Please fill the registration form first.');
+        }
+
+        $request->validate([
+            'otp' => 'required|string|size:6'
+        ]);
+
+        $sessionOtp = $request->session()->get('registration_otp');
+
+        if ($request->otp !== $sessionOtp) {
+            return back()->withErrors(['otp' => 'The entered verification code is incorrect. Please try again.'])->withInput();
+        }
+
+        $regData = $request->session()->get('registration_data');
+
         // Create user
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
+            'name'     => $regData['name'],
+            'email'    => $regData['email'],
+            'password' => Hash::make($regData['password']),
         ]);
 
         // Assign Subscriber role
         $subscriberRole = Role::firstOrCreate(['name' => 'Subscriber', 'guard_name' => 'web']);
         $user->assignRole($subscriberRole);
 
-        // Create subscriber profile (Pending Approval default)
-        $companySlug = Str::slug($request->company_name);
+        // Create subscriber profile (Pending Compliance Approval default)
+        $companySlug = Str::slug($regData['company_name']);
         $slugExists = SubscriberProfile::where('company_slug', $companySlug)->exists();
         if ($slugExists) {
             $companySlug .= '-' . Str::random(4);
@@ -115,11 +166,13 @@ class SubscriberAuthController extends Controller
 
         $profile = SubscriberProfile::create([
             'user_id'          => $user->id,
-            'company_name'     => $request->company_name,
+            'company_name'     => $regData['company_name'],
             'company_slug'     => $companySlug,
-            'phone'            => $request->phone,
-            'whatsapp_number'  => $request->whatsapp_number,
-            'status'           => 'pending', // Pending approval by admin
+            'phone'            => $regData['phone'],
+            'whatsapp_number'  => $regData['whatsapp_number'],
+            'status'           => 'pending', // Pending B2B compliance review
+            'store_status'     => 'draft',   // Needs store branding setup
+            'is_verified'      => true,      // Verification completed
         ]);
 
         // Create default PDF template
@@ -129,11 +182,25 @@ class SubscriberAuthController extends Controller
             'is_default'  => true,
         ]);
 
+        // Notify Super Admins of new subscriber registration
+        try {
+            $superAdmins = User::role('Super Admin')->get();
+            if ($superAdmins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\SubscriberRegistrationNotification([
+                    'title' => 'New B2B Registration',
+                    'message' => 'New B2B registration request from ' . $regData['name'] . ' (' . $regData['company_name'] . ').',
+                ]));
+            }
+        } catch (\Exception $e) {}
+
+        // Clean session verification data
+        $request->session()->forget(['registration_data', 'registration_otp']);
+
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('subscriber.subscription.plans')
-            ->with('success', 'Welcome to Catasky. Please complete your subscription payment, then Super Admin will approve your account.');
+        return redirect()->route('dashboard')
+            ->with('success', '🎉 Verification successful! Your account is now pending B2B compliance approval by the Super Admin.');
     }
 
     public function showForgotForm()

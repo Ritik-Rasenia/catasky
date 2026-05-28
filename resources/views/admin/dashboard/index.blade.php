@@ -6,14 +6,14 @@
 <div class="container-fluid px-0">
 
     {{-- Welcome Hero Banner --}}
-    <div class="dash-hero mb-4 p-4 p-md-5 rounded-4 text-white position-relative overflow-hidden shadow-sm" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);">
+    <div class="dash-hero mb-4 p-4 p-md-5 rounded-4 text-white position-relative overflow-hidden " style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);">
         <div class="position-relative z-2">
             <div class="small fw-bold text-uppercase opacity-75 mb-2">📅 {{ now()->format('l, d F Y') }}</div>
             <h2 class="fw-bold mb-1">Welcome back, {{ auth()->user()->name }}! 👋</h2>
             <p class="opacity-75 mb-4">Here is your general operations and catalogue management overview.</p>
             
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('admin.products.create') }}" class="btn btn-white btn-sm rounded-pill px-3 shadow-sm text-dark bg-white fw-bold"><i class="bi bi-plus-lg me-2"></i>Add Product</a>
+                <a href="{{ route('admin.products.create') }}" class="btn btn-white btn-sm rounded-pill px-3  text-dark bg-white fw-bold"><i class="bi bi-plus-lg me-2"></i>Add Product</a>
                 <a href="{{ route('catalogue') }}" target="_blank" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold"><i class="bi bi-eye me-2"></i>View Catalogue</a>
                 @can('view-enquiries')
                 <a href="{{ route('admin.enquiries.index') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 position-relative fw-bold">
@@ -30,65 +30,83 @@
     </div>
 
     {{-- General Metrics Stats Row --}}
-    <div class="row g-4 mb-4">
+    <div class="row g-3 mb-4">
         <!-- Revenue Stat -->
-        <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="stat-card p-3 shadow-sm border-0 d-flex flex-column justify-content-between h-100">
-                <div>
-                    <div class="stat-label text-muted small fw-bold text-uppercase mb-1">Revenue</div>
-                    <h4 class="fw-bold mb-0 text-dark">{{ $revenue }}</h4>
+        <div class="col-xl-2 col-sm-6">
+            <div class="stat-card h-100 w-100">
+                <div class="stat-icon" style="background: rgba(79, 70, 229, 0.08); color: var(--primary-color);">
+                    <i class="bi bi-cash-stack"></i>
                 </div>
-                <span class="stat-trend up text-success small fw-bold mt-2"><i class="bi bi-arrow-up-short"></i>+12.5%</span>
+                <div class="min-w-0">
+                    <div class="stat-label">Revenue</div>
+                    <div class="stat-value">{{ $revenue }}</div>
+                    <span class="text-success" style="font-size: 0.75rem; font-weight:600;"><i class="bi bi-arrow-up-short"></i>+12.5%</span>
+                </div>
             </div>
         </div>
         <!-- Monthly Orders Stat -->
-        <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="stat-card p-3 shadow-sm border-0 d-flex flex-column justify-content-between h-100">
-                <div>
-                    <div class="stat-label text-muted small fw-bold text-uppercase mb-1">Monthly Orders</div>
-                    <h4 class="fw-bold mb-0 text-dark">{{ number_format($monthlyOrders) }}</h4>
+        <div class="col-xl-2 col-sm-6">
+            <div class="stat-card h-100 w-100">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.08); color: #10b981;">
+                    <i class="bi bi-cart-fill"></i>
                 </div>
-                <span class="stat-trend up text-success small fw-bold mt-2"><i class="bi bi-arrow-up-short"></i>+8.2%</span>
+                <div class="min-w-0">
+                    <div class="stat-label">Orders</div>
+                    <div class="stat-value" style="color: #10b981;">{{ number_format($monthlyOrders) }}</div>
+                    <span class="text-success" style="font-size: 0.75rem; font-weight:600;"><i class="bi bi-arrow-up-short"></i>+8.2%</span>
+                </div>
             </div>
         </div>
         <!-- Active Subscribers Stat -->
-        <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="stat-card p-3 shadow-sm border-0 d-flex flex-column justify-content-between h-100">
-                <div>
-                    <div class="stat-label text-muted small fw-bold text-uppercase mb-1">Subscribers</div>
-                    <h4 class="fw-bold mb-0 text-dark">{{ number_format($subscribersCount) }}</h4>
+        <div class="col-xl-2 col-sm-6">
+            <div class="stat-card h-100 w-100">
+                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.08); color: #f59e0b;">
+                    <i class="bi bi-people-fill"></i>
                 </div>
-                <span class="stat-trend up text-success small fw-bold mt-2"><i class="bi bi-arrow-up-short"></i>+4.1%</span>
+                <div class="min-w-0">
+                    <div class="stat-label">Subscribers</div>
+                    <div class="stat-value" style="color: #f59e0b;">{{ number_format($subscribersCount) }}</div>
+                    <span class="text-warning" style="font-size: 0.75rem; font-weight:600;"><i class="bi bi-arrow-up-short"></i>+4.1%</span>
+                </div>
             </div>
         </div>
         <!-- Active Vendors Stat -->
-        <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="stat-card p-3 shadow-sm border-0 d-flex flex-column justify-content-between h-100">
-                <div>
-                    <div class="stat-label text-muted small fw-bold text-uppercase mb-1">Active Vendors</div>
-                    <h4 class="fw-bold mb-0 text-dark">{{ $activeVendors }}</h4>
+        <div class="col-xl-2 col-sm-6">
+            <div class="stat-card h-100 w-100">
+                <div class="stat-icon" style="background: rgba(6, 182, 212, 0.08); color: #06b6d4;">
+                    <i class="bi bi-shop-window"></i>
                 </div>
-                <span class="stat-trend neutral text-muted small fw-bold mt-2"><i class="bi bi-dash"></i>Steady</span>
+                <div class="min-w-0">
+                    <div class="stat-label">Vendors</div>
+                    <div class="stat-value" style="color: #06b6d4;">{{ $activeVendors }}</div>
+                    <span class="text-muted" style="font-size: 0.75rem; font-weight:600;">Steady</span>
+                </div>
             </div>
         </div>
         <!-- Conversion Rate Stat -->
-        <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="stat-card p-3 shadow-sm border-0 d-flex flex-column justify-content-between h-100">
-                <div>
-                    <div class="stat-label text-muted small fw-bold text-uppercase mb-1">Conversion</div>
-                    <h4 class="fw-bold mb-0 text-dark">{{ $conversionRate }}%</h4>
+        <div class="col-xl-2 col-sm-6">
+            <div class="stat-card h-100 w-100">
+                <div class="stat-icon" style="background: rgba(139, 92, 246, 0.08); color: #8b5cf6;">
+                    <i class="bi bi-graph-up-arrow"></i>
                 </div>
-                <span class="stat-trend up text-success small fw-bold mt-2"><i class="bi bi-arrow-up-short"></i>+2.1%</span>
+                <div class="min-w-0">
+                    <div class="stat-label">Conversion</div>
+                    <div class="stat-value" style="color: #8b5cf6;">{{ $conversionRate }}%</div>
+                    <span class="text-success" style="font-size: 0.75rem; font-weight:600;"><i class="bi bi-arrow-up-short"></i>+2.1%</span>
+                </div>
             </div>
         </div>
-        <!-- Operations Products Stat -->
-        <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="stat-card p-3 shadow-sm border-0 d-flex flex-column justify-content-between h-100">
-                <div>
-                    <div class="stat-label text-muted small fw-bold text-uppercase mb-1">Total Products</div>
-                    <h4 class="fw-bold mb-0 text-dark">{{ number_format($productsCount) }}</h4>
+        <!-- Total Products Stat -->
+        <div class="col-xl-2 col-sm-6">
+            <div class="stat-card h-100 w-100">
+                <div class="stat-icon" style="background: rgba(236, 72, 153, 0.08); color: #ec4899;">
+                    <i class="bi bi-box-seam-fill"></i>
                 </div>
-                <span class="stat-trend up text-success small fw-bold mt-2"><i class="bi bi-arrow-up-short"></i>Growing</span>
+                <div class="min-w-0">
+                    <div class="stat-label">Products</div>
+                    <div class="stat-value" style="color: #ec4899;">{{ number_format($productsCount) }}</div>
+                    <span class="text-success" style="font-size: 0.75rem; font-weight:600;">Growing</span>
+                </div>
             </div>
         </div>
     </div>
@@ -97,12 +115,12 @@
     <div class="row g-4 mb-4">
         <!-- Monthly Revenue Chart -->
         <div class="col-xl-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0">
+            <div class="vp-card h-100">
+                <div class="vp-card-header">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Monthly Financial Performance</h5>
                     <span class="text-muted small">Standard monthly tracking graph</span>
                 </div>
-                <div class="card-body p-4 pt-3 position-relative">
+                <div class="vp-card-body position-relative">
                     <div id="generalRevenueSkeleton" class="skeleton skeleton-chart w-100 position-absolute start-0 top-0 h-100 z-1" style="background-color: var(--surface-muted); margin:0;"></div>
                     <div class="chart-container">
                         <canvas id="generalRevenueChart"></canvas>
@@ -113,12 +131,12 @@
 
         <!-- Notifications Widget -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0">
+            <div class="vp-card h-100">
+                <div class="vp-card-header">
                     <h5 class="fw-bold mb-0 text-dark brand-font">System Notifications</h5>
                     <span class="text-muted small">Latest administrative activity alerts</span>
                 </div>
-                <div class="card-body p-4 pt-3">
+                <div class="vp-card-body">
                     <div class="d-flex flex-column gap-3">
                         @foreach($notifications as $notif)
                         <div class="d-flex align-items-start gap-3 p-2 rounded-3 border border-light" style="background: var(--surface-muted);">
@@ -141,8 +159,8 @@
     <div class="row g-4 mb-4">
         <!-- Recent Transactions -->
         <div class="col-xl-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+            <div class="vp-card h-100">
+                <div class="vp-card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark brand-font">Recent Transactions</h5>
                         <span class="text-muted small">Payment histories and subscriber transfers</span>
@@ -150,7 +168,7 @@
                 </div>
                 <div class="table-responsive mt-3">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
+                        <thead>
                             <tr>
                                 <th class="ps-4 py-3 small text-muted border-0">Txn ID</th>
                                 <th class="py-3 small text-muted border-0">Customer</th>
@@ -179,14 +197,14 @@
 
         <!-- Top Selling Products -->
         <div class="col-xl-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0">
+            <div class="vp-card h-100">
+                <div class="vp-card-header">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Top Catalogue Products</h5>
                     <span class="text-muted small">Most popular cable and infrastructure options</span>
                 </div>
                 <div class="table-responsive mt-3">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
+                        <thead>
                             <tr>
                                 <th class="ps-4 py-3 small text-muted border-0">Product</th>
                                 <th class="py-3 small text-muted border-0">Sales</th>
@@ -214,12 +232,12 @@
     <div class="row g-4">
         <!-- Support Tickets -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0">
+            <div class="vp-card h-100">
+                <div class="vp-card-header">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Support Tickets</h5>
                     <span class="text-muted small">Open queries requiring review</span>
                 </div>
-                <div class="card-body p-4 pt-3">
+                <div class="vp-card-body">
                     <div class="d-flex flex-column gap-3">
                         @foreach($supportTickets as $ticket)
                         <div class="d-flex justify-content-between align-items-center p-3 rounded-3 border">
@@ -238,12 +256,12 @@
 
         <!-- Active Users Widget -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0">
+            <div class="vp-card h-100">
+                <div class="vp-card-header">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Active Admins & Staff</h5>
                     <span class="text-muted small">Currently online team members</span>
                 </div>
-                <div class="card-body p-4 pt-3">
+                <div class="vp-card-body">
                     <div class="d-flex flex-column gap-3">
                         @foreach($activeUsers as $au)
                         <div class="d-flex align-items-center justify-content-between">
@@ -267,8 +285,8 @@
 
         <!-- Categories & Portfolio Overview -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+            <div class="vp-card h-100">
+                <div class="vp-card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark brand-font">Product Categories</h5>
                         <span class="text-muted small">General catalogue breakdown</span>
@@ -296,18 +314,6 @@
     </div>
 </div>
 
-<style>
-    .metric-card {
-        background: var(--surface-color);
-        border-radius: 20px;
-        border: 1px solid var(--border-color);
-    }
-    .smaller { font-size: 0.72rem; }
-    .bg-primary-soft { background: rgba(79, 70, 229, 0.1); }
-    .bg-success-soft { background: rgba(16, 185, 129, 0.1); }
-    .bg-warning-soft { background: rgba(245, 158, 11, 0.1); }
-    .bg-danger-soft { background: rgba(239, 68, 68, 0.1); }
-</style>
 @endsection
 
 @push('js')

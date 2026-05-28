@@ -19,7 +19,7 @@
     </div>
 
     <!-- Category Floating pill -->
-    <span class="position-absolute top-3 start-3 badge bg-white text-primary border shadow-sm rounded-pill fw-bold" style="font-size: 0.75rem;">
+    <span class="position-absolute top-3 start-3 badge bg-white text-primary border  rounded-pill fw-bold" style="font-size: 0.75rem;">
         {{ $product->category->name ?? 'Corporate Elite' }}
     </span>
 </div>

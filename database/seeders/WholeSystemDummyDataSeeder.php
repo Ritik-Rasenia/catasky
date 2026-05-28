@@ -38,7 +38,7 @@ class WholeSystemDummyDataSeeder extends Seeder
         }
 
         $this->row('settings', ['id' => 1], [
-            'site_title' => 'CataSky Corporate Gifting',
+            'site_title' => 'CataSky',
             'site_description' => 'A curated B2B catalogue platform for branded merchandise, gifting kits, and subscriber storefronts.',
             'logo' => 'uploads/settings/1779270966_logo.png',
             'footer_logo' => 'uploads/settings/1779270966_footer_logo.png',
@@ -50,7 +50,7 @@ class WholeSystemDummyDataSeeder extends Seeder
             'primary_color' => '#1F7A8C',
             'secondary_color' => '#F59E0B',
             'font_family' => 'Inter',
-            'meta_title' => 'CataSky | Corporate Gifting Catalogue',
+            'meta_title' => 'CataSky | Premium B2B Catalogue',
             'meta_description' => 'Discover practical, brandable corporate gifts and manage subscriber product catalogues.',
             'meta_keywords' => 'corporate gifting, B2B catalogue, employee welcome kits, branded merchandise',
         ]);
@@ -99,12 +99,12 @@ class WholeSystemDummyDataSeeder extends Seeder
     {
         $brands = [];
         foreach ([
-            ['UrbanEdge', 'uploads/brands/1779514664.png', 'Premium lifestyle merchandise for modern workplaces.'],
-            ['HydraNest', 'uploads/brands/1779104209.png', 'Drinkware and daily-use steel products for teams.'],
-            ['WorkForge', 'uploads/brands/1779103970.png', 'Technology accessories and desk productivity tools.'],
-            ['EcoOrbit', 'uploads/brands/1779516297.png', 'Sustainable office essentials and reusable gift kits.'],
-            ['PrintMint', 'uploads/brands/1779103449.png', 'Custom print, stationery, and conference collateral.'],
-            ['AwardCraft', 'uploads/brands/default.png', 'Recognition awards, plaques, and milestone gifts.'],
+            ['UrbanEdge', 'https://logo.clearbit.com/urbanoutfitters.com', 'Premium lifestyle merchandise for modern workplaces.'],
+            ['HydraNest', 'https://logo.clearbit.com/stanley1913.com', 'Drinkware and daily-use steel products for teams.'],
+            ['WorkForge', 'https://logo.clearbit.com/logitech.com', 'Technology accessories and desk productivity tools.'],
+            ['EcoOrbit', 'https://logo.clearbit.com/ecovadis.com', 'Sustainable office essentials and reusable gift kits.'],
+            ['PrintMint', 'https://logo.clearbit.com/canva.com', 'Custom print, stationery, and conference collateral.'],
+            ['AwardCraft', 'https://logo.clearbit.com/apexgroup.com', 'Recognition awards, plaques, and milestone gifts.'],
         ] as [$name, $image, $description]) {
             $brands[$name] = $this->row('brands', ['slug' => Str::slug($name)], [
                 'name' => $name,
@@ -116,53 +116,53 @@ class WholeSystemDummyDataSeeder extends Seeder
 
         $catalogue = [
             [
-                'category' => ['Corporate Drinkware', 'uploads/categories/1779514767.jfif'],
-                'subcategory' => ['Vacuum Bottles', 'uploads/subcategories/1779104287.png'],
+                'category' => ['Corporate Drinkware', 'https://images.unsplash.com/photo-1602143307185-84e030739987?auto=format&fit=crop&w=800&q=80'],
+                'subcategory' => ['Vacuum Bottles', 'https://images.unsplash.com/photo-1602143307185-84e030739987?auto=format&fit=crop&w=800&q=80'],
                 'child' => 'Steel Bottles',
                 'products' => [
-                    ['HydraNest Dori 500ml Vacuum Bottle', 'HydraNest', '0001_23052026_thumbnail.jpg', 549, 'DRK-DORI-500', 'Double-wall bottle with a powder coated body and leak-proof lid.', 'Capacity: 500ml; Material: 304 stainless steel; Branding: laser engraving; MOQ: 50 pcs', 'drinkware, steel bottle, onboarding'],
-                    ['HydraNest 1200ml Desk Tumbler', 'HydraNest', '0002_23052026_thumbnail.jpg', 799, 'DRK-TMB-1200', 'Large capacity tumbler with straw lid and handle grip for long desk days.', 'Capacity: 1200ml; Lid: splash resistant; Finish: matte; MOQ: 30 pcs', 'tumbler, hydration, employee wellness'],
-                    ['EcoOrbit Bamboo Lid Glass Jar', 'EcoOrbit', '0003_23052026_thumbnail.jpg', 349, 'DRK-GLS-370', 'Glass pantry jar with bamboo-style lid for premium snack hampers.', 'Capacity: 370ml; Material: clear glass; Packaging: kraft sleeve; MOQ: 100 pcs', 'glass jar, eco gift, pantry'],
+                    ['HydraNest Dori 500ml Vacuum Bottle', 'HydraNest', 'https://images.unsplash.com/photo-1602143307185-84e030739987?auto=format&fit=crop&w=800&q=80', 549, 'DRK-DORI-500', 'Double-wall bottle with a powder coated body and leak-proof lid.', 'Capacity: 500ml; Material: 304 stainless steel; Branding: laser engraving; MOQ: 50 pcs', 'drinkware, steel bottle, onboarding'],
+                    ['HydraNest 1200ml Desk Tumbler', 'HydraNest', 'https://images.unsplash.com/photo-1574680077532-f2bf135987f6?auto=format&fit=crop&w=800&q=80', 799, 'DRK-TMB-1200', 'Large capacity tumbler with straw lid and handle grip for long desk days.', 'Capacity: 1200ml; Lid: splash resistant; Finish: matte; MOQ: 30 pcs', 'tumbler, hydration, employee wellness'],
+                    ['EcoOrbit Bamboo Lid Glass Jar', 'EcoOrbit', 'https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?auto=format&fit=crop&w=800&q=80', 349, 'DRK-GLS-370', 'Glass pantry jar with bamboo-style lid for premium snack hampers.', 'Capacity: 370ml; Material: clear glass; Packaging: kraft sleeve; MOQ: 100 pcs', 'glass jar, eco gift, pantry'],
                 ],
             ],
             [
-                'category' => ['Executive Bags', 'uploads/categories/1779516322.jfif'],
-                'subcategory' => ['Laptop Backpacks', null],
+                'category' => ['Executive Bags', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80'],
+                'subcategory' => ['Laptop Backpacks', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80'],
                 'child' => 'Daily Commute',
                 'products' => [
-                    ['UrbanEdge Executive Laptop Backpack', 'UrbanEdge', '0031_23052026_thumbnail.jpg', 1899, 'BAG-EXE-001', 'Structured 15.6 inch laptop backpack with water-resistant shell.', 'Laptop: 15.6 inch; Material: polyester; Branding: metal badge; MOQ: 25 pcs', 'backpack, laptop bag, executive gift'],
-                    ['UrbanEdge Bottle Holder Sling', 'UrbanEdge', '0032_23052026_thumbnail.jpg', 199, 'BAG-BTL-001', 'Compact bottle sling for events, marathons, and outdoor engagement kits.', 'Fit: up to 1L bottles; Strap: adjustable; Print: single color; MOQ: 200 pcs', 'sling, event kit, bottle holder'],
-                    ['PrintMint Blue Diary Travel Set', 'PrintMint', '0033_23052026_thumbnail.jpg', 699, 'KIT-DIA-2IN1', 'Premium diary and pen set for conferences and client meetings.', 'Includes: diary and pen; Box: rigid gift box; Branding: foil print; MOQ: 50 sets', 'diary set, onboarding, client gift'],
+                    ['UrbanEdge Executive Laptop Backpack', 'UrbanEdge', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80', 1899, 'BAG-EXE-001', 'Structured 15.6 inch laptop backpack with water-resistant shell.', 'Laptop: 15.6 inch; Material: polyester; Branding: metal badge; MOQ: 25 pcs', 'backpack, laptop bag, executive gift'],
+                    ['UrbanEdge Bottle Holder Sling', 'UrbanEdge', 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?auto=format&fit=crop&w=800&q=80', 199, 'BAG-BTL-001', 'Compact bottle sling for events, marathons, and outdoor engagement kits.', 'Fit: up to 1L bottles; Strap: adjustable; Print: single color; MOQ: 200 pcs', 'sling, event kit, bottle holder'],
+                    ['PrintMint Blue Diary Travel Set', 'PrintMint', 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80', 699, 'KIT-DIA-2IN1', 'Premium diary and pen set for conferences and client meetings.', 'Includes: diary and pen; Box: rigid gift box; Branding: foil print; MOQ: 50 sets', 'diary set, onboarding, client gift'],
                 ],
             ],
             [
-                'category' => ['Tech Accessories', 'uploads/categories/1779194290.jfif'],
-                'subcategory' => ['Charging & Audio', null],
+                'category' => ['Tech Accessories', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'],
+                'subcategory' => ['Charging & Audio', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'],
                 'child' => 'Desk Tech',
                 'products' => [
-                    ['WorkForge 3-in-1 Charger Stand', 'WorkForge', '0062_23052026_thumbnail.jpg', 1499, 'TEC-CHG-3IN1', 'Desk charging stand for phone, earbuds, and watch.', 'Input: Type-C; Output: multi-device; Finish: iron grey; MOQ: 20 pcs', 'charger, desk setup, tech gift'],
-                    ['WorkForge Wireless Earbuds Pro', 'WorkForge', '0063_23052026_thumbnail.jpg', 1199, 'AUD-WF-01', 'True wireless earbuds with charging case and optional logo sleeve.', 'Playback: up to 20 hours; Bluetooth: 5.3; Branding: sleeve print; MOQ: 50 pcs', 'earbuds, audio, reward'],
-                    ['WorkForge Mini Power Bank 10K', 'WorkForge', '0064_23052026_thumbnail.jpg', 899, 'TEC-PB-10K', 'Pocket-friendly fast-charge power bank for business travel kits.', 'Capacity: 10000mAh; Ports: Type-C and USB-A; MOQ: 50 pcs', 'power bank, travel kit, tech'],
+                    ['WorkForge 3-in-1 Charger Stand', 'WorkForge', 'https://images.unsplash.com/photo-1622445262465-2481c857535a?auto=format&fit=crop&w=800&q=80', 1499, 'TEC-CHG-3IN1', 'Desk charging stand for phone, earbuds, and watch.', 'Input: Type-C; Output: multi-device; Finish: iron grey; MOQ: 20 pcs', 'charger, desk setup, tech gift'],
+                    ['WorkForge Wireless Earbuds Pro', 'WorkForge', 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=800&q=80', 1199, 'AUD-WF-01', 'True wireless earbuds with charging case and optional logo sleeve.', 'Playback: up to 20 hours; Bluetooth: 5.3; Branding: sleeve print; MOQ: 50 pcs', 'earbuds, audio, reward'],
+                    ['WorkForge Mini Power Bank 10K', 'WorkForge', 'https://images.unsplash.com/photo-1609592424109-dd9892f1b17b?auto=format&fit=crop&w=800&q=80', 899, 'TEC-PB-10K', 'Pocket-friendly fast-charge power bank for business travel kits.', 'Capacity: 10000mAh; Ports: Type-C and USB-A; MOQ: 50 pcs', 'power bank, travel kit, tech'],
                 ],
             ],
             [
-                'category' => ['Awards & Recognition', 'uploads/categories/1779194245.jfif'],
-                'subcategory' => ['Trophies & Plaques', null],
+                'category' => ['Awards & Recognition', 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?auto=format&fit=crop&w=800&q=80'],
+                'subcategory' => ['Trophies & Plaques', 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?auto=format&fit=crop&w=800&q=80'],
                 'child' => 'Crystal Awards',
                 'products' => [
-                    ['AwardCraft Crystal Star Trophy', 'AwardCraft', '0094_23052026_thumbnail.jpg', 1399, 'AWD-CRY-3354', 'Premium crystal award with laser engraving area.', 'Material: optical crystal; Engraving: laser; MOQ: 10 pcs', 'award, trophy, recognition'],
-                    ['AwardCraft Gold Leadership Award', 'AwardCraft', '0095_23052026_thumbnail.jpg', 1599, 'AWD-LDR-3356', 'Black and gold trophy for leadership and sales excellence.', 'Finish: black-gold; Base: weighted; MOQ: 10 pcs', 'leadership award, trophy, sales'],
-                    ['PrintMint Acrylic Recognition Plaque', 'PrintMint', '0096_23052026_thumbnail.jpg', 899, 'AWD-ACR-3374', 'Clean acrylic plaque with a high-contrast branding panel.', 'Material: acrylic; Printing: UV; MOQ: 25 pcs', 'plaque, acrylic award, appreciation'],
+                    ['AwardCraft Crystal Star Trophy', 'AwardCraft', 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?auto=format&fit=crop&w=800&q=80', 1399, 'AWD-CRY-3354', 'Premium crystal award with laser engraving area.', 'Material: optical crystal; Engraving: laser; MOQ: 10 pcs', 'award, trophy, recognition'],
+                    ['AwardCraft Gold Leadership Award', 'AwardCraft', 'https://images.unsplash.com/photo-1614036417651-efe5912149d8?auto=format&fit=crop&w=800&q=80', 1599, 'AWD-LDR-3356', 'Black and gold trophy for leadership and sales excellence.', 'Finish: black-gold; Base: weighted; MOQ: 10 pcs', 'leadership award, trophy, sales'],
+                    ['PrintMint Acrylic Recognition Plaque', 'PrintMint', 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=800&q=80', 899, 'AWD-ACR-3374', 'Clean acrylic plaque with a high-contrast branding panel.', 'Material: acrylic; Printing: UV; MOQ: 25 pcs', 'plaque, acrylic award, appreciation'],
                 ],
             ],
             [
-                'category' => ['Welcome & Gift Sets', 'uploads/categories/1779194213.jfif'],
-                'subcategory' => ['Employee Welcome Kits', null],
+                'category' => ['Welcome & Gift Sets', 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=800&q=80'],
+                'subcategory' => ['Employee Welcome Kits', 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=800&q=80'],
                 'child' => 'Joining Kits',
                 'products' => [
-                    ['UrbanEdge New Joiner Welcome Kit', 'UrbanEdge', '0124_23052026_thumbnail.jpg', 1499, 'KIT-NJ-360', 'Ready-to-ship kit with bottle, notebook, pen, and greeting card.', 'Items: 4; Packaging: rigid box; MOQ: 30 kits', 'welcome kit, HR, onboarding'],
-                    ['EcoOrbit Sustainable Office Starter Pack', 'EcoOrbit', '0125_23052026_thumbnail.jpg', 999, 'KIT-ECO-638', 'Reusable products curated for sustainability campaigns.', 'Material: mixed eco materials; Packaging: kraft; MOQ: 50 packs', 'eco kit, sustainability, reusable'],
-                    ['PrintMint Festive Corporate Hamper', 'PrintMint', '0126_23052026_thumbnail.jpg', 1799, 'KIT-FST-600', 'Festive hamper with practical office products and a message card.', 'Items: assorted; Card: personalized; MOQ: 25 hampers', 'festive hamper, corporate gifting, Diwali'],
+                    ['UrbanEdge New Joiner Welcome Kit', 'UrbanEdge', 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=800&q=80', 1499, 'KIT-NJ-360', 'Ready-to-ship kit with bottle, notebook, pen, and greeting card.', 'Items: 4; Packaging: rigid box; MOQ: 30 kits', 'welcome kit, HR, onboarding'],
+                    ['EcoOrbit Sustainable Office Starter Pack', 'EcoOrbit', 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80', 999, 'KIT-ECO-638', 'Reusable products curated for sustainability campaigns.', 'Material: mixed eco materials; Packaging: kraft; MOQ: 50 packs', 'eco kit, sustainability, reusable'],
+                    ['PrintMint Festive Corporate Hamper', 'PrintMint', 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=800&q=80', 1799, 'KIT-FST-600', 'Festive hamper with practical office products and a message card.', 'Items: assorted; Card: personalized; MOQ: 25 hampers', 'festive hamper, corporate gifting, Diwali'],
                 ],
             ],
         ];
@@ -202,7 +202,7 @@ class WholeSystemDummyDataSeeder extends Seeder
                     'name' => $name,
                     'part_code' => $partCode,
                     'part_number' => 'PN-' . $partCode,
-                    'thumbnail' => 'uploads/products/' . $thumbnail,
+                    'thumbnail' => str_starts_with($thumbnail, 'http') ? $thumbnail : 'uploads/products/' . $thumbnail,
                     'short_description' => $short,
                     'variant' => "Standard: Rs. {$price}\nLogo Printed: Rs. " . ($price + 90) . "\nPremium Gift Box: Rs. " . ($price + 220),
                     'price' => $price,
@@ -221,9 +221,10 @@ class WholeSystemDummyDataSeeder extends Seeder
                 $products[] = ['id' => $productId, 'brand_id' => $brands[$brandName], 'category_id' => $categoryId, 'subcategory_id' => $subcategoryId, 'name' => $name, 'price' => $price];
 
                 if (Schema::hasTable('product_images')) {
-                    $this->row('product_images', ['product_id' => $productId, 'image' => 'uploads/products/' . $thumbnail], [
+                    $imgUrl = str_starts_with($thumbnail, 'http') ? $thumbnail : 'uploads/products/' . $thumbnail;
+                    $this->row('product_images', ['product_id' => $productId, 'image' => $imgUrl], [
                         'product_id' => $productId,
-                        'image' => 'uploads/products/' . $thumbnail,
+                        'image' => $imgUrl,
                     ]);
                 }
             }
@@ -341,12 +342,12 @@ class WholeSystemDummyDataSeeder extends Seeder
     private function seedSubscriberSystem(array $users, array $catalogue): void
     {
         $subscriberData = [
-            $users['subscriber_a'] => ['UrbanEdge Promotions', 'urbanedge-promotions', 'Noida', 'Uttar Pradesh', 'Business', '#0F766E', '#F59E0B'],
-            $users['subscriber_b'] => ['GreenOrbit Gifting Co.', 'greenorbit-gifting', 'Kochi', 'Kerala', 'Starter', '#15803D', '#84CC16'],
-            $users['subscriber_c'] => ['TechCraft Rewards', 'techcraft-rewards', 'Bengaluru', 'Karnataka', 'Enterprise', '#2563EB', '#F97316'],
+            $users['subscriber_a'] => ['UrbanEdge Promotions', 'urbanedge-promotions', 'Noida', 'Uttar Pradesh', 'Business', '#0F766E', '#F59E0B', 'https://logo.clearbit.com/urbanoutfitters.com'],
+            $users['subscriber_b'] => ['GreenOrbit Gifting Co.', 'greenorbit-gifting', 'Kochi', 'Kerala', 'Starter', '#15803D', '#84CC16', 'https://logo.clearbit.com/ecovadis.com'],
+            $users['subscriber_c'] => ['TechCraft Rewards', 'techcraft-rewards', 'Bengaluru', 'Karnataka', 'Enterprise', '#2563EB', '#F97316', 'https://logo.clearbit.com/logitech.com'],
         ];
 
-        foreach ($subscriberData as $userId => [$company, $slug, $city, $state, $planName, $primary, $secondary]) {
+        foreach ($subscriberData as $userId => [$company, $slug, $city, $state, $planName, $primary, $secondary, $logoUrl]) {
             $this->row('subscriber_profiles', ['user_id' => $userId], [
                 'user_id' => $userId,
                 'company_name' => $company,
@@ -359,7 +360,7 @@ class WholeSystemDummyDataSeeder extends Seeder
                 'country' => 'India',
                 'pincode' => (string) rand(110001, 695999),
                 'gst_number' => '09ABCDE' . rand(1000, 9999) . 'F1Z' . rand(1, 9),
-                'logo' => 'uploads/brands/default.png',
+                'logo' => $logoUrl,
                 'bio' => 'Demo subscriber storefront focused on curated corporate gifting and branded merchandise.',
                 'whatsapp_number' => '91' . rand(9000000000, 9999999999),
                 'email_for_inquiries' => 'sales@' . $slug . '.test',

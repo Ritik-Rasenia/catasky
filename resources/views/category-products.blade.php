@@ -18,7 +18,7 @@
             <!-- Horizontal Scrollable Category Chips -->
             <div class="category-scroll pt-2">
                 <a href="{{ route('catalogue') }}" class="category-chip {{ ($category->id ?? 0) == 0 ? 'active' : '' }}">
-                    🔥 All Collections
+                    🔥 All
                 </a>
                 @foreach($allCategories as $cat)
                     <a href="{{ route('category.products', $cat->slug) }}" class="category-chip {{ ($category->id ?? 0) == $cat->id ? 'active' : '' }}">
@@ -110,7 +110,7 @@
                         <button class="btn btn-premium btn-premium-outline d-none d-md-block d-lg-none py-2" data-bs-toggle="collapse" data-bs-target="#tabletFiltersCollapse" aria-expanded="false" aria-controls="tabletFiltersCollapse">
                             <i class="bi bi-sliders"></i> Filters
                         </button>
-                        <select id="sort-select" class="form-select border shadow-sm rounded-3 small-text py-2 px-3 bg-white flex-fill flex-md-initial" style="width: auto; min-width: 140px;" onchange="applySort(this.value)">
+                        <select id="sort-select" class="form-select border  rounded-3 small-text py-2 px-3 bg-white flex-fill flex-md-initial" style="width: auto; min-width: 140px;" onchange="applySort(this.value)">
                             <option value="default" {{ request('sort','default')=='default' ? 'selected' : '' }}>Default Sorting</option>
                             <option value="name_asc" {{ request('sort')=='name_asc' ? 'selected' : '' }}>Alphabetical A-Z</option>
                             <option value="price_asc" {{ request('sort')=='price_asc' ? 'selected' : '' }}>Price: Low to High</option>
@@ -469,7 +469,7 @@
         background: white !important;
         border: 1px solid var(--border) !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: var(--shadow-sm) !important;
+        box-shadow: var(--) !important;
     }
 
     .pagination .page-item .page-link:hover:not(.disabled):not(.active) {

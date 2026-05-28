@@ -25,7 +25,8 @@ class SubscriberProductImportJob implements ShouldQueue
     public function __construct(
         public int $importLogId,
         public int $subscriberId,
-        public int $categoryId
+        public ?int $categoryId = null,
+        public ?int $subcategoryId = null
     ) {}
 
     public function handle(): void
@@ -58,7 +59,12 @@ class SubscriberProductImportJob implements ShouldQueue
 
         try {
             Excel::import(
-                new SubscriberProductsImport($this->importLogId, $this->subscriberId, $imagesPath, $this->categoryId),
+                new \App\Imports\SubscriberProductsImportNew(
+                    $this->importLogId,
+                    $this->subscriberId,
+                    $imagesPath,
+                    $this->subcategoryId
+                ),
                 $relativeExcel,
                 'local'
             );

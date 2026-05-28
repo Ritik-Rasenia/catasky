@@ -11,7 +11,7 @@ class SubscriberProduct extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'category_id', 'subcategory_id',
+        'user_id', 'category_id', 'subcategory_id', 'child_category_id',
         'name', 'slug', 'sku', 'mrp', 'offer_price', 'currency',
         'thumbnail', 'short_description', 'full_description', 'tags',
         'featured', 'status', 'approval_status',
@@ -121,6 +121,11 @@ class SubscriberProduct extends Model
     public function subcategory()
     {
         return $this->belongsTo(Subcategory::class);
+    }
+
+    public function childCategory()
+    {
+        return $this->belongsTo(ChildCategory::class, 'child_category_id');
     }
 
     public function images()

@@ -40,20 +40,34 @@ class SubscriberMiddleware
         }
 
         if (!$profile || !$profile->isApproved()) {
+            return redirect()->route('subscriber.pending-approval');
+        }
+
+        if (!$user->hasActiveSubscription()) {
+            // Allow limited onboarding access to dashboard & profile setup before payment
+            if ($profile && $profile->store_status !== 'live') {
+                $allowedOnboarding = [
+                    'dashboard',
+                    'subscriber.profile.edit',
+                    'subscriber.profile.update',
+                    'subscriber.profile.password',
+                    'subscriber.logout',
+                ];
+                if (in_array($currentRoute, $allowedOnboarding, true)) {
+                    return $next($request);
+                }
+            }
+
+            // Once store is live, force plan selection to unlock full access
             $billingRoutes = [
                 'subscriber.subscription.plans',
                 'subscriber.subscription.checkout',
                 'subscriber.subscription.pay',
             ];
-
-            if ($profile?->isPending() && !$user->hasActiveSubscription() && in_array($currentRoute, $billingRoutes, true)) {
+            if (in_array($currentRoute, $billingRoutes, true)) {
                 return $next($request);
             }
 
-            return redirect()->route('subscriber.pending-approval');
-        }
-
-        if (!$user->hasActiveSubscription()) {
             return redirect()->route('subscriber.subscription.plans')
                 ->with('warning', 'Please subscribe to an active plan to access the subscriber panel.');
         }

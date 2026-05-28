@@ -35,7 +35,7 @@
     <div class="row g-4 justify-content-center align-items-stretch animate-fade-in">
         <!-- Starter Plan -->
         <div class="col-lg-4 col-md-6 d-flex">
-            <div class="premium-card p-4 p-md-5 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between" style="box-shadow: var(--shadow-sm); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
+            <div class="premium-card p-4 p-md-5 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between" style="box-shadow: var(--); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
                 <div>
                     <h3 class="fw-bold text-dark mb-2" style="font-family:'Outfit',sans-serif;">Starter Plan</h3>
                     <p class="text-secondary small mb-4">Perfect for small teams and freelancers getting started with digital catalogs.</p>
@@ -126,7 +126,7 @@
 
         <!-- Enterprise Plan -->
         <div class="col-lg-4 col-md-6 d-flex">
-            <div class="premium-card p-4 p-md-5 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between" style="box-shadow: var(--shadow-sm); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
+            <div class="premium-card p-4 p-md-5 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between" style="box-shadow: var(--); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
                 <div>
                     <h3 class="fw-bold text-dark mb-2" style="font-family:'Outfit',sans-serif;">Enterprise Plan</h3>
                     <p class="text-secondary small mb-4">For large-scale B2B systems needing white-label and custom domains.</p>

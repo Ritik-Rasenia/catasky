@@ -322,14 +322,11 @@
         <!-- Logo -->
         <a href="{{ url('/') }}" class="brand-logo">
             @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:44px;max-width:150px;object-fit:contain;">
+                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:150px;max-width:150px;object-fit:contain;margin:auto;">
             @else
                 <div class="brand-logo-icon">C</div>
             @endif
-            <div>
-                <div class="brand-logo-text">{{ $siteTitle }}</div>
-                <div class="brand-logo-sub">Smart Catalogue</div>
-            </div>
+          
         </a>
 
         <!-- Main Content -->
@@ -360,22 +357,7 @@
             </div>
         </div>
 
-        <!-- Mini Stats Mockup -->
-        <div class="mini-mockup">
-            <div class="mini-mockup-label">Live Platform Stats</div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">Catalogues Created</span>
-                <span class="mini-stat-val">85,421</span>
-            </div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">PDFs Generated Today</span>
-                <span class="mini-stat-val">1,248</span>
-            </div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">Active B2B Teams</span>
-                <span class="mini-stat-val">2,400+</span>
-            </div>
-        </div>
+      
     </div>
 
     <!-- ── Form Panel ── -->

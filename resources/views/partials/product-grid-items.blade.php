@@ -3,13 +3,13 @@
         
         <!-- Hover Action Widgets (Wishlist & Compare) -->
         <div class="position-absolute top-3 end-3 d-flex flex-column gap-2" style="z-index: 5;">
-            <button class="wishlist-btn btn btn-light rounded-circle shadow-sm p-0 d-flex align-items-center justify-content-center" 
+            <button class="wishlist-btn btn btn-light rounded-circle  p-0 d-flex align-items-center justify-content-center" 
                     onclick="event.stopPropagation(); toggleWishlist('{{ $product->id }}', this)" 
                     title="Add to Wishlist" 
                     style="width: 36px; height: 36px; border: none; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); color: #64748b; transition: all 0.2s;">
                 <i class="bi bi-heart"></i>
             </button>
-            <button class="compare-btn btn btn-light rounded-circle shadow-sm p-0 d-flex align-items-center justify-content-center" 
+            <button class="compare-btn btn btn-light rounded-circle  p-0 d-flex align-items-center justify-content-center" 
                     onclick="event.stopPropagation(); toggleCompare('{{ $product->id }}', this)" 
                     title="Compare Product" 
                     style="width: 36px; height: 36px; border: none; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); color: #64748b; transition: all 0.2s;">

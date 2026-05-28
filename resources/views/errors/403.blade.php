@@ -31,7 +31,7 @@
             </div>
 
             <div class="d-flex gap-3 justify-content-center flex-wrap">
-                <a href="{{ route('dashboard') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" style="background: var(--primary-color); border: none;">
+                <a href="{{ route('dashboard') }}" class="btn btn-primary rounded-pill px-4  fw-bold" style="background: var(--primary-color); border: none;">
                     <i class="bi bi-grid-1x2 me-2"></i>Go to Dashboard
                 </a>
                 <a href="mailto:{{ optional(App\Models\Setting::first())->admin_email ?? 'support@example.com' }}" class="btn btn-light rounded-pill px-4 border fw-bold text-muted">

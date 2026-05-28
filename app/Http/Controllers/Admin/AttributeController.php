@@ -211,6 +211,19 @@ class AttributeController extends Controller
             'approval_status' => 'approved',
         ]);
 
+        // Notify subscriber of attribute approval
+        try {
+            $user = \App\Models\User::find($attribute->user_id);
+            if ($user) {
+                $user->notify(new \App\Notifications\AttributeRequestNotification([
+                    'title' => 'Attribute Approved',
+                    'message' => 'Your custom attribute request for "' . $attribute->name . '" has been approved.',
+                    'icon' => 'bi-sliders',
+                    'action_url' => route('subscriber.attributes.index'),
+                ]));
+            }
+        } catch (\Exception $e) {}
+
         return back()->with('success', "Attribute '{$attribute->name}' approved and promoted to global.");
     }
 
@@ -223,6 +236,19 @@ class AttributeController extends Controller
             'approval_status' => 'rejected',
             'is_active'       => false,
         ]);
+
+        // Notify subscriber of attribute rejection
+        try {
+            $user = \App\Models\User::find($attribute->user_id);
+            if ($user) {
+                $user->notify(new \App\Notifications\AttributeRequestNotification([
+                    'title' => 'Attribute Rejected',
+                    'message' => 'Your custom attribute request for "' . $attribute->name . '" has been rejected.',
+                    'icon' => 'bi-x-octagon',
+                    'action_url' => route('subscriber.attributes.index'),
+                ]));
+            }
+        } catch (\Exception $e) {}
 
         return back()->with('success', "Attribute '{$attribute->name}' rejected.");
     }

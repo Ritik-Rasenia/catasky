@@ -25,10 +25,8 @@
             }
 
             // Subscriber-specific visibility rules
-            // Allowed subscriber modules (route names)
             $subscriberAllowed = [
                 'dashboard',
-                'dashboard', // analytics maps to dashboard/analytics route
                 'subscriber.products.index',
                 'subscriber.attributes.index',
                 'subscriber.attribute-groups.index',
@@ -38,19 +36,21 @@
                 'subscriber.profile.edit',
                 'subscriber.subscription.index',
                 'subscriber.subscription.plans',
-                'brands',
-                'categories',
-                'subcategories',
+                'subscriber.brands.index',
+                'subscriber.categories.index',
+                'subscriber.subcategories.index',
+                'subscriber.notifications.index',
                 'contact',
             ];
 
-            // If no route specified, fall back to permission check
             if (!$route) {
                 return !$permission || $user->can($permission);
             }
 
-            // If subscriber has no active subscription, only show basic items
-            if (!$user->hasActiveSubscription()) {
+            // If subscriber is pending approval or has no active subscription, only show basic items
+            $subProfile = $user->subscriberProfile;
+            $isApproved = $subProfile && $subProfile->isApproved();
+            if (!$isApproved || !$user->hasActiveSubscription()) {
                 $limited = [
                     'dashboard',
                     'subscriber.profile.edit',
@@ -68,98 +68,63 @@
                 'label' => 'Dashboard',
                 'items' => [
                     [
-                        'label' => 'Dashboard',
-                        'icon' => 'bi-grid-1x2-fill',
-                        'route' => 'dashboard',
+                        'label'      => 'Dashboard',
+                        'icon'       => 'bi-grid-1x2-fill',
+                        'route'      => 'dashboard',
                         'permission' => 'dashboard.view',
-                        'active' => ['dashboard'],
+                        'active'     => ['dashboard'],
                     ],
                 ],
             ],
             [
-                'label' => 'Content',
+                'label' => 'Catalogue',
                 'items' => [
                     [
-                        'label' => 'Brands',
-                        'icon' => 'bi-tag-fill',
-                        'route' => 'brands',
+                        'label'      => 'Brands',
+                        'icon'       => 'bi-patch-check-fill',
+                        'route'      => 'subscriber.brands.index',
                         'permission' => null,
-                        'active' => ['brands', 'brand.*'],
+                        'active'     => ['subscriber.brands.*'],
                     ],
                     [
-                        'label' => 'Categories',
-                        'icon' => 'bi-list-ul',
-                        'route' => 'categories',
+                        'label'      => 'Categories',
+                        'icon'       => 'bi-layers-fill',
+                        'route'      => 'subscriber.categories.index',
                         'permission' => null,
-                        'active' => ['categories', 'category.*'],
+                        'active'     => ['subscriber.categories.*'],
                     ],
                     [
-                        'label' => 'Subcategories',
-                        'icon' => 'bi-list-columns',
-                        'route' => 'subcategories',
+                        'label'      => 'Subcategories',
+                        'icon'       => 'bi-list-nested',
+                        'route'      => 'subscriber.subcategories.index',
                         'permission' => null,
-                        'active' => ['subcategories', 'subcategory.*'],
+                        'active'     => ['subscriber.subcategories.*'],
                     ],
                     [
-                        'label' => 'Products',
-                        'icon' => 'bi-box-seam-fill',
-                        'route' => 'subscriber.products.index',
+                        'label'      => 'Products',
+                        'icon'       => 'bi-box-seam-fill',
+                        'route'      => 'subscriber.products.index',
                         'permission' => 'products.view',
-                        'active' => ['subscriber.products.*'],
+                        'active'     => ['subscriber.products.*'],
                     ],
                     [
-                        'label' => 'Attributes',
-                        'icon' => 'bi-sliders',
-                        'route' => 'subscriber.attributes.index',
+                        'label'      => 'Attributes',
+                        'icon'       => 'bi-sliders',
+                        'route'      => 'subscriber.attributes.index',
                         'permission' => 'products.view',
-                        'active' => ['subscriber.attributes.*'],
-                    ],
-                    [
-                        'label' => 'Variants',
-                        'icon' => 'bi-layers',
-                        'route' => 'subscriber.variants.index',
-                        'permission' => 'products.view',
-                        'active' => ['subscriber.variants.*'],
-                    ],
-                    [
-                        'label' => 'Inventory',
-                        'icon' => 'bi-archive-fill',
-                        'route' => 'subscriber.inventory.index',
-                        'permission' => 'products.view',
-                        'active' => ['subscriber.inventory.*'],
+                        'active'     => ['subscriber.attributes.*'],
                     ],
                 ],
             ],
             [
-                'label' => 'Sharing',
+                'label' => 'Engagement',
                 'items' => [
                     [
-                        'label' => 'Share Links',
-                        'icon' => 'bi-share-fill',
-                        'route' => 'subscriber.share.index',
-                        'permission' => 'products.view',
-                        'active' => ['subscriber.share.*'],
-                    ],
-                    [
-                        'label' => 'Analytics',
-                        'icon' => 'bi-graph-up-arrow',
-                        'route' => 'dashboard',
-                        'permission' => 'dashboard.analytics',
-                        'active' => ['dashboard'],
-                    ],
-                    [
-                        'label' => 'Enquiries',
-                        'icon' => 'bi-envelope-fill',
-                        'route' => 'contact',
+                        'label'      => 'Notifications',
+                        'icon'       => 'bi-bell-fill',
+                        'route'      => 'subscriber.notifications.index',
                         'permission' => null,
-                        'active' => ['contact'],
-                    ],
-                    [
-                        'label' => 'Newsletters',
-                        'icon' => 'bi-newspaper',
-                        'route' => 'contact',
-                        'permission' => null,
-                        'active' => ['contact'],
+                        'active'     => ['subscriber.notifications.*'],
                     ],
                 ],
             ],
@@ -167,25 +132,18 @@
                 'label' => 'Account',
                 'items' => [
                     [
-                        'label' => 'Profile',
-                        'icon' => 'bi-person-circle',
-                        'route' => 'subscriber.profile.edit',
+                        'label'      => 'Subscription',
+                        'icon'       => 'bi-credit-card-2-front-fill',
+                        'route'      => 'subscriber.subscription.index',
                         'permission' => 'dashboard.view',
-                        'active' => ['subscriber.profile.*'],
+                        'active'     => ['subscriber.subscription.*'],
                     ],
                     [
-                        'label' => 'Subscription',
-                        'icon' => 'bi-credit-card-2-front-fill',
-                        'route' => 'subscriber.subscription.index',
+                        'label'      => 'Profile',
+                        'icon'       => 'bi-person-circle',
+                        'route'      => 'subscriber.profile.edit',
                         'permission' => 'dashboard.view',
-                        'active' => ['subscriber.subscription.*'],
-                    ],
-                    [
-                        'label' => 'Support',
-                        'icon' => 'bi-life-preserver',
-                        'route' => 'contact',
-                        'permission' => 'dashboard.view',
-                        'active' => ['contact'],
+                        'active'     => ['subscriber.profile.*'],
                     ],
                 ],
             ],
@@ -194,34 +152,38 @@
 
     <div class="sidebar-header">
         <div class="sidebar-logo">
-            <span class="sidebar-logo-badge">
-                <i class="bi bi-cast fs-6"></i>
-            </span>
-            <span class="sidebar-title-text">
-                {{ $setting->site_title ?? 'Catasky' }}
-            </span>
+            @php
+                $profile = $user ? $user->subscriberProfile : null;
+            @endphp
+            @if($profile && $profile->logo)
+                <img src="{{ $profile->logo_url }}" alt="{{ $profile->company_name }}" class="sidebar-logo-img" style="max-height:40px;width:auto;margin-right:8px;border-radius:6px;" />
+            @elseif($setting && $setting->logo)
+                <img src="{{ asset('uploads/settings/' . $setting->logo) }}" alt="{{ $setting->site_title ?? 'Catasky' }}" class="sidebar-logo-img" style="width:150px;margin:auto;border-radius:6px;" />
+            @else
+                <span class="sidebar-logo-badge">
+                    <i class="bi bi-cast fs-6"></i>
+                </span>
+            @endif
         </div>
-
-        <button type="button" class="btn btn-sm btn-outline-light border-0 text-white d-none d-lg-inline-flex align-items-center justify-content-center" onclick="toggleSidebarState()" title="Collapse sidebar" aria-label="Collapse sidebar">
-            <i class="bi bi-layout-sidebar-inset"></i>
-        </button>
     </div>
 
     <div class="sidebar-scroll">
         @foreach($menuSections as $section)
             @php
-                $visibleItems = collect($section['items'])->filter(fn ($item) => $canSee($item['permission'] ?? null, $item['route'] ?? null));
-                $sectionSlug = Str::slug($section['label']);
+                $visibleItems = collect($section['items'])->filter(function ($item) use ($canSee) {
+                    return $canSee($item['permission'] ?? null, $item['route'] ?? null);
+                });
+                $sectionSlug = \Illuminate\Support\Str::slug($section['label']);
             @endphp
 
             @if($visibleItems->isNotEmpty())
-                <div class="section-title d-flex justify-content-between align-items-center" 
-                     data-bs-toggle="collapse" 
-                     data-bs-target="#collapse-{{ $sectionSlug }}" 
-                     aria-expanded="true" 
+                <div class="section-title d-flex justify-content-between align-items-center"
+                     data-bs-toggle="collapse"
+                     data-bs-target="#collapse-{{ $sectionSlug }}"
+                     aria-expanded="true"
                      style="cursor: pointer; user-select: none;">
-                     <span class="sidebar-title-text">{{ $section['label'] }}</span>
-                     <i class="bi bi-chevron-down section-caret text-muted smaller d-none d-lg-inline" style="transition: transform 0.2s ease; font-size: 0.7rem;"></i>
+                    <span class="sidebar-title-text">{{ $section['label'] }}</span>
+                    <i class="bi bi-chevron-down section-caret text-muted smaller d-none d-lg-inline" style="transition: transform 0.2s ease; font-size: 0.7rem;"></i>
                 </div>
 
                 <div class="collapse show section-collapse-wrapper" id="collapse-{{ $sectionSlug }}">
@@ -234,6 +196,12 @@
                         <a href="{{ $href }}" class="nav-link {{ $active ? 'active' : '' }}">
                             <i class="bi {{ $item['icon'] }}"></i>
                             <span>{{ $item['label'] }}</span>
+
+                            @if(!empty($item['badge']))
+                                <span class="badge rounded-pill ms-auto" style="background:#ef4444;color:#fff;font-size:0.62rem;padding:2px 7px;font-weight:800;">
+                                    {{ $item['badge'] }}
+                                </span>
+                            @endif
                         </a>
                     @endforeach
                 </div>
@@ -260,14 +228,15 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const sections = document.querySelectorAll('.section-collapse-wrapper');
-        
+
         sections.forEach(function (section) {
             const slug = section.getAttribute('id');
             const collapsedKey = 'catasky-section-collapsed-' + slug;
             const isCollapsed = localStorage.getItem(collapsedKey) === 'true';
-            
+
+            // Auto expand if contains active nav item
             const hasActive = section.querySelector('.nav-link.active') !== null;
-            
+
             if (isCollapsed && !hasActive) {
                 const bsCollapse = new bootstrap.Collapse(section, { toggle: false });
                 bsCollapse.hide();
@@ -280,6 +249,7 @@
             }
         });
 
+        // Event listeners to toggle caret rotation and store state in localStorage
         sections.forEach(function (section) {
             const slug = section.getAttribute('id');
             const collapsedKey = 'catasky-section-collapsed-' + slug;

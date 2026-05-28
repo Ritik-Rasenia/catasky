@@ -8,7 +8,7 @@
 <div class="row g-3">
     {{-- Left: Attributes List --}}
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0" style="border-radius:16px;">
+        <div class="card  border-0" style="border-radius:16px;">
             <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center" style="border-top-left-radius:16px; border-top-right-radius:16px;">
                 <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-sliders me-2 text-primary"></i>Global PIM Attributes</h6>
                 <a href="{{ route('admin.saas.approvals.index') }}" class="btn btn-sm btn-outline-primary" style="border-radius:8px;font-size:0.75rem;">
@@ -193,7 +193,7 @@
     {{-- Right: Add Attribute & Add Group --}}
     <div class="col-lg-4">
         {{-- Add Global Attribute --}}
-        <div class="card shadow-sm border-0 mb-3" style="border-radius:16px;">
+        <div class="card  border-0 mb-3" style="border-radius:16px;">
             <div class="card-header bg-white py-3 border-0" style="border-top-left-radius:16px; border-top-right-radius:16px;">
                 <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Add Global Attribute</h6>
             </div>
@@ -281,7 +281,7 @@
         </div>
 
         {{-- Add Attribute Group --}}
-        <div class="card shadow-sm border-0" style="border-radius:16px;">
+        <div class="card  border-0" style="border-radius:16px;">
             <div class="card-header bg-white py-3 border-0" style="border-top-left-radius:16px; border-top-right-radius:16px;">
                 <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-folder-plus me-2 text-primary"></i>Add Attribute Group</h6>
             </div>

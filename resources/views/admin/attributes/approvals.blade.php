@@ -5,7 +5,7 @@
 @section('breadcrumb', 'SaaS Management → Pending Approvals → Custom Fields')
 
 @section('content')
-<div class="card shadow-sm border-0" style="border-radius:16px;">
+<div class="card  border-0" style="border-radius:16px;">
     <div class="card-header bg-white py-3 border-0" style="border-top-left-radius:16px; border-top-right-radius:16px;">
         <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-person-check-fill me-2 text-warning"></i>Pending Custom Fields Reviews</h6>
     </div>

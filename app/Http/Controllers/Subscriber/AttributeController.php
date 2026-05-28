@@ -35,7 +35,8 @@ class AttributeController extends Controller
         $user = auth()->user();
         $groups = AttributeGroup::where('user_id', $user->id)->orderBy('sort_order')->get();
         $types = Attribute::TYPES;
-        return view('subscriber-panel.attributes.create', compact('groups', 'types'));
+        $categories = \App\Models\Category::orderBy('name')->get();
+        return view('subscriber-panel.attributes.create', compact('groups', 'types', 'categories'));
     }
 
     public function store(Request $request)
@@ -43,6 +44,7 @@ class AttributeController extends Controller
         $request->validate([
             'name'               => 'required|string|max:255',
             'type'               => 'required|in:' . implode(',', array_keys(Attribute::TYPES)),
+            'category_id'        => 'required|exists:categories,id',
             'attribute_group_id' => 'nullable|exists:attribute_groups,id',
             'options.*.label'    => 'required_if:type,select,multiselect,checkbox,radio',
         ]);
@@ -63,8 +65,19 @@ class AttributeController extends Controller
             'show_in_pdf'        => $request->boolean('show_in_pdf', true),
             'show_in_share'      => $request->boolean('show_in_share', true),
             'is_active'          => $request->boolean('is_active', true),
+            'is_global'          => false,
+            'approval_status'    => 'pending', // Awaiting Super Admin check
             'sort_order'         => $request->sort_order ?? 0,
             'validation_rules'   => $request->validation_rules ? json_decode($request->validation_rules, true) : null,
+        ]);
+
+        // Map attribute to target Category
+        \App\Models\CategoryAttribute::create([
+            'category_id'        => $request->category_id,
+            'attribute_id'       => $attribute->id,
+            'attribute_group_id' => $request->attribute_group_id,
+            'is_required'        => $request->boolean('is_required'),
+            'sort_order'         => 0,
         ]);
 
         // Save options for select-type attributes
@@ -84,6 +97,18 @@ class AttributeController extends Controller
         }
 
         SubscriberActivityLog::log('created', 'Created attribute: ' . $attribute->name, $attribute);
+
+        // Notify Super Admins of new custom attribute request
+        try {
+            $superAdmins = \App\Models\User::role('Super Admin')->get();
+            if ($superAdmins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\AttributeRequestNotification([
+                    'title' => 'New Attribute Request',
+                    'message' => 'Subscriber ' . $user->name . ' has requested approval for a new custom attribute: "' . $attribute->name . '".',
+                    'action_url' => url('/dashboard/saas/approvals'),
+                ]));
+            }
+        } catch (\Exception $e) {}
 
         return redirect()->route('subscriber.attributes.index')
             ->with('success', 'Attribute created successfully!');
@@ -164,6 +189,115 @@ class AttributeController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function storeCustom(Request $request)
+    {
+        $request->validate([
+            'name'            => 'required|string|max:255',
+            'type'            => 'required|string',
+            'group_section'   => 'required|in:Basic Details,Technical Specifications,Packaging Details,Compliance & Safety,Commercial Details',
+            'subcategory_id'  => 'required|exists:subcategories,id',
+            'options'         => 'nullable|string',
+        ]);
+
+        $user = auth()->user();
+
+        // Find or create group
+        $group = AttributeGroup::firstOrCreate(
+            ['user_id' => $user->id, 'name' => $request->group_section],
+            ['slug' => Str::slug($request->group_section), 'is_active' => true, 'sort_order' => 0]
+        );
+
+        // Map UI type to database type
+        $uiType = $request->type;
+        $dbType = $uiType;
+        if ($uiType === 'rich_text') {
+            $dbType = 'textarea';
+        } elseif ($uiType === 'decimal') {
+            $dbType = 'number';
+        }
+
+        $attribute = Attribute::create([
+            'user_id'            => $user->id,
+            'attribute_group_id' => $group->id,
+            'name'               => $request->name,
+            'slug'               => Str::slug($request->name) . '-' . Str::random(4),
+            'type'               => $dbType,
+            'is_required'        => false,
+            'is_searchable'      => false,
+            'show_in_pdf'        => true,
+            'show_in_share'      => true,
+            'is_active'          => true,
+            'is_global'          => false,
+            'approval_status'    => 'pending',
+            'sort_order'         => 0,
+        ]);
+
+        // If there are options for select/multiselect
+        if (in_array($dbType, ['select', 'multiselect', 'checkbox', 'radio']) && $request->options) {
+            $optionsArr = array_map('trim', explode(',', $request->options));
+            foreach ($optionsArr as $index => $optionVal) {
+                if (!empty($optionVal)) {
+                    AttributeOption::create([
+                        'attribute_id' => $attribute->id,
+                        'label'        => $optionVal,
+                        'value'        => Str::slug($optionVal),
+                        'sort_order'   => $index,
+                        'is_default'   => false,
+                    ]);
+                }
+            }
+        }
+
+        // Map to subcategory
+        \App\Models\SubcategoryAttribute::create([
+            'subcategory_id'     => $request->subcategory_id,
+            'attribute_id'       => $attribute->id,
+            'attribute_group_id' => $group->id,
+            'is_required'        => false,
+            'sort_order'         => 0,
+        ]);
+
+        // Activity Log
+        SubscriberActivityLog::log('created', 'Requested custom specification attribute: ' . $attribute->name, $attribute);
+
+        // Notify Super Admins
+        try {
+            $superAdmins = \App\Models\User::role('Super Admin')->get();
+            if ($superAdmins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\AttributeRequestNotification([
+                    'title' => 'New Attribute Request',
+                    'message' => 'Subscriber ' . $user->name . ' has requested approval for a new B2B custom attribute: "' . $attribute->name . '".',
+                    'icon' => 'bi-sliders',
+                    'action_url' => url('/dashboard/saas/approvals'),
+                ]));
+            }
+        } catch (\Exception $e) {}
+
+        // Fetch options if select
+        $options = $attribute->options->map(function($opt) {
+            return [
+                'value' => $opt->value,
+                'label' => $opt->label
+            ];
+        });
+
+        return response()->json([
+            'success'         => true,
+            'attribute'       => [
+                'id'              => $attribute->id,
+                'name'            => $attribute->name,
+                'type'            => $uiType,
+                'unit'            => $attribute->unit,
+                'placeholder'     => $attribute->placeholder,
+                'default_value'   => $attribute->default_value,
+                'is_required'     => false,
+                'approval_status' => 'pending',
+                'options'         => $options
+            ],
+            'group_name'      => $request->group_section
+        ]);
     }
 
     private function authorize(Attribute $attribute): void

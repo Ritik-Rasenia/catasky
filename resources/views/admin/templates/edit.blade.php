@@ -11,7 +11,7 @@
             @csrf
             @method('PUT')
             
-            <div class="card shadow-sm border-0 mb-3" style="border-radius:16px;">
+            <div class="card  border-0 mb-3" style="border-radius:16px;">
                 <div class="card-header bg-white py-3 border-0 d-flex align-items-center justify-content-between" style="border-top-left-radius:16px; border-top-right-radius:16px;">
                     <div>
                         <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-gear-fill me-2 text-primary"></i>Schema Designer: {{ $category->name }}</h6>
@@ -79,7 +79,7 @@
     </div>
     
     <div class="col-lg-3">
-        <div class="card shadow-sm border-0 mb-3" style="border-radius:16px;">
+        <div class="card  border-0 mb-3" style="border-radius:16px;">
             <div class="card-header bg-white py-3 border-0" style="border-top-left-radius:16px; border-top-right-radius:16px;">
                 <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-info-circle-fill me-2 text-primary"></i>Platform Template Rules</h6>
             </div>

@@ -65,9 +65,12 @@ class DashboardController extends Controller
         $stats = [
             'total_products' => SubscriberProduct::where('user_id', $user->id)->count(),
             'active_products' => SubscriberProduct::where('user_id', $user->id)->where('status', 'active')->count(),
+            'pending_products' => SubscriberProduct::where('user_id', $user->id)->where('approval_status', 'pending')->count(),
+            'categories_count' => SubscriberProduct::where('user_id', $user->id)->whereNotNull('category_id')->distinct('category_id')->count('category_id'),
             'total_shares' => SubscriberShareLink::where('user_id', $user->id)->count(),
             'total_views' => SubscriberShareLink::where('user_id', $user->id)->sum('view_count'),
             'total_downloads' => SubscriberShareLink::where('user_id', $user->id)->sum('download_count'),
+            'unread_notifications_count' => $user->unreadNotifications()->count(),
             'monthly_views' => 12480,
             'conversion_rate' => 4.8,
         ];
@@ -88,6 +91,8 @@ class DashboardController extends Controller
             ->orderByDesc('view_count')
             ->take(5)
             ->get();
+
+        $recentNotifications = $user->notifications()->latest()->take(5)->get();
 
         $dashboardCharts = [
             'monthlyViews' => [
@@ -112,7 +117,8 @@ class DashboardController extends Controller
             'recentProducts',
             'recentActivity',
             'topShareLinks',
-            'dashboardCharts'
+            'dashboardCharts',
+            'recentNotifications'
         ));
     }
 

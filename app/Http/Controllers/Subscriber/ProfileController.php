@@ -19,8 +19,10 @@ class ProfileController extends Controller
         $pdfTemplate = SubscriberPdfTemplate::where('user_id', $user->id)
             ->where('is_default', true)
             ->first() ?? new SubscriberPdfTemplate();
+        $subscription = $user->activeSubscription();
+        $invoices = $user->invoices()->latest()->get();
 
-        return view('subscriber-panel.profile.edit', compact('user', 'profile', 'pdfTemplate'));
+        return view('subscriber-panel.profile.edit', compact('user', 'profile', 'pdfTemplate', 'subscription', 'invoices'));
     }
 
     public function update(Request $request)
@@ -34,11 +36,20 @@ class ProfileController extends Controller
             'whatsapp_number' => 'nullable|string|max:20',
             'website'         => 'nullable|url|max:255',
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:2048',
+            'profile_image'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'primary_color'   => 'nullable|string|max:7',
             'secondary_color' => 'nullable|string|max:7',
         ]);
 
-        $user->update(['name' => $request->name]);
+        $userData = ['name' => $request->name];
+
+        if ($request->hasFile('profile_image')) {
+            $avatarName = Str::random(20) . '.' . $request->file('profile_image')->getClientOriginalExtension();
+            $request->file('profile_image')->move(public_path('uploads/profile'), $avatarName);
+            $userData['profile_image'] = $avatarName;
+        }
+
+        $user->update($userData);
 
         $profileData = $request->only([
             'company_name', 'phone', 'whatsapp_number', 'website',
@@ -53,14 +64,22 @@ class ProfileController extends Controller
             $profileData['logo'] = $filename;
         }
 
+        $currentStoreStatus = $user->subscriberProfile?->store_status ?? 'draft';
+        if ($currentStoreStatus === 'draft' || $currentStoreStatus === 'rejected') {
+            $currentStoreStatus = 'pending';
+        }
+
         $profile = SubscriberProfile::updateOrCreate(
             ['user_id' => $user->id],
-            array_merge($profileData, ['status' => $user->subscriberProfile?->status ?? 'active'])
+            array_merge($profileData, [
+                'status' => $user->subscriberProfile?->status ?? 'pending',
+                'store_status' => $currentStoreStatus,
+            ])
         );
 
         SubscriberActivityLog::log('updated', 'Updated profile', $profile);
 
-        return back()->with('success', 'Profile updated successfully!');
+        return redirect()->route('subscriber.profile.edit')->with('success', 'Profile & store configuration submitted successfully!');
     }
 
     public function updatePassword(Request $request)

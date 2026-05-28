@@ -15,7 +15,7 @@
 
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4">
+    <div class="card border-0  rounded-4">
 
         <div class="card-body">
 

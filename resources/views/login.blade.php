@@ -158,9 +158,9 @@
         .form-panel {
             flex: 1;
             display: flex;
-            align-items: center;
+            /* align-items: center; */
             justify-content: center;
-            padding: 24px 40px;
+            padding: 80px 40px;
             background: #0F172A;
             min-height: 100vh;
         }
@@ -314,14 +314,11 @@
         <!-- Logo -->
         <a href="{{ url('/') }}" class="brand-logo">
             @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:44px;max-width:150px;object-fit:contain;">
+                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-width:150px;object-fit:contain;margin:auto;">
             @else
                 <div class="brand-logo-icon">C</div>
             @endif
-            <div>
-                <div class="brand-logo-text">{{ $siteTitle }}</div>
-                <div class="brand-logo-sub">Smart Catalogue</div>
-            </div>
+           
         </a>
 
         <!-- Main Content -->
@@ -375,7 +372,7 @@
         <div class="form-box">
 
             <!-- Mobile Logo -->
-            <div class="d-lg-none text-center mb-4">
+            <div class="d-lg-none text-cente">
                 <div style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;">
                     @if($logoUrl)
                         <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:42px;max-width:150px;object-fit:contain;">

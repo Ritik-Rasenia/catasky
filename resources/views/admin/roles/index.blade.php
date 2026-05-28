@@ -11,7 +11,7 @@
         </div>
         <div class="col-md-4 text-md-end">
             @can('create-roles')
-            <a href="{{ route('admin.roles.create') }}" class="btn btn-primary shadow-sm rounded-pill px-4">
+            <a href="{{ route('admin.roles.create') }}" class="btn btn-primary  rounded-pill px-4">
                 <i class="fa-solid fa-plus me-2"></i>Create New Role
             </a>
             @endcan
@@ -20,7 +20,7 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle" id="roleTable">
@@ -52,7 +52,7 @@
                                     </td>
                                     <td class="text-muted small">{{ $role->created_at->format('M d, Y') }}</td>
                                     <td class="text-end pe-4">
-                                        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                        <div class="btn-group  rounded-3 overflow-hidden">
                                             @can('edit-roles')
                                             <a href="{{ route('admin.roles.edit', $role->id) }}" class="btn btn-white btn-sm px-3" title="Edit Role">
                                                 <i class="fa-solid fa-pen-to-square text-primary"></i>
@@ -122,23 +122,4 @@
 </script>
 @endpush
 
-<style>
-    .btn-white {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-    }
-    .btn-white:hover {
-        background: #f8fafc;
-    }
-    .table-hover tbody tr:hover {
-        background-color: rgba(99, 102, 241, 0.02);
-    }
-    .dataTables_wrapper .dataTables_filter input {
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 5px 15px;
-        margin-left: 10px;
-        outline: none;
-    }
-</style>
 @endsection

@@ -1,5 +1,9 @@
 <nav id="top-navbar" class="glass-effect px-4 py-2 border-bottom d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center">
+        <button type="button" id="sidebarCollapse" class="btn btn-light rounded-circle p-0 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;" title="Toggle Sidebar">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+        
         <div class="d-none d-md-block">
             <h5 class="mb-0 fw-bold brand-font text-dark">
                 @yield('page-title', 'Analytical Panel')
@@ -9,19 +13,24 @@
     
     <div class="d-flex align-items-center gap-2">
         <!-- Live Frontend Link -->
-        <a href="{{ route('home') }}" target="_blank" class="btn btn-white btn-sm rounded-pill px-3 shadow-sm d-none d-lg-flex align-items-center gap-2 me-2 border text-muted">
+        <a href="{{ route('home') }}" target="_blank" class="btn btn-white btn-sm rounded-pill px-3  d-none d-lg-flex align-items-center gap-2 me-2 border text-muted">
             <i class="bi bi-box-arrow-up-right"></i> View Site
         </a>
 
 
 
         @php
-            $unreadEnquiries = \App\Models\Enquiry::where('is_read', false)->latest()->take(5)->get();
-            $unreadCount = \App\Models\Enquiry::where('is_read', false)->count();
+            $unreadNotifications = auth()->user()->unreadNotifications()->latest()->take(5)->get();
+            $unreadCount = auth()->user()->unreadNotifications()->count();
             $currentUser = auth()->user();
             $currentRole = $currentUser?->roles?->pluck('name')->first() ?? 'User';
         @endphp
         
+        <!-- Theme Toggle -->
+        <button type="button" class="btn btn-light rounded-circle p-0 d-flex align-items-center justify-content-center me-1" style="width: 40px; height: 40px;" id="themeToggle" onclick="window.toggleCataskyTheme()" title="Toggle Theme">
+            <i class="bi bi-moon-stars-fill"></i>
+        </button>
+
         <!-- Notifications with pulse badge -->
         <div class="dropdown">
             <button class="btn btn-light position-relative rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" id="notifDropdown" data-bs-toggle="dropdown">
@@ -34,34 +43,41 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 p-0 rounded-4 overflow-hidden" aria-labelledby="notifDropdown" style="width: 320px;">
                 <li class="p-3 bg-light d-flex justify-content-between align-items-center border-bottom">
-                    <h6 class="mb-0 fw-bold">Inquiries</h6>
+                    <h6 class="mb-0 fw-bold">Notifications</h6>
                     @if($unreadCount > 0)
                         <span class="badge bg-primary rounded-pill">{{ $unreadCount }} New</span>
                     @endif
                 </li>
                 <div class="overflow-auto" style="max-height: 350px;">
-                    @forelse($unreadEnquiries as $notif)
-                    <li>
-                        <a class="dropdown-item p-3 border-bottom d-flex align-items-start gap-3" href="{{ route('admin.enquiries.show', $notif->id) }}">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 flex-shrink-0" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-envelope"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="fw-bold text-dark text-truncate small">{{ $notif->name }}</div>
-                                <div class="text-muted text-truncate extra-small">{{ Str::limit($notif->message, 40) }}</div>
-                                <div class="text-muted mt-1 extra-small opacity-50">{{ $notif->created_at->diffForHumans() }}</div>
-                            </div>
-                        </a>
-                    </li>
+                    @forelse($unreadNotifications as $notif)
+                        @php
+                            $notifData = $notif->data;
+                            $icon = $notifData['icon'] ?? 'bi-bell';
+                            $title = $notifData['title'] ?? 'Notification';
+                            $msg = $notifData['message'] ?? '';
+                            $redirectUrl = route('admin.notifications.redirect', $notif->id);
+                        @endphp
+                        <li>
+                            <a class="dropdown-item p-3 border-bottom d-flex align-items-start gap-3" href="{{ $redirectUrl }}">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 flex-shrink-0" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi {{ $icon }}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="fw-bold text-dark text-truncate small">{{ $title }}</div>
+                                    <div class="text-muted text-truncate extra-small">{{ Str::limit($msg, 45) }}</div>
+                                    <div class="text-muted mt-1 extra-small opacity-50">{{ $notif->created_at->diffForHumans() }}</div>
+                                </div>
+                            </a>
+                        </li>
                     @empty
-                    <li class="p-5 text-center text-muted">
-                        <i class="bi bi-bell-slash mb-2 d-block opacity-25 fs-1"></i>
-                        <span class="small">No new inquiries</span>
-                    </li>
+                        <li class="p-5 text-center text-muted">
+                            <i class="bi bi-bell-slash mb-2 d-block opacity-25 fs-1"></i>
+                            <span class="small">No new notifications</span>
+                        </li>
                     @endforelse
                 </div>
                 <li>
-                    <a class="dropdown-item py-3 text-center text-primary fw-bold small border-top" href="{{ route('admin.enquiries.index') }}">
+                    <a class="dropdown-item py-3 text-center text-primary fw-bold small border-top" href="{{ route('admin.notifications.index') }}">
                         View All
                     </a>
                 </li>
@@ -77,9 +93,9 @@
                 </div>
                 <div class="position-relative">
                     @if($currentUser->profile_image)
-                        <img src="{{ asset('uploads/profile/'.$currentUser->profile_image) }}" alt="User" class="rounded-circle object-fit-cover shadow-sm border border-light" width="40" height="40">
+                        <img src="{{ asset('uploads/profile/'.$currentUser->profile_image) }}" alt="User" class="rounded-circle object-fit-cover  border border-light" width="40" height="40">
                     @else
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode($currentUser->name) }}&background=4f46e5&color=fff" alt="User" class="rounded-circle shadow-sm border border-light" width="40" height="40">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($currentUser->name) }}&background=4f46e5&color=fff" alt="User" class="rounded-circle  border border-light" width="40" height="40">
                     @endif
                     <span class="position-absolute bottom-0 end-0 bg-success border border-white border-2 rounded-circle" style="width: 12px; height: 12px;"></span>
                 </div>
@@ -102,31 +118,7 @@
     </div>
 </nav>
 
-<style>
-    .extra-small { font-size: 0.75rem; }
-    .glass-effect {
-        background: rgba(255, 255, 255, 0.8) !important;
-        backdrop-filter: blur(12px);
-    }
-    html[data-theme="dark"] .glass-effect {
-        background: rgba(17, 24, 39, 0.8) !important;
-    }
-    .pulse-badge {
-        box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
-        animation: pulse-animation 1.8s infinite;
-    }
-    @keyframes pulse-animation {
-        0% {
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-        }
-        70% {
-            box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-        }
-    }
-</style>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

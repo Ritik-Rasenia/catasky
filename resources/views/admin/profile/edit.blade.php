@@ -13,7 +13,7 @@
 
     <div class="row">
         <div class="col-md-6 mb-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card border-0  rounded-4 h-100">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0">Update Profile Information</h5>
                 </div>
@@ -23,9 +23,9 @@
 
                         <div class="mb-4 text-center">
                             @if($user->profile_image)
-                                <img src="{{ asset('uploads/profile/'.$user->profile_image) }}" width="120" height="120" class="rounded-circle object-fit-cover shadow-sm mb-3">
+                                <img src="{{ asset('uploads/profile/'.$user->profile_image) }}" width="120" height="120" class="rounded-circle object-fit-cover  mb-3">
                             @else
-                                <img src="{{ asset('uploads/logo.png') }}" width="120" height="120" class="rounded-circle object-fit-cover shadow-sm mb-3" alt="Default Profile">
+                                <img src="{{ asset('uploads/logo.png') }}" width="120" height="120" class="rounded-circle object-fit-cover  mb-3" alt="Default Profile">
                             @endif
                             <input type="file" name="profile_image" class="form-control form-control-sm @error('profile_image') is-invalid @enderror" accept="image/png, image/jpeg, image/jpg, image/webp">
                             @error('profile_image') <small class="text-danger mt-1 d-block">{{ $message }}</small> @enderror
@@ -50,7 +50,7 @@
         </div>
 
         <div class="col-md-6 mb-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card border-0  rounded-4 h-100">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0">Update Password</h5>
                 </div>

@@ -5,7 +5,7 @@
 @section('breadcrumb', 'Catalogue → Templates')
 
 @section('content')
-<div class="card shadow-sm border-0" style="border-radius:16px;">
+<div class="card  border-0" style="border-radius:16px;">
     <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center" style="border-top-left-radius:16px; border-top-right-radius:16px;">
         <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-layers-fill me-2 text-primary"></i>Category PIM Templates</h6>
         <span class="badge bg-light text-dark font-sans" style="font-size:0.75rem;">Configure Form Schemas & Rules</span>

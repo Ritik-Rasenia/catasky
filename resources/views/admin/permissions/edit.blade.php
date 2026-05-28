@@ -20,7 +20,7 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-body p-4 p-md-5">
                     <form action="{{ route('admin.permissions.update', $permission->id) }}" method="POST">
                         @csrf
@@ -30,7 +30,7 @@
                             <div class="col-lg-6">
                                 <div class="mb-4">
                                     <label for="name" class="form-label fw-bold text-dark">Permission Identifier <span class="text-danger">*</span></label>
-                                    <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                    <div class="input-group  rounded-3 overflow-hidden">
                                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-key text-primary"></i></span>
                                         <input type="text" class="form-control border-start-0 @error('name') is-invalid @enderror" 
                                                id="name" name="name" value="{{ old('name', $permission->name) }}" 
@@ -62,7 +62,7 @@
                                                 <p class="small text-muted mb-3">This permission is actively granting access to the following roles:</p>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     @foreach($permission->roles as $role)
-                                                        <span class="badge bg-white text-info border border-info border-opacity-25 px-3 py-2 rounded-pill shadow-sm">
+                                                        <span class="badge bg-white text-info border border-info border-opacity-25 px-3 py-2 rounded-pill ">
                                                             {{ $role->name }}
                                                         </span>
                                                     @endforeach
@@ -95,7 +95,7 @@
 
                             <div class="col-12 mt-4 pt-3 border-top">
                                 <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                                    <button type="submit" class="btn btn-primary rounded-pill px-5 ">
                                         <i class="fa-solid fa-circle-check me-2"></i>Update Permission
                                     </button>
                                     <a href="{{ route('admin.permissions.index') }}" class="btn btn-outline-secondary rounded-pill px-4">

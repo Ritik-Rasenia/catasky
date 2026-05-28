@@ -16,6 +16,11 @@ class DashboardController extends Controller
         $subscription = $user->activeSubscription();
         $profile = $user->subscriberProfile;
 
+        // Render limited onboarding dashboard if store is not approved and live yet
+        if (!$profile || $profile->store_status !== 'live') {
+            return view('subscriber-panel.dashboard.limited', compact('user', 'subscription', 'profile'));
+        }
+
         $stats = [
             'total_products'  => SubscriberProduct::where('user_id', $user->id)->count(),
             'active_products' => SubscriberProduct::where('user_id', $user->id)->where('status', 'active')->count(),

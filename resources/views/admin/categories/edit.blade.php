@@ -19,7 +19,7 @@
 
     <div class="row">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <form action="{{ route('admin.categories.update', $category->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
@@ -39,7 +39,7 @@
                             <div class="col-md-12">
                                 <label class="form-label fw-semibold text-dark">Category Cover Image</label>
                                 <div class="d-flex align-items-start gap-4 mb-3">
-                                    <div class="p-1 border rounded-3 bg-white shadow-sm" style="width: 120px; height: 120px;">
+                                    <div class="p-1 border rounded-3 bg-white " style="width: 120px; height: 120px;">
                                         @if($category->image)
                                             <img src="{{ asset('uploads/categories/'.$category->image) }}" id="currentImg" class="w-100 h-100 object-fit-cover rounded-2">
                                         @else
@@ -55,7 +55,7 @@
                                         </div>
                                         <div id="imagePreview" class="mt-2 d-none">
                                             <span class="badge bg-info-soft text-info mb-1">New Selection Preview:</span>
-                                            <img src="#" alt="Preview" class="d-block rounded-3 shadow-sm border p-1 bg-white" style="max-height: 80px;">
+                                            <img src="#" alt="Preview" class="d-block rounded-3  border p-1 bg-white" style="max-height: 80px;">
                                         </div>
                                     </div>
                                 </div>
@@ -76,7 +76,7 @@
                             </div>
 
                             <div class="col-12 mt-4 pt-3 border-top d-flex gap-2">
-                                <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 ">
                                     <i class="fa-solid fa-circle-check me-2"></i>Update Category
                                 </button>
                                 <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
@@ -90,7 +90,7 @@
         </div>
         
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 bg-primary bg-opacity-10 mb-4">
+            <div class="card border-0  rounded-4 bg-primary bg-opacity-10 mb-4">
                 <div class="card-body p-4 text-primary">
                     <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-info me-2"></i>Editing Record</h6>
                     <p class="small mb-0">Changes here will reflect on the main navigation and product filtering system.</p>
@@ -116,7 +116,4 @@
 </script>
 @endpush
 
-<style>
-    .border-dashed { border-style: dashed !important; border-width: 2px !important; }
-</style>
 @endsection

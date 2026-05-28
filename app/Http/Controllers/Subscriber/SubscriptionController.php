@@ -109,7 +109,27 @@ class SubscriptionController extends Controller
             ],
         ]);
 
+        // Notify subscriber of successful payment and activation
+        try {
+            $user->notify(new \App\Notifications\PaymentSuccessNotification([
+                'title' => 'Payment Successful',
+                'message' => 'Your subscription payment of ' . $plan->currency . ' ' . number_format($plan->price, 2) . ' was successful.',
+            ]));
+        } catch (\Exception $e) {}
+
         $profile = $user->subscriberProfile;
+
+        // Notify super admin of new subscription payment
+        try {
+            $superAdmins = \App\Models\User::role('Super Admin')->get();
+            if ($superAdmins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\PaymentSuccessNotification([
+                    'title' => 'New B2B Subscription Payment',
+                    'message' => $user->name . ' (' . ($profile->company_name ?? '') . ') has subscribed to ' . $plan->name . ' plan.',
+                ]));
+            }
+        } catch (\Exception $e) {}
+
         if ($profile && $profile->status === 'pending') {
             return redirect()->route('subscriber.pending-approval')
                 ->with('success', '🎉 Payment successful! Your store is now pending Super Admin approval.');

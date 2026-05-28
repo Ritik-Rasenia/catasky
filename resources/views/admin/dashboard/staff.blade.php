@@ -20,7 +20,7 @@
     <div class="row g-4 mb-4">
         <!-- Products Metric -->
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-primary" style="background: var(--surface-color);">
+            <div class="card border-0  rounded-4 h-100 border-start border-4 border-primary" style="background: var(--surface-color);">
                 <div class="card-body p-4">
                     <h6 class="text-muted small fw-bold text-uppercase mb-2">Catalogue Products</h6>
                     <h3 class="fw-bold mb-0 text-dark">{{ number_format($productsCount) }}</h3>
@@ -29,7 +29,7 @@
         </div>
         <!-- Categories Metric -->
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-success" style="background: var(--surface-color);">
+            <div class="card border-0  rounded-4 h-100 border-start border-4 border-success" style="background: var(--surface-color);">
                 <div class="card-body p-4">
                     <h6 class="text-muted small fw-bold text-uppercase mb-2">Categories</h6>
                     <h3 class="fw-bold mb-0 text-dark">{{ number_format($categoriesCount) }}</h3>
@@ -38,7 +38,7 @@
         </div>
         <!-- Enquiries Metric -->
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-warning" style="background: var(--surface-color);">
+            <div class="card border-0  rounded-4 h-100 border-start border-4 border-warning" style="background: var(--surface-color);">
                 <div class="card-body p-4">
                     <h6 class="text-muted small fw-bold text-uppercase mb-2">Total Enquiries</h6>
                     <h3 class="fw-bold mb-0 text-dark">{{ number_format($enquiriesCount) }}</h3>
@@ -47,7 +47,7 @@
         </div>
         <!-- Brands Metric -->
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-info" style="background: var(--surface-color);">
+            <div class="card border-0  rounded-4 h-100 border-start border-4 border-info" style="background: var(--surface-color);">
                 <div class="card-body p-4">
                     <h6 class="text-muted small fw-bold text-uppercase mb-2">Active Brands</h6>
                     <h3 class="fw-bold mb-0 text-dark">{{ number_format($brandsCount) }}</h3>
@@ -59,7 +59,7 @@
     <div class="row g-4">
         <!-- Daily Enquiries Trend Chart -->
         <div class="col-xl-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden" style="background: var(--surface-color);">
+            <div class="card border-0  rounded-4 h-100 overflow-hidden" style="background: var(--surface-color);">
                 <div class="card-header bg-transparent border-0 p-4 pb-0">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Enquiries Trend</h5>
                     <span class="text-muted small">Daily enquiry conversions</span>
@@ -75,7 +75,7 @@
 
         <!-- Recent Enquiries List -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden" style="background: var(--surface-color);">
+            <div class="card border-0  rounded-4 h-100 overflow-hidden" style="background: var(--surface-color);">
                 <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark brand-font">Recent Enquiries</h5>
@@ -93,7 +93,7 @@
                                         <span class="smaller text-muted">{{ $e->created_at->format('M d, Y') }}</span>
                                     </td>
                                     <td class="pe-4 py-3 text-end">
-                                        <a href="{{ route('admin.enquiries.show', $e->id) }}" class="btn btn-light btn-sm rounded-circle border shadow-sm"><i class="bi bi-eye"></i></a>
+                                        <a href="{{ route('admin.enquiries.show', $e->id) }}" class="btn btn-light btn-sm rounded-circle border "><i class="bi bi-eye"></i></a>
                                     </td>
                                 </tr>
                                 @empty

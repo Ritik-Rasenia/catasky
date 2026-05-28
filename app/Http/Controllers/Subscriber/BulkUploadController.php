@@ -37,21 +37,38 @@ class BulkUploadController extends Controller
      */
     public function downloadTemplate(Request $request)
     {
-        $request->validate(['category_id' => 'required|exists:categories,id']);
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'subcategory_id' => 'required|exists:subcategories,id',
+        ]);
         
         $category = Category::findOrFail($request->category_id);
+        $subcategory = \App\Models\Subcategory::findOrFail($request->subcategory_id);
         
-        // Find mapped dynamic attributes in this category PIM template
-        $categoryAttributes = CategoryAttribute::where('category_id', $category->id)
+        // Find mapped dynamic attributes in this subcategory PIM template
+        $subcatAttrs = \App\Models\SubcategoryAttribute::where('subcategory_id', $subcategory->id)
             ->with(['attribute' => function($q) {
                 $q->where('is_active', true);
             }])
             ->orderBy('sort_order')
             ->get();
 
+        if ($subcatAttrs->isEmpty()) {
+            // Fallback to CategoryAttributes if none mapped to Subcategory
+            $categoryAttributes = CategoryAttribute::where('category_id', $category->id)
+                ->with(['attribute' => function($q) {
+                    $q->where('is_active', true);
+                }])
+                ->orderBy('sort_order')
+                ->get();
+            $attributes = $categoryAttributes->pluck('attribute')->filter();
+        } else {
+            $attributes = $subcatAttrs->pluck('attribute')->filter();
+        }
+ 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-
+ 
         // 1. Compile Headers
         $headers = [
             'brand',
@@ -65,22 +82,20 @@ class BulkUploadController extends Controller
             'short_description',
             'full_description'
         ];
-
+ 
         // Core columns count
         $coreColCount = count($headers);
-
-        // Append Category Template Dynamic Attribute columns
-        foreach ($categoryAttributes as $catAttr) {
-            if ($catAttr->attribute) {
-                $headers[] = $catAttr->attribute->name;
-            }
+ 
+        // Append Dynamic Attribute columns
+        foreach ($attributes as $attr) {
+            $headers[] = $attr->name;
         }
-
+ 
         // 2. Add Sample Data Row
         $sample = [
             'Brand Name',
             'Sample Product Name',
-            'Subcategory Name',
+            $subcategory->name, // Mapped to subcategory
             'SKU-001',
             1200.00,
             999.00,
@@ -89,17 +104,15 @@ class BulkUploadController extends Controller
             'Brief product short description.',
             'Detailed full product description here.'
         ];
-
+ 
         // Fill default dynamic sample cells
-        foreach ($categoryAttributes as $catAttr) {
-            if ($catAttr->attribute) {
-                $sample[] = $catAttr->attribute->placeholder ?: ($catAttr->attribute->default_value ?: 'Value');
-            }
+        foreach ($attributes as $attr) {
+            $sample[] = $attr->placeholder ?: ($attr->default_value ?: 'Value');
         }
-
+ 
         $sheet->fromArray([$headers], null, 'A1');
         $sheet->fromArray([$sample], null, 'A2');
-
+ 
         // Style headers: Core columns (Deep Purple), Dynamic columns (Indigo Accent)
         $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
         
@@ -112,7 +125,7 @@ class BulkUploadController extends Controller
                 'startColor' => ['rgb' => '4F46E5'], // Brand Primary Purple
             ],
         ]);
-
+ 
         // Style dynamic PIM template headers
         if (count($headers) > $coreColCount) {
             $dynFirstLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($coreColCount + 1);
@@ -124,50 +137,51 @@ class BulkUploadController extends Controller
                 ],
             ]);
         }
-
+ 
         // Auto size columns
         foreach (range(1, count($headers)) as $colIndex) {
             $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
             $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
-
+ 
         $path = tempnam(sys_get_temp_dir(), 'catasky-pim-template');
         $writer = new Xlsx($spreadsheet);
         $writer->save($path);
         $spreadsheet->disconnectWorksheets();
-
-        $filename = 'PIM_Template_' . str_replace(' ', '_', $category->name) . '.xlsx';
-
+ 
+        $filename = 'PIM_Template_' . str_replace(' ', '_', $subcategory->name) . '.xlsx';
+ 
         return response()->download($path, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend(true);
     }
-
+ 
     /**
      * Start the bulk uploader Excel row import processing.
      */
     public function import(Request $request)
     {
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'excel'       => 'required|file|mimes:xlsx|max:51200',
-            'zip'         => 'nullable|file|mimes:zip|max:512000',
+            'category_id'    => 'required|exists:categories,id',
+            'subcategory_id' => 'required|exists:subcategories,id',
+            'excel'          => 'required|file|mimes:xlsx|max:51200',
+            'zip'            => 'nullable|file|mimes:zip|max:512000',
         ]);
-
+ 
         $log = ProductImportLog::create([
             'filename' => $request->file('excel')->getClientOriginalName(),
             'status'   => 'pending',
             'errors'   => [],
         ]);
-
+ 
         $base = 'imports/' . $log->id;
-
+ 
         try {
             $request->file('excel')->storeAs($base, 'products.xlsx');
             
             $extractDir = Storage::disk('local')->path($base . '/images');
             File::ensureDirectoryExists($extractDir);
-
+ 
             if ($request->hasFile('zip')) {
                 $zipRelative = $request->file('zip')->storeAs($base, 'images.zip');
                 $zipPath = Storage::disk('local')->path($zipRelative);
@@ -183,16 +197,16 @@ class BulkUploadController extends Controller
         } catch (\Throwable $e) {
             Storage::disk('local')->deleteDirectory($base);
             $log->delete();
-
+ 
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
         }
-
+ 
         // Dispatch background queue job
-        SubscriberProductImportJob::dispatch($log->id, auth()->id(), $request->category_id);
-
+        SubscriberProductImportJob::dispatch($log->id, auth()->id(), $request->category_id, $request->subcategory_id);
+ 
         // Fire queue worker to process Excel immediately
         $artisanPath = base_path('artisan');
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -200,7 +214,7 @@ class BulkUploadController extends Controller
         } else {
             exec("php \"$artisanPath\" queue:work --stop-when-empty > /dev/null 2>&1 &");
         }
-
+ 
         return response()->json([
             'success'       => true,
             'import_log_id' => $log->id,

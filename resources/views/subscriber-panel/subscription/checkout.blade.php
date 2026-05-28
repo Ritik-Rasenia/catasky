@@ -65,7 +65,7 @@
                                 </div>
                             </div>
 
-                            <button type="button" class="btn btn-primary py-3 px-5 fw-bold text-white shadow-sm" id="btn-razorpay-trigger" style="background:#1D6FEB; border:none; border-radius:10px;">
+                            <button type="button" class="btn btn-primary py-3 px-5 fw-bold text-white " id="btn-razorpay-trigger" style="background:#1D6FEB; border:none; border-radius:10px;">
                                 <i class="bi bi-lightning-charge-fill me-2"></i> Pay ₹{{ number_format($plan->price, 2) }} with Razorpay
                             </button>
                         </div>

@@ -1,163 +1,165 @@
 @extends('subscriber-panel.layouts.app')
-
-@section('title', 'My Products')
-@section('page-title', 'My Products')
-@section('breadcrumb', 'Manage your product catalog')
-
+ 
+@section('title', 'Products Management')
+@section('page-title', 'Products Management')
+@section('breadcrumb')
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Products</li>
+        </ol>
+    </nav>
+@endsection
+ 
 @section('content')
-
-<div class="vp-page-header">
-    <div>
-        <h1 class="vp-page-title">Products</h1>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ route('subscriber.share.create') }}" class="btn-subscriber-outline">
-            <i class="bi bi-share"></i> Share Catalog
-        </a>
-        <a href="{{ route('subscriber.products.create') }}" class="btn-subscriber">
-            <i class="bi bi-plus-lg"></i> Add Product
-        </a>
-    </div>
-</div>
-
-{{-- Filters --}}
-<div class="vp-card mb-4">
-    <div class="vp-card-body">
-        <form action="{{ route('subscriber.products.index') }}" method="GET" class="row g-2 align-items-end">
-            <div class="col-md-5">
-                <label class="vp-label">Search</label>
-                <div class="position-relative">
-                    <i class="bi bi-search position-absolute" style="left:12px;top:50%;transform:translateY(-50%);color:#94A3B8;"></i>
-                    <input type="text" name="search" class="vp-input" style="padding-left:38px;"
-                           placeholder="Search products..." value="{{ request('search') }}">
-                </div>
-            </div>
-            <div class="col-md-3">
-                <label class="vp-label">Status</label>
-                <select name="status" class="vp-select">
-                    <option value="">All Status</option>
-                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="vp-label">Category</label>
-                <select name="category_id" class="vp-select">
-                    <option value="">All Categories</option>
-                    @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-1">
-                <button type="submit" class="btn-subscriber w-100" style="padding:10px;">
-                    <i class="bi bi-search"></i>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- Products Grid --}}
-@if($products->isEmpty())
-<div class="vp-card">
-    <div class="empty-state">
-        <div class="empty-state-icon">📦</div>
-        <div class="empty-state-title">No Products Found</div>
-        <div class="empty-state-text">
-            {{ request()->hasAny(['search','status','category_id'])
-                ? 'Try adjusting your filters to find products.'
-                : 'Start adding products to your catalog. They can be shared via PDF, WhatsApp, or direct links.' }}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h3 class="fw-bold text-dark mb-1">Products Management</h3>
+            <p class="text-muted">Catalogue of all products, inventory, and specifications.</p>
         </div>
-        @if(!request()->hasAny(['search','status','category_id']))
-        <a href="{{ route('subscriber.products.create') }}" class="btn-subscriber">
-            <i class="bi bi-plus-lg"></i> Add Your First Product
-        </a>
-        @else
-        <a href="{{ route('subscriber.products.index') }}" class="btn-subscriber-outline">Clear Filters</a>
-        @endif
+        <div class="col-md-6 text-md-end">
+                <a href="{{ route('subscriber.products.import') }}" class="btn btn-white">
+                    <i class="fa-solid fa-file-import text-primary"></i>
+                    <span>Import</span>
+                </a>
+                <a href="{{ route('subscriber.products.export') }}" class="btn btn-white">
+                    <i class="fa-solid fa-file-excel text-success"></i>
+                    <span>Export</span>
+                </a>
+                <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i>Add Product
+                </a>
+        </div>
     </div>
-</div>
-@else
-
-<div class="row g-3 mb-4">
-    @foreach($products as $product)
-    <div class="col-sm-6 col-lg-4 col-xl-3">
-        <div class="product-card">
-            {{-- Product Image --}}
-            <div style="position:relative;">
-                @if($product->thumbnail)
-                    <img src="{{ $product->thumbnail_url }}" alt="{{ $product->name }}" class="product-card-img">
-                @else
-                    <div class="product-card-img-placeholder">📦</div>
-                @endif
-                {{-- Status Badge --}}
-                <span class="badge badge-{{ $product->status }}" style="position:absolute;top:10px;left:10px;border-radius:20px;padding:4px 10px;font-size:0.68rem;font-weight:700;">
-                    {{ ucfirst($product->status) }}
-                </span>
-                {{-- Image count --}}
-                @if($product->images->count() > 0)
-                <span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);color:white;border-radius:20px;padding:3px 9px;font-size:0.7rem;">
-                    <i class="bi bi-images"></i> {{ $product->images->count() }}
-                </span>
-                @endif
-            </div>
-
-            {{-- Card Body --}}
-            <div class="product-card-body">
-                <div class="product-card-name">{{ $product->name }}</div>
-                @if($product->short_description)
-                <div class="product-card-desc">{{ $product->short_description }}</div>
-                @endif
-                @if($product->sku)
-                <div style="font-size:0.7rem;color:#94A3B8;margin-top:4px;">SKU: {{ $product->sku }}</div>
-                @endif
-
-                {{-- Pricing --}}
-                <div class="product-card-pricing">
-                    <div>
-                        @if($product->mrp)
-                            <div class="price-mrp">MRP: ₹{{ number_format($product->mrp, 2) }}</div>
-                        @endif
-                        @if($product->offer_price)
-                            <div class="price-offer">₹{{ number_format($product->offer_price, 2) }}</div>
-                        @elseif($product->mrp)
-                            <div class="price-offer">₹{{ number_format($product->mrp, 2) }}</div>
-                        @endif
+ 
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0  rounded-4">
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle table-nowrap" id="productTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 border-0 text-uppercase small fw-bold text-muted">Product</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">Category</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">SKU</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">Price Range</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted text-center">Status</th>
+                                    <th class="text-end pe-4 border-0 text-uppercase small fw-bold text-muted">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($products as $product)
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            @if($product->thumbnail)
+                                                <img src="{{ $product->thumbnail_url }}" width="45" height="45" class="rounded-3  object-fit-cover border me-3" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($product->name) }}&background=f3f4f6&color=6366f1'">
+                                            @else
+                                                <div class="rounded-3 bg-light d-flex align-items-center justify-content-center text-muted border me-3" style="width: 45px; height: 45px;">
+                                                    <i class="fa-solid fa-box small"></i>
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <div class="fw-bold text-dark">{{ $product->name }}</div>
+                                                <div class="small text-muted">{{ Str::limit($product->short_description, 50) }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small fw-semibold">{{ $product->category->name ?? 'N/A' }}</div>
+                                        <div class="smaller text-muted">{{ $product->subcategory->name ?? '' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="badge bg-light text-dark border fw-medium rounded-pill px-3">{{ $product->sku ?? 'N/A' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-primary">
+                                            @if($product->offer_price)
+                                                ₹{{ number_format($product->offer_price, 2) }}
+                                                @if($product->mrp)
+                                                    <span class="text-muted small text-decoration-line-through ms-1" style="font-size:0.75rem;">₹{{ number_format($product->mrp, 2) }}</span>
+                                                @endif
+                                            @elseif($product->mrp)
+                                                ₹{{ number_format($product->mrp, 2) }}
+                                            @else
+                                                <span class="text-muted small fst-italic">Price on Request</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if($product->status == 'active')
+                                            <span class="badge bg-success-soft text-success rounded-pill px-3">Active</span>
+                                        @elseif($product->status == 'inactive')
+                                            <span class="badge bg-danger-soft text-danger rounded-pill px-3">Inactive</span>
+                                        @else
+                                            <span class="badge bg-warning-soft text-warning rounded-pill px-3">Draft</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-2 justify-content-end align-items-center">
+                                            <a href="{{ route('subscriber.products.edit', $product->id) }}" class="btn-ap-action" title="Edit Product">
+                                                <i class="fa-solid fa-pen-to-square text-primary" style="font-size: 13px !important;"></i>
+                                            </a>
+                                            <a href="{{ route('subscriber.share.create', ['product_id' => $product->id]) }}" class="btn-ap-action" title="Share Product">
+                                                <i class="fa-solid fa-share-nodes text-success" style="font-size: 13px !important;"></i>
+                                            </a>
+                                            <form action="{{ route('subscriber.products.destroy', $product->id) }}" method="POST" class="d-inline form-delete">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="button" class="btn-ap-action btn-delete" title="Delete Product">
+                                                    <i class="fa-solid fa-trash-can text-danger" style="font-size: 13px !important;"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">No products found in the catalogue.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
-                    @if($product->discount_percentage)
-                    <span class="price-discount-badge">{{ $product->discount_percentage }}% OFF</span>
-                    @endif
                 </div>
-            </div>
-
-            {{-- Actions --}}
-            <div class="product-card-actions">
-                <a href="{{ route('subscriber.products.edit', $product) }}" class="btn btn-sm flex-grow-1" style="border-radius:8px;background:#F8FAFC;border:1px solid #E2E8F0;color:#475569;font-size:0.78rem;">
-                    <i class="bi bi-pencil"></i> Edit
-                </a>
-                <a href="{{ route('subscriber.share.create', ['product_id' => $product->id]) }}" class="btn btn-sm" style="border-radius:8px;background:rgba(79,70,229,0.08);border:1px solid rgba(79,70,229,0.2);color:#4F46E5;font-size:0.78rem;padding:4px 10px;">
-                    <i class="bi bi-share"></i>
-                </a>
-                <form action="{{ route('subscriber.products.destroy', $product) }}" method="POST" id="del-{{ $product->id }}">
-                    @csrf @method('DELETE')
-                    <button type="button" onclick="confirmDelete('del-{{ $product->id }}', 'Delete {{ addslashes($product->name) }}?')"
-                            class="btn btn-sm" style="border-radius:8px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);color:#EF4444;font-size:0.78rem;padding:4px 10px;">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </form>
             </div>
         </div>
     </div>
-    @endforeach
 </div>
-
-{{-- Pagination --}}
-<div class="admin-pagination-wrap">
-    {{ $products->withQueryString()->links() }}
-</div>
-
-@endif
-
+ 
+@push('js')
+<script>
+    $(document).ready(function() {
+        $('#productTable').DataTable({
+            "pageLength": 10,
+            "ordering": true,
+            "responsive": true,
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Filter products..."
+            }
+        });
+ 
+        $(document).on('click', '.btn-delete', function() {
+            let form = $(this).closest('form');
+            Swal.fire({
+                title: 'Delete Product?',
+                text: "This product and all its related data will be permanently removed!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete',
+                borderRadius: '15px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            })
+        });
+    });
+</script>
+@endpush
 @endsection

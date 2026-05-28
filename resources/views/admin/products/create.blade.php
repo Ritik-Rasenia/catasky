@@ -1,6 +1,16 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Create Product')
+@section('page-title', 'Add New Product')
+@section('breadcrumb')
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.products.index') }}">Products</a></li>
+            <li class="breadcrumb-item active">Add New Product</li>
+        </ol>
+    </nav>
+@endsection
 
 @push('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -18,29 +28,18 @@
 </style>
 @endpush
 
+
 @section('content')
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.products.index') }}">Products</a></li>
-                    <li class="breadcrumb-item active">Create Product</li>
-                </ol>
-            </nav>
-            <h3 class="fw-bold text-dark">Add New Product</h3>
-        </div>
-    </div>
 
     <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="row">
             <div class="col-lg-8">
                 <!-- Basic Information -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-0 p-4">
-                        <h5 class="fw-bold mb-0">Basic Information</h5>
+                <div class="card border-0  rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Basic Information</h6>
                     </div>
                     <div class="card-body p-4 pt-0">
                         <div class="row g-3">
@@ -67,7 +66,7 @@
                 </div>
 
                             <!-- Dynamic Attributes (loaded by subcategory) -->
-                            <div class="card border-0 shadow-sm rounded-4 mb-4" id="dynamic-attributes-card" style="display:none;">
+                            <div class="card border-0  rounded-4 mb-4" id="dynamic-attributes-card" style="display:none;">
                                 <div class="card-header bg-white border-0 p-4">
                                     <h5 class="fw-bold mb-0">Product Attributes</h5>
                                     <small class="text-muted">Attributes for the selected subcategory load here automatically.</small>
@@ -78,9 +77,9 @@
                             </div>
 
                 <!-- Product Content -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-0 p-4">
-                        <h5 class="fw-bold mb-0">Detailed Content</h5>
+                <div class="card border-0  rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-text-paragraph me-2 text-primary"></i>Detailed Content</h6>
                     </div>
                     <div class="card-body p-4 pt-0">
                         <div>
@@ -91,9 +90,9 @@
                 </div>
 
                 <!-- SEO Section -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-0 p-4">
-                        <h5 class="fw-bold mb-0 text-primary">SEO Optimization</h5>
+                <div class="card border-0  rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-search me-2 text-primary"></i>SEO Optimization</h6>
                     </div>
                     <div class="card-body p-4 pt-0">
                         <div class="row g-3">
@@ -116,9 +115,11 @@
 
             <div class="col-lg-4">
                 <!-- Classification & Pricing -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold mb-3 border-bottom pb-2">Classification & Pricing</h6>
+                <div class="card border-0  rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-tag-fill me-2 text-primary"></i>Classification & Pricing</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
                         <div class="mb-3">
                             <label class="form-label fw-semibold small text-muted text-uppercase">Brand</label>
                             <select name="brand_id" class="form-select rounded-3">
@@ -155,9 +156,11 @@
                 </div>
 
                 <!-- Media -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold mb-3 border-bottom pb-2">Product Media</h6>
+                <div class="card border-0  rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-images me-2 text-primary"></i>Product Media</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
                         <div class="mb-4">
                             <label class="form-label fw-semibold small text-muted text-uppercase">Main Thumbnail *</label>
                             <div class="p-3 border border-dashed rounded-4 text-center bg-light">
@@ -175,9 +178,11 @@
                 </div>
 
                 <!-- Settings -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold mb-3 border-bottom pb-2">Visibility & Settings</h6>
+                <div class="card border-0  rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-toggle-on me-2 text-primary"></i>Visibility & Settings</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
                         <div class="mb-3">
                             <label class="form-label fw-semibold small text-muted text-uppercase">Status</label>
                             <select name="status" class="form-select rounded-3" required>
@@ -196,7 +201,7 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 100px; z-index: 1;">
+                <div class="card border-0  rounded-4 sticky-top" style="top: 100px; z-index: 1;">
                     <div class="card-body p-4">
                         <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 mb-2 shadow">
                             <i class="fa-solid fa-cloud-arrow-up me-2"></i>Publish Product

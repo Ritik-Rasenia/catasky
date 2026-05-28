@@ -74,31 +74,33 @@ class SaaSApprovalController extends Controller
      */
     public function approvals(Request $request)
     {
-        // 1. Pending Stores Queue
-        $pendingStores = SubscriberProfile::where('status', 'pending')
-            ->with('user.subscription.plan')
+        // 1. Pending Accounts Queue (Stage 1 Compliance)
+        $pendingAccounts = SubscriberProfile::where('status', 'pending')
+            ->with('user')
             ->latest()
             ->get();
 
-        // 2. Pending Products Queue
-        $pendingProducts = SubscriberProduct::where('approval_status', 'pending')
-            ->with(['user.subscriberProfile', 'category'])
+        // 2. Pending Stores Queue (Stage 2 Configuration)
+        $pendingStores = SubscriberProfile::where('status', 'approved')
+            ->where('store_status', 'pending')
+            ->with('user')
             ->latest()
             ->get();
 
-        // 3. Pending Share Links Queue
-        $pendingShares = SubscriberShareLink::where('approval_status', 'pending')
-            ->with('user.subscriberProfile')
+        // 3. Pending Custom Attributes Queue (Subscriber Custom Fields)
+        $pendingAttributes = \App\Models\Attribute::where('is_global', false)
+            ->where('approval_status', 'pending')
+            ->with(['subscriber', 'group'])
             ->latest()
             ->get();
 
-        return view('admin.saas.approvals.index', compact('pendingStores', 'pendingProducts', 'pendingShares'));
+        return view('admin.saas.approvals.index', compact('pendingAccounts', 'pendingStores', 'pendingAttributes'));
     }
 
     /**
-     * Approve store profile.
+     * Approve B2B Compliance Account (Stage 1).
      */
-    public function approveStore(SubscriberProfile $profile)
+    public function approveAccount(SubscriberProfile $profile)
     {
         $profile->update([
             'status' => 'approved',
@@ -107,21 +109,68 @@ class SaaSApprovalController extends Controller
             'suspension_reason' => null,
         ]);
 
-        return back()->with('success', 'Store ' . $profile->company_name . ' approved successfully!');
+        // Send approval notification to subscriber
+        try {
+            $user = $profile->user;
+            if ($user) {
+                $user->notify(new \App\Notifications\AccountApprovedNotification([
+                    'title' => 'B2B Account Approved',
+                    'message' => 'Your B2B Compliance Account has been approved by the administration.',
+                ]));
+            }
+        } catch (\Exception $e) {}
+
+        return back()->with('success', 'B2B Compliance Account for ' . $profile->company_name . ' approved successfully!');
     }
 
     /**
-     * Reject/suspend store profile.
+     * Reject B2B Compliance Account (Stage 1).
      */
-    public function rejectStore(SubscriberProfile $profile)
+    public function rejectAccount(SubscriberProfile $profile)
     {
         $profile->update([
             'status' => 'rejected',
             'suspended_at' => Carbon::now(),
-            'suspension_reason' => 'Store registration rejected by administrator.'
+            'suspension_reason' => 'B2B registration compliance check failed.'
         ]);
 
-        return back()->with('success', 'Store ' . $profile->company_name . ' has been rejected/suspended.');
+        return back()->with('success', 'B2B Compliance Account for ' . $profile->company_name . ' has been rejected.');
+    }
+
+    /**
+     * Approve store profile configuration (Stage 2).
+     */
+    public function approveStore(SubscriberProfile $profile)
+    {
+        $profile->update([
+            'store_status' => 'live',
+        ]);
+
+        // Send store approved notification
+        try {
+            $user = $profile->user;
+            if ($user) {
+                $user->notify(new \App\Notifications\StoreApprovedNotification([
+                    'title' => 'Store Configuration Approved',
+                    'message' => 'Good news! Your B2B store configuration and branding have been approved.',
+                ]));
+            }
+        } catch (\Exception $e) {}
+
+        return back()->with('success', 'Store branding for ' . $profile->company_name . ' approved successfully! Store status is now Live.');
+    }
+
+    /**
+     * Reject store profile configuration (Stage 2).
+     */
+    public function rejectStore(SubscriberProfile $profile)
+    {
+        $profile->update([
+            'store_status' => 'rejected',
+            'suspension_reason' => 'Store branding or GST proof verification rejected.'
+        ]);
+
+        return back()->with('success', 'Store branding for ' . $profile->company_name . ' has been rejected.');
     }
 
     /**
@@ -132,6 +181,19 @@ class SaaSApprovalController extends Controller
         $product->update([
             'approval_status' => 'approved'
         ]);
+
+        // Send product approved notification
+        try {
+            $user = $product->user;
+            if ($user) {
+                $user->notify(new \App\Notifications\ProductApprovedNotification([
+                    'status' => 'approved',
+                    'product_name' => $product->name,
+                    'title' => 'Product Approved',
+                    'message' => 'Your product "' . $product->name . '" has been approved for public sharing.',
+                ]));
+            }
+        } catch (\Exception $e) {}
 
         return back()->with('success', 'Product ' . $product->name . ' approved for public sharing!');
     }
@@ -144,6 +206,19 @@ class SaaSApprovalController extends Controller
         $product->update([
             'approval_status' => 'rejected'
         ]);
+
+        // Send product rejected notification
+        try {
+            $user = $product->user;
+            if ($user) {
+                $user->notify(new \App\Notifications\ProductApprovedNotification([
+                    'status' => 'rejected',
+                    'product_name' => $product->name,
+                    'title' => 'Product Rejected',
+                    'message' => 'Your product "' . $product->name . '" has been rejected by compliance.',
+                ]));
+            }
+        } catch (\Exception $e) {}
 
         return back()->with('success', 'Product ' . $product->name . ' has been rejected.');
     }

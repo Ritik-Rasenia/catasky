@@ -17,15 +17,26 @@
                 <form id="bulk-upload-form" enctype="multipart/form-data">
                     @csrf
                     
-                    <div class="vp-form-group">
-                        <label class="vp-label">Target Category Template <span class="text-danger">*</span></label>
-                        <select name="category_id" class="vp-select" required id="upload-category-id">
-                            <option value="">-- Select Category --</option>
-                            @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted" style="font-size:0.7rem;">Make sure you upload data matching this specific category template.</small>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="vp-form-group">
+                                <label class="vp-label">Category <span class="text-danger">*</span></label>
+                                <select name="category_id" class="vp-select" required id="upload-category-id">
+                                    <option value="">-- Select Category --</option>
+                                    @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="vp-form-group">
+                                <label class="vp-label">Subcategory <span class="text-danger">*</span></label>
+                                <select name="subcategory_id" class="vp-select" required id="upload-subcategory-id">
+                                    <option value="">-- Select Subcategory --</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -113,12 +124,19 @@
                 
                 <form action="{{ route('subscriber.bulk.template') }}" method="GET">
                     <div class="vp-form-group">
-                        <label class="vp-label">Target Category</label>
-                        <select name="category_id" class="vp-select" required>
+                        <label class="vp-label">Category <span class="text-danger">*</span></label>
+                        <select name="category_id" class="vp-select" required id="download-category-id">
                             <option value="">-- Choose Category --</option>
                             @foreach($categories as $cat)
                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                             @endforeach
+                        </select>
+                    </div>
+
+                    <div class="vp-form-group">
+                        <label class="vp-label">Subcategory <span class="text-danger">*</span></label>
+                        <select name="subcategory_id" class="vp-select" required id="download-subcategory-id">
+                            <option value="">-- Choose Subcategory --</option>
                         </select>
                     </div>
 
@@ -229,5 +247,45 @@
             });
         }, 1500);
     }
+
+    // AJAX for Upload Category Subcategories
+    $('#upload-category-id').on('change', function() {
+        const catId = $(this).val();
+        const subSelect = $('#upload-subcategory-id');
+        subSelect.html('<option value="">Loading...</option>');
+        if (!catId) {
+            subSelect.html('<option value="">-- Select Subcategory --</option>');
+            return;
+        }
+        $.get("{{ url('dashboard/get-subcategories') }}", { category_id: catId }, function(data) {
+            let opts = '<option value="">-- Select Subcategory --</option>';
+            data.forEach(function(s) {
+                opts += `<option value="${s.id}">${s.name}</option>`;
+            });
+            subSelect.html(opts);
+        }).fail(function() {
+            subSelect.html('<option value="">-- Select Subcategory --</option>');
+        });
+    });
+
+    // AJAX for Download Category Subcategories
+    $('#download-category-id').on('change', function() {
+        const catId = $(this).val();
+        const subSelect = $('#download-subcategory-id');
+        subSelect.html('<option value="">Loading...</option>');
+        if (!catId) {
+            subSelect.html('<option value="">-- Choose Subcategory --</option>');
+            return;
+        }
+        $.get("{{ url('dashboard/get-subcategories') }}", { category_id: catId }, function(data) {
+            let opts = '<option value="">-- Choose Subcategory --</option>';
+            data.forEach(function(s) {
+                opts += `<option value="${s.id}">${s.name}</option>`;
+            });
+            subSelect.html(opts);
+        }).fail(function() {
+            subSelect.html('<option value="">-- Choose Subcategory --</option>');
+        });
+    });
 </script>
 @endpush

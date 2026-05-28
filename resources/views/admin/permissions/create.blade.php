@@ -20,7 +20,7 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-body p-4 p-md-5">
                     <form action="{{ route('admin.permissions.store') }}" method="POST">
                         @csrf
@@ -71,7 +71,7 @@
                                         Permissions are the granular building blocks of security. 
                                         Once created, you can assign this permission to various Roles (e.g., Admin, Editor, Staff).
                                     </div>
-                                    <div class="mt-4 p-3 bg-white rounded-3 shadow-sm border border-primary border-opacity-25">
+                                    <div class="mt-4 p-3 bg-white rounded-3  border border-primary border-opacity-25">
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="fa-solid fa-shield-halved text-success me-2"></i>
                                             <span class="fw-bold small text-dark">Security Note</span>
@@ -83,7 +83,7 @@
 
                             <div class="col-12 mt-4 pt-3 border-top">
                                 <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                                    <button type="submit" class="btn btn-primary rounded-pill px-5 ">
                                         <i class="fa-solid fa-plus-circle me-2"></i>Create Permission
                                     </button>
                                     <a href="{{ route('admin.permissions.index') }}" class="btn btn-outline-secondary rounded-pill px-4">

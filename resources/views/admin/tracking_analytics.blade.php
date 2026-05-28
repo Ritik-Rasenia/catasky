@@ -22,7 +22,7 @@
         <div class="row g-4 mb-5">
             <!-- 1. Total Dispatches -->
             <div class="col-lg-3 col-md-6 col-12">
-                <div class="premium-card p-4 bg-white border rounded-4 shadow-sm text-center">
+                <div class="premium-card p-4 bg-white border rounded-4  text-center">
                     <div class="d-inline-flex p-3 bg-primary-subtle rounded-pill text-primary mb-3">
                         <i class="bi bi-send-fill fs-4"></i>
                     </div>
@@ -33,7 +33,7 @@
 
             <!-- 2. Delivery Rate -->
             <div class="col-lg-3 col-md-6 col-12">
-                <div class="premium-card p-4 bg-white border rounded-4 shadow-sm text-center">
+                <div class="premium-card p-4 bg-white border rounded-4  text-center">
                     <div class="d-inline-flex p-3 bg-success-subtle rounded-pill text-success mb-3">
                         <i class="bi bi-check2-all fs-4"></i>
                     </div>
@@ -44,7 +44,7 @@
 
             <!-- 3. Message Seen Rate -->
             <div class="col-lg-3 col-md-6 col-12">
-                <div class="premium-card p-4 bg-white border rounded-4 shadow-sm text-center">
+                <div class="premium-card p-4 bg-white border rounded-4  text-center">
                     <div class="d-inline-flex p-3 bg-info-subtle rounded-pill text-info mb-3">
                         <i class="bi bi-eye-fill fs-4"></i>
                     </div>
@@ -55,7 +55,7 @@
 
             <!-- 4. Click CTR -->
             <div class="col-lg-3 col-md-6 col-12">
-                <div class="premium-card p-4 bg-white border rounded-4 shadow-sm text-center">
+                <div class="premium-card p-4 bg-white border rounded-4  text-center">
                     <div class="d-inline-flex p-3 bg-warning-subtle rounded-pill text-warning mb-3">
                         <i class="bi bi-cursor-fill fs-4"></i>
                     </div>
@@ -66,7 +66,7 @@
         </div>
 
         <!-- Shares Detailed Log List -->
-        <div class="premium-card p-4 bg-white border rounded-4 shadow-sm">
+        <div class="premium-card p-4 bg-white border rounded-4 ">
             <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-table text-primary"></i> Shared Catalogue Dispatch Registry</h5>
             
             <div class="table-responsive">

@@ -14,32 +14,32 @@
 
     <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-4">
+            <div class="card border-0  rounded-4 text-center p-4">
                 <div class="text-muted small fw-bold text-uppercase mb-1">Total Rows</div>
                 <h2 class="fw-bold mb-0">{{ $log->total_rows }}</h2>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-4 border-bottom border-4 border-success">
+            <div class="card border-0  rounded-4 text-center p-4 border-bottom border-4 border-success">
                 <div class="text-success small fw-bold text-uppercase mb-1">Imported</div>
                 <h2 class="fw-bold mb-0 text-success">{{ $log->imported_rows }}</h2>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-4 border-bottom border-4 border-warning">
+            <div class="card border-0  rounded-4 text-center p-4 border-bottom border-4 border-warning">
                 <div class="text-warning small fw-bold text-uppercase mb-1">Skipped</div>
                 <h2 class="fw-bold mb-0 text-warning">{{ $log->skipped_rows }}</h2>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-4 border-bottom border-4 border-danger">
+            <div class="card border-0  rounded-4 text-center p-4 border-bottom border-4 border-danger">
                 <div class="text-danger small fw-bold text-uppercase mb-1">Failed</div>
                 <h2 class="fw-bold mb-0 text-danger">{{ $log->failed_rows ?? 0 }}</h2>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card border-0  rounded-4 overflow-hidden">
         <div class="card-header bg-white p-4 border-0 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0"><i class="fa-solid fa-list text-primary me-2"></i>Row Level Logs</h5>
             <div class="small">

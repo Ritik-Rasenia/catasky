@@ -27,4 +27,16 @@ class Subcategory extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function attributes()
+    {
+        return $this->belongsToMany(Attribute::class, 'subcategory_attributes')
+                    ->withPivot(['attribute_group_id', 'is_required', 'sort_order'])
+                    ->withTimestamps();
+    }
+
+    public function subcategoryAttributes()
+    {
+        return $this->hasMany(SubcategoryAttribute::class);
+    }
 }

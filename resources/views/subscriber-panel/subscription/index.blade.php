@@ -23,7 +23,7 @@
 </div>
 
 @if(session('success'))
-<div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius:12px; background:#DCFCE7; color:#15803d;">
+<div class="alert alert-success alert-dismissible fade show border-0  mb-4" role="alert" style="border-radius:12px; background:#DCFCE7; color:#15803d;">
     <i class="bi bi-check-circle-fill me-2"></i>
     {!! session('success') !!}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -214,7 +214,7 @@
         <div class="vp-card-body p-0">
             @if($payments && $payments->count() > 0)
                 <div class="table-responsive">
-                    <table class="vp-table mb-0">
+                    <table class="vp-table mb-0 table-nowrap">
                         <thead>
                             <tr>
                                 <th>Transaction</th>
@@ -247,7 +247,7 @@
     <div class="vp-card-body p-0">
         @if($invoices->count() > 0)
             <div class="table-responsive">
-                <table class="vp-table mb-0">
+                <table class="vp-table mb-0 table-nowrap">
                     <thead>
                         <tr>
                             <th>Invoice Number</th>

@@ -11,11 +11,11 @@
             <p class="text-muted mb-0 small">Real-time performance metrics and catalogue engagement statistics.</p>
         </div>
         <div class="col-sm-auto">
-            <div class="btn-group rounded-pill shadow-sm overflow-hidden border bg-white p-1">
-                <button type="button" class="btn btn-sm btn-white rounded-pill px-3 active" onclick="updatePeriod('day', this)">Day</button>
-                <button type="button" class="btn btn-sm btn-white rounded-pill px-3" onclick="updatePeriod('week', this)">Week</button>
-                <button type="button" class="btn btn-sm btn-white rounded-pill px-3" onclick="updatePeriod('month', this)">Month</button>
-                <button type="button" class="btn btn-sm btn-white rounded-pill px-3" onclick="updatePeriod('year', this)">Year</button>
+            <div class="btn-group rounded-pill  overflow-hidden border p-1" style="background: var(--surface-color); border-color: var(--border) !important;">
+                <button type="button" class="btn-tab-toggle active" onclick="updatePeriod('day', this)">Day</button>
+                <button type="button" class="btn-tab-toggle" onclick="updatePeriod('week', this)">Week</button>
+                <button type="button" class="btn-tab-toggle" onclick="updatePeriod('month', this)">Month</button>
+                <button type="button" class="btn-tab-toggle" onclick="updatePeriod('year', this)">Year</button>
             </div>
         </div>
     </div>
@@ -24,7 +24,7 @@
     <div class="row g-4 mb-4">
         <!-- Revenue Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="metric-card shadow-sm p-4 border-0 position-relative overflow-hidden h-100">
+            <div class="metric-card  p-4 border-0 position-relative overflow-hidden h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="icon-box bg-primary bg-opacity-10 text-primary" style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                         <i class="bi bi-wallet2"></i>
@@ -40,7 +40,7 @@
         </div>
         <!-- Active Subscribers Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="metric-card shadow-sm p-4 border-0 position-relative overflow-hidden h-100">
+            <div class="metric-card  p-4 border-0 position-relative overflow-hidden h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="icon-box bg-success bg-opacity-10 text-success" style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                         <i class="bi bi-people"></i>
@@ -56,7 +56,7 @@
         </div>
         <!-- Active Vendors Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="metric-card shadow-sm p-4 border-0 position-relative overflow-hidden h-100">
+            <div class="metric-card  p-4 border-0 position-relative overflow-hidden h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="icon-box bg-warning bg-opacity-10 text-warning" style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                         <i class="bi bi-shop"></i>
@@ -72,7 +72,7 @@
         </div>
         <!-- Conversion Rate Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="metric-card shadow-sm p-4 border-0 position-relative overflow-hidden h-100">
+            <div class="metric-card  p-4 border-0 position-relative overflow-hidden h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="icon-box bg-info bg-opacity-10 text-info" style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                         <i class="bi bi-graph-up-arrow"></i>
@@ -92,7 +92,7 @@
     <div class="row g-4 mb-4">
         <!-- Revenue & Orders Combo Chart -->
         <div class="col-xl-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+            <div class="card border-0  rounded-4 h-100 overflow-hidden">
                 <div class="card-header bg-white border-0 p-4 pb-0">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -126,7 +126,7 @@
 
         <!-- Sharing Distribution Doughnut -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+            <div class="card border-0  rounded-4 h-100 overflow-hidden">
                 <div class="card-header bg-white border-0 p-4 pb-0">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Sharing Breakdown</h5>
                     <span class="text-muted small">Channel distribution analysis</span>
@@ -159,7 +159,7 @@
     <div class="row g-4">
         <!-- Visitor Traffic Area Chart -->
         <div class="col-xl-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+            <div class="card border-0  rounded-4 h-100 overflow-hidden">
                 <div class="card-header bg-white border-0 p-4 pb-0">
                     <h5 class="fw-bold mb-0 text-dark brand-font">Traffic & Engagement Trends</h5>
                     <span class="text-muted small">Catalogue visits vs lead conversions</span>
@@ -175,7 +175,7 @@
 
         <!-- Inventory Summary / Top Products -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+            <div class="card border-0  rounded-4 h-100 overflow-hidden">
                 <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark brand-font">Top Catalogue Items</h5>
@@ -192,7 +192,7 @@
                                         <div class="fw-bold text-dark text-truncate" style="max-width: 160px;">{{ $tp['name'] }}</div>
                                         <span class="small text-muted">{{ $tp['sales'] }} sales</span>
                                     </td>
-                                    <td class="py-3 text-end border-0">
+                                    <td class="py-3 text-end border-0 text-nowrap">
                                         <div class="fw-bold text-dark">{{ $tp['revenue'] }}</div>
                                     </td>
                                     <td class="pe-4 py-3 text-end border-0">
@@ -215,30 +215,6 @@
     </div>
 </div>
 
-<style>
-    .metric-card {
-        background: var(--surface-color);
-        border-radius: 20px;
-        border: 1px solid var(--border-color);
-    }
-    .bg-success-soft { background: rgba(16, 185, 129, 0.1); }
-    .bg-danger-soft { background: rgba(239, 110, 110, 0.1); }
-    .btn-white {
-        background: transparent;
-        color: var(--text-muted);
-        border: none;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    .btn-white:hover {
-        color: var(--text-color);
-    }
-    .btn-white.active {
-        background: var(--primary-color) !important;
-        color: #fff !important;
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
-    }
-</style>
 @endsection
 
 @push('js')

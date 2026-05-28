@@ -47,7 +47,7 @@
                 </div>
 
                 <div class="d-flex justify-content-center gap-3">
-                    <a href="{{ route('admin.profile.edit') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" style="background: var(--primary-color); border:none;">
+                    <a href="{{ route('admin.profile.edit') }}" class="btn btn-primary rounded-pill px-4  fw-bold" style="background: var(--primary-color); border:none;">
                         <i class="bi bi-person-gear me-2"></i>Update Profile
                     </a>
                     <form action="{{ route('admin.logout') }}" method="POST">
@@ -62,28 +62,5 @@
     </div>
 </div>
 
-<style>
-    .shield-wrapper {
-        animation: shield-pulse 2.2s infinite;
-    }
-    .shield-icon {
-        animation: shield-scale 4s ease infinite;
-    }
-    @keyframes shield-pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
-        }
-        70% {
-            box-shadow: 0 0 0 14px rgba(79, 70, 229, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
-        }
-    }
-    @keyframes shield-scale {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.08); }
-    }
-    .fw-extrabold { font-weight: 800; }
-</style>
+
 @endsection

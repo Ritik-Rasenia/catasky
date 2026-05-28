@@ -107,7 +107,7 @@
     <div class="saas-card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 table-nowrap">
                     <thead>
                         <tr class="bg-light">
                             <th class="ps-4 py-3 text-uppercase small fw-bold text-muted border-0">Invoice Number</th>
@@ -160,8 +160,8 @@
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <a href="{{ route('admin.saas.invoices.download', $invoice->id) }}" target="_blank" class="btn btn-sm btn-light border" title="Download PDF Invoice">
-                                    <i class="bi bi-file-earmark-pdf text-danger me-1"></i> PDF
+                                <a href="{{ route('admin.saas.invoices.download', $invoice->id) }}" target="_blank" class="btn-ap-action" title="Download PDF Invoice">
+                                    <i class="fa-solid fa-file-pdf text-danger" style="font-size: 14px !important;"></i>
                                 </a>
                             </td>
                         </tr>

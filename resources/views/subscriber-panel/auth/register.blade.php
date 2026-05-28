@@ -324,6 +324,24 @@
         @media (max-width: 480px) {
             .form-panel { padding: 24px 20px; }
         }
+
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.4);
+            font-size: 0.95rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: color 0.2s ease;
+        }
+        .password-toggle:hover {
+            color: #FFFFFF;
+        }
+        .input-wrap-password .form-input {
+            padding-right: 42px;
+        }
     </style>
 </head>
 <body>
@@ -335,14 +353,11 @@
         <!-- Logo -->
         <a href="{{ url('/') }}" class="brand-logo">
             @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:44px;max-width:150px;object-fit:contain;">
+                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:150px;max-width:150px;object-fit:contain;margin:auto;">
             @else
                 <div class="brand-logo-icon">C</div>
             @endif
-            <div>
-                <div class="brand-logo-text">{{ $siteTitle }}</div>
-                <div class="brand-logo-sub">Smart Catalogue</div>
-            </div>
+          
         </a>
 
         <!-- Main Content -->
@@ -373,22 +388,8 @@
             </div>
         </div>
 
-        <!-- Mini Stats Mockup -->
-        <div class="mini-mockup">
-            <div class="mini-mockup-label">Live Platform Stats</div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">Catalogues Created</span>
-                <span class="mini-stat-val">85,421</span>
-            </div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">PDFs Generated Today</span>
-                <span class="mini-stat-val">1,248</span>
-            </div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">Active B2B Teams</span>
-                <span class="mini-stat-val">2,400+</span>
-            </div>
-        </div>
+      
+      
     </div>
 
     <!-- ── Form Panel ── -->
@@ -414,13 +415,13 @@
             </div>
 
             <!-- 14-Day Free Trial Badge -->
-            <!-- <div class="trial-badge">
+            <div class="trial-badge">
                 <div class="trial-icon">🎁</div>
                 <div>
                     <div class="trial-title">14-Day Free Trial</div>
                     <div class="trial-text">Full access to all catalogue features. No credit card required.</div>
                 </div>
-            </div> -->
+            </div>
 
             <!-- Error Alert -->
             @if ($errors->any())
@@ -478,11 +479,24 @@
                     <div class="col-md-6 col-12">
                         <div class="mb-2">
                             <label class="form-floating-label" for="reg-password">Password *</label>
-                            <div class="input-wrap">
+                            <div class="input-wrap input-wrap-password">
                                 <i class="bi bi-lock-fill input-icon"></i>
                                 <input type="password" name="password" id="reg-password"
                                     class="form-input @error('password') is-invalid @enderror"
                                     placeholder="Min. 8 chars" required autocomplete="new-password">
+                                <i class="bi bi-eye-slash-fill password-toggle" id="toggle-password"></i>
+                            </div>
+                            <div id="password-strength-container" class="mt-2 d-none">
+                                <div class="progress" style="height: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 6px;">
+                                    <div id="strength-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div id="strength-text" class="small fw-semibold text-muted mb-2" style="font-size: 0.72rem;">Password Strength: <span id="strength-label" class="text-danger">Too Weak</span></div>
+                                <div class="d-flex flex-wrap gap-2" style="font-size: 0.7rem;">
+                                    <span id="rule-length" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> At least 8 chars</span>
+                                    <span id="rule-upper" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 1 uppercase letter</span>
+                                    <span id="rule-number" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 1 number</span>
+                                    <span id="rule-special" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 1 special char</span>
+                                </div>
                             </div>
                             @error('password') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>
@@ -491,10 +505,14 @@
                     <div class="col-md-6 col-12">
                         <div class="mb-2">
                             <label class="form-floating-label" for="reg-password-confirm">Confirm Password *</label>
-                            <div class="input-wrap">
+                            <div class="input-wrap input-wrap-password">
                                 <i class="bi bi-lock-fill input-icon"></i>
                                 <input type="password" name="password_confirmation" id="reg-password-confirm"
                                     class="form-input" placeholder="Confirm password" required autocomplete="new-password">
+                                <i class="bi bi-eye-slash-fill password-toggle" id="toggle-password-confirm"></i>
+                            </div>
+                            <div id="password-match-container" class="mt-2 d-none" style="font-size: 0.72rem;">
+                                <span id="match-status" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> Passwords do not match</span>
                             </div>
                         </div>
                     </div>
@@ -564,11 +582,154 @@
     </div>
 
 <script>
-// Loading state on submit
-document.getElementById('register-form').addEventListener('submit', function() {
-    const btn = document.getElementById('register-btn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Creating Account...';
-    btn.disabled = true;
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('reg-password');
+    const confirmInput = document.getElementById('reg-password-confirm');
+    const strengthContainer = document.getElementById('password-strength-container');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthLabel = document.getElementById('strength-label');
+    
+    const ruleLength = document.getElementById('rule-length');
+    const ruleUpper = document.getElementById('rule-upper');
+    const ruleNumber = document.getElementById('rule-number');
+    const ruleSpecial = document.getElementById('rule-special');
+    
+    const matchContainer = document.getElementById('password-match-container');
+    const matchStatus = document.getElementById('match-status');
+    const registerForm = document.getElementById('register-form');
+    const registerBtn = document.getElementById('register-btn');
+    
+    // Toggle Password Visibility
+    const togglePassword = document.getElementById('toggle-password');
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('bi-eye-fill');
+        this.classList.toggle('bi-eye-slash-fill');
+    });
+
+    const toggleConfirmPassword = document.getElementById('toggle-password-confirm');
+    toggleConfirmPassword.addEventListener('click', function() {
+        const type = confirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        confirmInput.setAttribute('type', type);
+        this.classList.toggle('bi-eye-fill');
+        this.classList.toggle('bi-eye-slash-fill');
+    });
+
+    // Password Real-time Strength Checker
+    passwordInput.addEventListener('input', function() {
+        const val = this.value;
+        if (val.length > 0) {
+            strengthContainer.classList.remove('d-none');
+        } else {
+            strengthContainer.classList.add('d-none');
+        }
+        
+        // Rules
+        const isLengthValid = val.length >= 8;
+        const isUpperValid = /[A-Z]/.test(val);
+        const isNumberValid = /[0-9]/.test(val);
+        const isSpecialValid = /[^A-Za-z0-9]/.test(val);
+        
+        updateRuleIndicator(ruleLength, isLengthValid);
+        updateRuleIndicator(ruleUpper, isUpperValid);
+        updateRuleIndicator(ruleNumber, isNumberValid);
+        updateRuleIndicator(ruleSpecial, isSpecialValid);
+        
+        // Calculate score
+        let score = 0;
+        if (isLengthValid) score += 25;
+        if (isUpperValid) score += 25;
+        if (isNumberValid) score += 25;
+        if (isSpecialValid) score += 25;
+        
+        strengthBar.style.width = score + '%';
+        
+        if (score <= 25) {
+            strengthBar.style.backgroundColor = '#EF4444'; // Red
+            strengthLabel.textContent = 'Too Weak';
+            strengthLabel.className = 'text-danger';
+        } else if (score <= 50) {
+            strengthBar.style.backgroundColor = '#F59E0B'; // Orange
+            strengthLabel.textContent = 'Weak';
+            strengthLabel.className = 'text-warning';
+        } else if (score <= 75) {
+            strengthBar.style.backgroundColor = '#10B981'; // Green
+            strengthLabel.textContent = 'Medium';
+            strengthLabel.className = 'text-success';
+        } else {
+            strengthBar.style.backgroundColor = '#10B981'; // Strong Green
+            strengthLabel.textContent = 'Perfect (Strong)';
+            strengthLabel.className = 'text-success fw-bold';
+        }
+        
+        checkPasswordMatch();
+    });
+
+    function updateRuleIndicator(element, isValid) {
+        if (isValid) {
+            element.classList.remove('text-danger');
+            element.classList.add('text-success');
+            element.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + element.textContent.trim().substring(2);
+        } else {
+            element.classList.remove('text-success');
+            element.classList.add('text-danger');
+            element.innerHTML = '<i class="bi bi-x-circle-fill"></i> ' + element.textContent.trim().substring(2);
+        }
+    }
+
+    // Password Match Checker
+    confirmInput.addEventListener('input', checkPasswordMatch);
+
+    function checkPasswordMatch() {
+        const pVal = passwordInput.value;
+        const cVal = confirmInput.value;
+        
+        if (cVal.length > 0) {
+            matchContainer.classList.remove('d-none');
+            if (pVal === cVal) {
+                matchStatus.classList.remove('text-danger');
+                matchStatus.classList.add('text-success');
+                matchStatus.innerHTML = '<i class="bi bi-check-circle-fill"></i> Passwords match';
+            } else {
+                matchStatus.classList.remove('text-success');
+                matchStatus.classList.add('text-danger');
+                matchStatus.innerHTML = '<i class="bi bi-x-circle-fill"></i> Passwords do not match';
+            }
+        } else {
+            matchContainer.classList.add('d-none');
+        }
+    }
+
+    // Form submit validation check
+    registerForm.addEventListener('submit', function(e) {
+        const val = passwordInput.value;
+        const pVal = passwordInput.value;
+        const cVal = confirmInput.value;
+        
+        const isLengthValid = val.length >= 8;
+        const isUpperValid = /[A-Z]/.test(val);
+        const isNumberValid = /[0-9]/.test(val);
+        const isSpecialValid = /[^A-Za-z0-9]/.test(val);
+        
+        const isStrong = isLengthValid && isUpperValid && isNumberValid && isSpecialValid;
+        
+        if (!isStrong) {
+            e.preventDefault();
+            alert('Please choose a strong password that meets all the security requirements.');
+            return false;
+        }
+        
+        if (pVal !== cVal) {
+            e.preventDefault();
+            alert('Passwords do not match. Please verify your confirmation password.');
+            return false;
+        }
+
+        // Show loading state
+        registerBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Creating Account...';
+        registerBtn.disabled = true;
+    });
 });
 </script>
 </body>

@@ -28,7 +28,7 @@
         <div class="row">
             <!-- Left Column: Role Info -->
             <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 mb-4 sticky-top" style="top: 100px;">
+                <div class="card border-0  rounded-4 mb-4 sticky-top" style="top: 100px;">
                     <div class="card-body p-4">
                         <div class="mb-4">
                             <label class="form-label fw-bold text-dark">Role Name <span class="text-danger">*</span></label>
@@ -48,7 +48,7 @@
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm py-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill  py-3">
                                 <i class="fa-solid fa-shield-halved me-2"></i>Create Role
                             </button>
                             <a href="{{ route('admin.roles.index') }}" class="btn btn-outline-secondary rounded-pill py-2">
@@ -61,7 +61,7 @@
 
             <!-- Right Column: Permissions -->
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card border-0  rounded-4 overflow-hidden">
                     <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="fw-bold mb-0">Assign Permissions</h5>

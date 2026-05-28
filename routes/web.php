@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SubcategoryController;
-use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\RoleController;
@@ -98,6 +98,8 @@ Route::prefix('subscriber')->name('subscriber.')->group(function () {
         Route::post('/login', [SubscriberAuthController::class, 'login'])->name('login.submit');
         Route::get('/register', [SubscriberAuthController::class, 'showRegisterForm'])->name('register');
         Route::post('/register', [SubscriberAuthController::class, 'register'])->name('register.submit');
+        Route::get('/verify-otp', [SubscriberAuthController::class, 'showOtpForm'])->name('verify-otp');
+        Route::post('/verify-otp', [SubscriberAuthController::class, 'verifyOtp'])->name('verify-otp.submit');
         Route::get('/forgot-password', [SubscriberAuthController::class, 'showForgotForm'])->name('forgot');
         Route::post('/forgot-password', [SubscriberAuthController::class, 'sendResetLink'])->name('forgot.submit');
     });
@@ -158,6 +160,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
     Route::get('/attributes/{attribute}/edit', [App\Http\Controllers\DashboardDispatcherController::class, 'attributesEdit'])->name('subscriber.attributes.edit');
     Route::put('/attributes/{attribute}', [App\Http\Controllers\DashboardDispatcherController::class, 'attributesUpdate'])->name('subscriber.attributes.update');
     Route::delete('/attributes/{attribute}', [App\Http\Controllers\DashboardDispatcherController::class, 'attributesDestroy'])->name('subscriber.attributes.destroy');
+    Route::post('/attributes/custom', [App\Http\Controllers\Subscriber\AttributeController::class, 'storeCustom'])->name('subscriber.attributes.storeCustom');
 
 
     // --- Profile Dispatcher ---
@@ -187,14 +190,14 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/get-subcategories/{category_id}', [CategoryController::class, 'getSubcategories']);
 
         // Products Operations
-        Route::get('/products-ops/import/template', [ProductController::class, 'downloadTemplate'])->name('products.import.template')->middleware('permission:import-products');
-        Route::get('/products-ops/import', [ProductController::class, 'importPage'])->name('products.import')->middleware('permission:import-products');
-        Route::post('/products-ops/import', [ProductController::class, 'import'])->name('products.import.submit')->middleware('permission:import-products');
-        Route::get('/products-ops/import/status/{id}', [ProductController::class, 'importStatus'])->name('products.import.status')->middleware('permission:import-products');
-        Route::get('/products-ops/import-logs', [ProductController::class, 'importLogs'])->name('products.import-logs')->middleware('permission:import-products');
-        Route::get('/products-ops/import-logs/{id}', [ProductController::class, 'importLogShow'])->name('products.import-logs.show')->middleware('permission:import-products');
-        Route::get('/products-ops/export', [ProductController::class, 'export'])->name('products.export')->middleware('permission:export-products');
-        Route::delete('/product-images/{id}', [ProductController::class, 'deleteImage'])->name('product-images.destroy')->middleware('permission:edit-products');
+        Route::get('/admin/products-ops/import/template', [AdminProductController::class, 'downloadTemplate'])->name('products.import.template')->middleware('permission:import-products');
+        Route::get('/admin/products-ops/import', [AdminProductController::class, 'importPage'])->name('products.import')->middleware('permission:import-products');
+        Route::post('/admin/products-ops/import', [AdminProductController::class, 'import'])->name('products.import.submit')->middleware('permission:import-products');
+        Route::get('/admin/products-ops/import/status/{id}', [AdminProductController::class, 'importStatus'])->name('products.import.status')->middleware('permission:import-products');
+        Route::get('/admin/products-ops/import-logs', [AdminProductController::class, 'importLogs'])->name('products.import-logs')->middleware('permission:import-products');
+        Route::get('/admin/products-ops/import-logs/{id}', [AdminProductController::class, 'importLogShow'])->name('products.import-logs.show')->middleware('permission:import-products');
+        Route::get('/admin/products-ops/export', [AdminProductController::class, 'export'])->name('products.export')->middleware('permission:export-products');
+        Route::delete('/product-images/{id}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy')->middleware('permission:edit-products');
 
         Route::resource('users', UserController::class)->middleware('permission:view-users');
         Route::resource('roles', RoleController::class)->middleware('permission:roles.manage');
@@ -244,6 +247,8 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
             Route::post('/subscribers/{user}/unsuspend', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'unsuspendSubscriber'])->name('subscribers.unsuspend');
             
             Route::get('/approvals', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approvals'])->name('approvals.index');
+            Route::post('/approvals/account/{profile}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveAccount'])->name('approvals.account.approve');
+            Route::post('/approvals/account/{profile}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectAccount'])->name('approvals.account.reject');
             Route::post('/approvals/store/{profile}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveStore'])->name('approvals.store.approve');
             Route::post('/approvals/store/{profile}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectStore'])->name('approvals.store.reject');
             Route::post('/approvals/product/{product}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveProduct'])->name('approvals.product.approve');
@@ -264,6 +269,12 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
             Route::get('/usage', [\App\Http\Controllers\Admin\SaaSAnalyticsController::class, 'usage'])->name('usage.index');
         });
 
+        // Notifications
+        Route::get('/admin/notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/admin/notifications/mark-all-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+        Route::post('/admin/notifications/{id}/read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAsRead'])->name('notifications.markRead');
+        Route::get('/admin/notifications/{id}/redirect', [\App\Http\Controllers\Admin\NotificationController::class, 'readAndRedirect'])->name('notifications.redirect');
+
         // Super Admin Logout
         Route::post('/admin-logout', [AuthController::class, 'logout'])->name('logout');
     });
@@ -274,11 +285,50 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware(['subscriber'])->name('subscriber.')->group(function () {
+        // Brands, Categories, Subcategories for Subscriber Panel (mirroring admin functionality)
+        Route::resource('subscriber-brands', \App\Http\Controllers\Subscriber\BrandController::class)->names([
+            'index' => 'brands.index',
+            'create' => 'brands.create',
+            'store' => 'brands.store',
+            'show' => 'brands.show',
+            'edit' => 'brands.edit',
+            'update' => 'brands.update',
+            'destroy' => 'brands.destroy',
+        ]);
+        
+        Route::resource('subscriber-categories', \App\Http\Controllers\Subscriber\CategoryController::class)->names([
+            'index' => 'categories.index',
+            'create' => 'categories.create',
+            'store' => 'categories.store',
+            'show' => 'categories.show',
+            'edit' => 'categories.edit',
+            'update' => 'categories.update',
+            'destroy' => 'categories.destroy',
+        ]);
+
+        Route::resource('subscriber-subcategories', \App\Http\Controllers\Subscriber\SubcategoryController::class)->names([
+            'index' => 'subcategories.index',
+            'create' => 'subcategories.create',
+            'store' => 'subcategories.store',
+            'show' => 'subcategories.show',
+            'edit' => 'subcategories.edit',
+            'update' => 'subcategories.update',
+            'destroy' => 'subcategories.destroy',
+        ]);
+
         // Extra Product Routes
         Route::delete('/product-images/{image}', [SubscriberProductController::class, 'deleteImage'])->name('product-images.destroy');
         Route::get('/get-subcategories', [SubscriberProductController::class, 'getSubcategories'])->name('get-subcategories');
+        Route::get('/get-product-types', [SubscriberProductController::class, 'getProductTypes'])->name('get-product-types');
         Route::get('/api/category-attributes/{category}', [SubscriberProductController::class, 'getCategoryAttributes'])->name('api.category-attributes');
         Route::get('/api/subcategory-attributes/{subcategory}', [SubscriberProductController::class, 'getSubcategoryAttributes'])->name('api.subcategory-attributes');
+        Route::get('/products-ops/import/template', [SubscriberProductController::class, 'downloadTemplate'])->name('products.import.template');
+        Route::get('/products-ops/import', [SubscriberProductController::class, 'importPage'])->name('products.import');
+        Route::post('/products-ops/import', [SubscriberProductController::class, 'import'])->name('products.import.submit');
+        Route::get('/products-ops/import/status/{id}', [SubscriberProductController::class, 'importStatus'])->name('products.import.status');
+        Route::get('/products-ops/import-logs', [SubscriberProductController::class, 'importLogs'])->name('products.import-logs');
+        Route::get('/products-ops/import-logs/{id}', [SubscriberProductController::class, 'importLogShow'])->name('products.import-logs.show');
+        Route::get('/products-ops/export', [SubscriberProductController::class, 'export'])->name('products.export');
 
         // Variants
         Route::resource('variants', SubscriberVariantController::class);
@@ -318,6 +368,14 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
 
         // Pending approval waiting screen
         Route::get('/pending-approval', function() {
+            $user = auth()->user();
+            $profile = $user ? $user->subscriberProfile : null;
+            if ($profile && $profile->isApproved()) {
+                if ($user->hasActiveSubscription()) {
+                    return redirect()->route('dashboard');
+                }
+                return redirect()->route('subscriber.subscription.plans');
+            }
             return view('subscriber-panel.auth.pending-approval');
         })->name('pending-approval');
 
@@ -325,6 +383,12 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/domain', [\App\Http\Controllers\Subscriber\DomainController::class, 'index'])->name('domain.index');
         Route::post('/domain', [\App\Http\Controllers\Subscriber\DomainController::class, 'store'])->name('domain.store');
         Route::post('/domain/verify', [\App\Http\Controllers\Subscriber\DomainController::class, 'verify'])->name('domain.verify');
+
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\Subscriber\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Subscriber\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+        Route::post('/notifications/{id}/read', [\App\Http\Controllers\Subscriber\NotificationController::class, 'markAsRead'])->name('notifications.markRead');
+        Route::get('/notifications/{id}/redirect', [\App\Http\Controllers\Subscriber\NotificationController::class, 'readAndRedirect'])->name('notifications.redirect');
 
         // Subscriber Logout
         Route::post('/subscriber-logout', [SubscriberAuthController::class, 'logout'])->name('logout');

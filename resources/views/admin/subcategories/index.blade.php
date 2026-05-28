@@ -11,7 +11,7 @@
         </div>
         <div class="col-md-4 text-md-end">
             @can('create-subcategories')
-            <a href="{{ route('admin.subcategories.create') }}" class="btn btn-primary shadow-sm rounded-pill px-4">
+            <a href="{{ route('admin.subcategories.create') }}" class="btn btn-primary  rounded-pill px-4">
                 <i class="fa-solid fa-plus me-2"></i>Add Subcategory
             </a>
             @endcan
@@ -20,7 +20,7 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle" id="subcategoryTable">
@@ -40,7 +40,7 @@
                                     <td class="ps-4 text-muted">{{ $loop->iteration }}</td>
                                     <td>
                                         @if($subcategory->image)
-                                            <img src="{{ asset('uploads/subcategories/'.$subcategory->image) }}" width="45" height="45" class="rounded-3 shadow-sm object-fit-cover border">
+                                            <img src="{{ asset('uploads/subcategories/'.$subcategory->image) }}" width="45" height="45" class="rounded-3  object-fit-cover border">
                                         @else
                                             <div class="rounded-3 bg-light d-flex align-items-center justify-content-center text-muted border" style="width: 45px; height: 45px;">
                                                 <i class="fa-solid fa-list-ul small"></i>
@@ -61,7 +61,7 @@
                                         @endif
                                     </td>
                                     <td class="text-end pe-4">
-                                        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                        <div class="btn-group  rounded-3 overflow-hidden">
                                             @can('edit-subcategories')
                                             <a href="{{ route('admin.subcategories.edit', $subcategory->id) }}" class="btn btn-white btn-sm px-3" title="Edit Subcategory">
                                                 <i class="fa-solid fa-pen-to-square text-primary"></i>
@@ -128,16 +128,4 @@
 </script>
 @endpush
 
-<style>
-    .btn-white {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-    }
-    .btn-white:hover {
-        background: #f8fafc;
-    }
-    .table-hover tbody tr:hover {
-        background-color: rgba(99, 102, 241, 0.02);
-    }
-</style>
 @endsection

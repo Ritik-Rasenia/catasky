@@ -12,12 +12,12 @@
     </div>
 
     <!-- Subscriber Main Identity Header -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card border-0  rounded-4 mb-4">
         <div class="card-body p-4">
             <div class="row align-items-center">
                 <div class="col-md-auto text-center mb-3 mb-md-0">
                     @if($user->subscriberProfile && $user->subscriberProfile->logo)
-                        <img src="{{ asset('uploads/subscriber-products/' . $user->subscriberProfile->logo) }}" alt="Logo" class="rounded-4 img-thumbnail" style="width: 110px; height: 110px; object-fit: cover;">
+                        <img src="{{ str_starts_with($user->subscriberProfile->logo, 'http') ? $user->subscriberProfile->logo : asset('uploads/subscriber-products/' . $user->subscriberProfile->logo) }}" alt="Logo" class="rounded-4 img-thumbnail" style="width: 110px; height: 110px; object-fit: cover;">
                     @else
                         <div class="rounded-4 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 110px; height: 110px; font-size: 2.2rem; border: 1px solid rgba(79,70,229,0.15)">
                             {{ strtoupper(substr($user->subscriberProfile->company_name ?? $user->name, 0, 2)) }}
@@ -84,10 +84,10 @@
     <!-- Quick Stats row -->
     <div class="row mb-4 g-3">
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+            <div class="card border-0  rounded-4 h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center gap-3">
-                    <div class="p-3 rounded-4 bg-primary bg-opacity-10 text-primary">
-                        <i class="fa-solid fa-box-open fa-2x"></i>
+                    <div class="text-primary" style="font-size: 2.25rem; line-height: 1;">
+                        <i class="fa-solid fa-box-open"></i>
                     </div>
                     <div>
                         <h6 class="text-muted small fw-bold mb-1 text-uppercase">Total Products</h6>
@@ -97,12 +97,12 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+            <div class="card border-0  rounded-4 h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center gap-3">
                     @php $activeSub = $user->activeSubscription(); @endphp
                     @if($activeSub)
-                        <div class="p-3 rounded-4 bg-success bg-opacity-10 text-success">
-                            <i class="fa-solid fa-file-contract fa-2x"></i>
+                        <div class="text-success" style="font-size: 2.25rem; line-height: 1;">
+                            <i class="fa-solid fa-file-contract"></i>
                         </div>
                         <div>
                             <h6 class="text-muted small fw-bold mb-1 text-uppercase">Current Plan</h6>
@@ -110,8 +110,8 @@
                             <span class="small text-muted">{{ $activeSub->daysRemaining() }} days left</span>
                         </div>
                     @else
-                        <div class="p-3 rounded-4 bg-danger bg-opacity-10 text-danger">
-                            <i class="fa-solid fa-file-circle-xmark fa-2x"></i>
+                        <div class="text-danger" style="font-size: 2.25rem; line-height: 1;">
+                            <i class="fa-solid fa-file-circle-xmark"></i>
                         </div>
                         <div>
                             <h6 class="text-muted small fw-bold mb-1 text-uppercase">Current Plan</h6>
@@ -123,11 +123,11 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+            <div class="card border-0  rounded-4 h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center gap-3">
                     @php $revenue = $user->payments()->where('status', 'success')->sum('amount'); @endphp
-                    <div class="p-3 rounded-4 bg-warning bg-opacity-10 text-warning">
-                        <i class="fa-solid fa-wallet fa-2x"></i>
+                    <div class="text-warning" style="font-size: 2.25rem; line-height: 1;">
+                        <i class="fa-solid fa-wallet"></i>
                     </div>
                     <div>
                         <h6 class="text-muted small fw-bold mb-1 text-uppercase">Total Payments</h6>
@@ -142,7 +142,7 @@
     <div class="row">
         <!-- Profile Column (Left) -->
         <div class="col-lg-4 mb-4">
-            <div class="card border-0 shadow-sm rounded-4 mb-4 h-100">
+            <div class="card border-0  rounded-4 mb-4 h-100">
                 <div class="card-header border-0 pb-0">
                     <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-circle-info me-2 text-primary"></i>Company Information</h5>
                 </div>
@@ -200,7 +200,7 @@
 
         <!-- Details Column (Right) -->
         <div class="col-lg-8 mb-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card border-0  rounded-4 h-100">
                 <div class="card-body p-4">
                     <!-- Nav Tabs -->
                     <ul class="nav nav-pills nav-justified mb-4 bg-light p-1 rounded-3 small" id="subscriberTabs" role="tablist">

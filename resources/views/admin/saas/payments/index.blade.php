@@ -129,7 +129,7 @@
     <div class="saas-card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 table-nowrap">
                     <thead>
                         <tr class="bg-light">
                             <th class="ps-4 py-3 text-uppercase small fw-bold text-muted border-0">Transaction ID</th>

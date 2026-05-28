@@ -4,7 +4,7 @@
 
 <div class="container-fluid">
 
-    <div class="card border-0 shadow-sm rounded-4">
+    <div class="card border-0  rounded-4">
 
         <div class="card-header bg-white py-3">
             <h4 class="mb-0">Edit User</h4>

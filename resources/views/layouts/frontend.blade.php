@@ -91,7 +91,8 @@
             z-index: 1045 !important;
             border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
             border-radius: 100px !important;
-            background: rgba(255, 255, 255, 0.85) !important; /* Premium light frosted background */
+            background: rgba(255, 255, 255, 0) !important; /* Transparent background */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
@@ -402,41 +403,42 @@
                     </button>
 
                     @auth
-                        <div class="d-flex align-items-center gap-2">
-                            <a href="{{ route('dashboard') }}" class="btn btn-link text-decoration-none py-2 px-3 d-flex align-items-center gap-2" style="font-size:0.85rem;">
-                                <i class="bi bi-person-fill-check text-primary"></i>
-                                <span>{{ Str::limit(Auth::user()->name, 20) }}</span>
-                            </a>
-
-                            <div class="dropdown">
-                                <button class="btn btn-premium btn-premium-outline py-2 px-2 d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:0.85rem; border-radius: 12px;">
-                                    <i class="bi bi-chevron-down" style="font-size:0.9rem;"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-2 mt-2" style="min-width:200px;">
-                                    <li><a href="{{ route('dashboard') }}" class="dropdown-header fw-bold text-dark text-decoration-none">{{ Auth::user()->name }}</a></li>
-                                    @if(Auth::user()->hasRole('Subscriber'))
-                                        <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Subscriber Panel</a></li>
-                                        <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('subscriber.profile.edit') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
-                                        <li><hr class="dropdown-divider my-2 opacity-50"></li>
-                                        <li>
-                                            <form action="{{ route('subscriber.logout') }}" method="POST" class="d-block w-100 m-0">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item rounded-3 py-2 px-3 small text-danger border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</button>
-                                            </form>
-                                        </li>
-                                    @else
-                                        <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
-                                        <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('admin.profile.edit') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
-                                        <li><hr class="dropdown-divider my-2 opacity-50"></li>
-                                        <li>
-                                            <form action="{{ route('admin.logout') }}" method="POST" class="d-block w-100 m-0">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item rounded-3 py-2 px-3 small text-danger border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</button>
-                                            </form>
-                                        </li>
-                                    @endif
-                                </ul>
-                            </div>
+                        <div class="dropdown">
+                            <button id="headerUserDropdownBtn" class="btn btn-premium btn-premium-outline py-2 px-3 d-flex align-items-center gap-2" type="button" onclick="this.nextElementSibling.classList.toggle('show'); event.stopPropagation();" style="font-size:0.85rem; border-radius: 12px;">
+                                <i class="bi bi-person-fill-check text-primary" style="pointer-events: none;"></i>
+                                <span class="fw-semibold" style="pointer-events: none;">{{ Str::limit(Auth::user()->name, 20) }}</span>
+                                <i class="bi bi-chevron-down ms-1" style="font-size:0.8rem; opacity: 0.7; pointer-events: none;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-2 mt-2" style="min-width:200px;">
+                                @if(Auth::user()->hasRole('Subscriber'))
+                                    <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+                                    <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('subscriber.profile.edit') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
+                                    <li>
+                                        <form action="{{ route('subscriber.logout') }}" method="POST" class="d-block w-100 m-0">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item rounded-3 py-2 px-3 small text-danger border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                                        </form>
+                                    </li>
+                                @else
+                                    <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+                                    <li><a class="dropdown-item rounded-3 py-2 px-3 small" href="{{ route('admin.profile.edit') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
+                                    <li>
+                                        <form action="{{ route('admin.logout') }}" method="POST" class="d-block w-100 m-0">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item rounded-3 py-2 px-3 small text-danger border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                                        </form>
+                                    </li>
+                                @endif
+                            </ul>
+                            <script>
+                                document.addEventListener('click', function(event) {
+                                    const btn = document.getElementById('headerUserDropdownBtn');
+                                    const menu = btn ? btn.nextElementSibling : null;
+                                    if (menu && !btn.contains(event.target) && !menu.contains(event.target)) {
+                                        menu.classList.remove('show');
+                                    }
+                                });
+                            </script>
                         </div>
                     @else
                         <a href="{{ route('subscriber.login') }}" class="btn btn-premium btn-premium-outline py-2 px-3 fw-semibold" style="border-radius:12px; font-size:0.85rem;">
@@ -466,7 +468,7 @@
                         @if($footerLogoUrl)
                             <img src="{{ $footerLogoUrl }}" alt="{{ $siteTitle }}" loading="lazy" decoding="async" style="max-height: 42px; max-width: 170px; object-fit: contain;">
                         @else
-                            <div class="logo-icon bg-white text-dark fw-bold shadow-sm">C</div>
+                            <div class="logo-icon bg-white text-dark fw-bold ">C</div>
                         @endif
                        
                     </a>
@@ -563,11 +565,11 @@
             <button class="bar-pill-btn selected-btn" onclick="openSharingModal('selection')" title="View Selected Blueprints">
                 <i class="bi bi-list-task me-2"></i>Selected (<span id="selected-count">0</span>)
             </button>
-            <!-- Center button: Details PDF -->
+            <!-- Center button: Share PDF -->
             <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
                 <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
             </button>
-            <!-- Right button: Image Share -->
+            <!-- Right button: Share Image -->
             <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
                 <i class="bi bi-images me-2"></i>Image Share
             </button>
@@ -602,14 +604,14 @@
             <div class="modal-content premium-modal">
                 <div class="modal-header">
                     <div>
-                        <h4 class="modal-title fw-bold text-gradient mb-1" id="sharingModalLabel">Export Selection</h4>
-                        <p class="text-secondary small mb-0">Generate B2B ready files and WhatsApp shares instantly</p>
+                        <h4 class="modal-title fw-bold text-gradient mb-1" id="sharingModalLabel">Share Options</h4>
+                        
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <!-- Nav Tabs -->
-                    <ul class="nav nav-tabs nav-tabs-premium gap-1.5 mb-4" id="sharingTabs" role="tablist">
+                    <ul class="nav nav-tabs nav-tabs-premium gap-1.5 mb-2" id="sharingTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="selection-tab" data-bs-toggle="tab" data-bs-target="#selection-pane" type="button" role="tab" aria-controls="selection-pane" aria-selected="true">
                                 <i class="bi bi-list-stars text-warning" style="margin-right: 8px;"></i>Selected (<span id="modal-selection-count">0</span>)
@@ -617,12 +619,12 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="pdf-tab" data-bs-toggle="tab" data-bs-target="#pdf-pane" type="button" role="tab" aria-controls="pdf-pane" aria-selected="false">
-                                <i class="bi bi-file-earmark-pdf text-danger" style="margin-right: 8px;"></i>Details PDF
+                                <i class="bi bi-file-earmark-pdf text-danger" style="margin-right: 8px;"></i>Share PDF
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="image-tab" data-bs-toggle="tab" data-bs-target="#image-pane" type="button" role="tab" aria-controls="image-pane" aria-selected="false">
-                                <i class="bi bi-images text-accent" style="margin-right: 8px;"></i>Image Share
+                                <i class="bi bi-images text-accent" style="margin-right: 8px;"></i>Share Image
                             </button>
                         </li>
                     </ul>
@@ -632,7 +634,6 @@
                         <!-- Tab 1: Selected Items Panel -->
                         <div class="tab-pane fade show active" id="selection-pane" role="tabpanel" aria-labelledby="selection-tab" tabindex="0">
                             <div class="mb-3 d-flex justify-content-between align-items-center">
-                                <h5 class="fw-bold mb-0 text-gradient">Selected Blueprints</h5>
                                 <button class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1.5 small fw-bold" onclick="clearFullSelection()">
                                     <i class="bi bi-trash3-fill me-1"></i> Clear All Selection
                                 </button>
@@ -683,6 +684,10 @@
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Notes</label>
                                             <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-note" type="checkbox" style="width: 42px; height: 22px;">
                                         </div>
+<div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
+<label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Include link</label>
+<input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-include-link" type="checkbox" style="width: 42px; height: 22px;">
+</div>
                                         <input type="text" class="form-control rounded-3 p-2 share-setting-mirror" data-share-setting="share-note-text" value="An Award For Every Achievement & Effort" style="font-size: 0.8rem;">
                                         <div>
                                             <label class="form-label fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">Logo position</label>
@@ -3192,7 +3197,7 @@
                     const result = await nativeShareFiles(
                         [prepared.file],
                         prepared.filename || document.title,
-                        `Please review our B2B Product Specifications Portfolio: ${settings.catalogTitle}`
+                        ''
                     );
                     if (result.unsupported) {
                         downloadPreparedPdf(prepared);
@@ -4193,7 +4198,7 @@
                     const result = await nativeShareFiles(
                         [prepared.file],
                         prepared.filename || document.title,
-                        `Please review our B2B Product Specifications Portfolio: ${settings.catalogTitle}`
+
                     );
                     if (result.unsupported) {
                         downloadPreparedPdf(prepared);

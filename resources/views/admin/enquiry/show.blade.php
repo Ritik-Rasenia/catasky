@@ -19,7 +19,7 @@
 
     <div class="row">
         <div class="col-lg-8">
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card  border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4">
                     <h5 class="fw-bold mb-0">Message from {{ $enquiry->name }}</h5>
                 </div>
@@ -43,7 +43,7 @@
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card  border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4">
                     <h5 class="fw-bold mb-0">Sender Information</h5>
                 </div>
@@ -74,7 +74,7 @@
             </div>
 
             @if($enquiry->product)
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card  border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4">
                     <h5 class="fw-bold mb-0">Inquired Product</h5>
                 </div>
@@ -89,7 +89,7 @@
                 </div>
             </div>
             @elseif($enquiry->brand)
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card  border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4">
                     <h5 class="fw-bold mb-0">Inquired Brand</h5>
                 </div>
