@@ -186,47 +186,7 @@
                     </div>
                 </div>
 
-                {{-- PDF Controls --}}
-                <div class="card border-0  rounded-4 mb-4">
-                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
-                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-file-pdf me-2 text-danger"></i>PDF Visibility</h6>
-                    </div>
-                    <div class="card-body px-4 pb-4 pt-0">
-                        @foreach([
-                            ['pdf_show_mrp', 'Show MRP'],
-                            ['pdf_show_offer_price', 'Show Offer Price'],
-                            ['pdf_show_short_desc', 'Show Short Description'],
-                            ['pdf_show_description', 'Show Full Description'],
-                            ['pdf_show_attributes', 'Show Attributes'],
-                            ['pdf_show_images', 'Show Images'],
-                        ] as [$field, $label])
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" name="{{ $field }}" id="{{ $field }}_create" {{ old($field, true) ? 'checked' : '' }}>
-                            <label class="form-check-label fw-semibold small" for="{{ $field }}_create">{{ $label }}</label>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                {{-- Share Controls --}}
-                <div class="card border-0  rounded-4 mb-4">
-                    <div class="card-header bg-white border-0 px-4 pt-4 pb-3">
-                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-share me-2 text-success"></i>Share Page Visibility</h6>
-                    </div>
-                    <div class="card-body px-4 pb-4 pt-0">
-                        @foreach([
-                            ['share_show_mrp', 'Show MRP'],
-                            ['share_show_offer_price', 'Show Offer Price'],
-                            ['share_show_description', 'Show Description'],
-                            ['share_show_attributes', 'Show Attributes'],
-                        ] as [$field, $label])
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" name="{{ $field }}" id="{{ $field }}_create" {{ old($field, true) ? 'checked' : '' }}>
-                            <label class="form-check-label fw-semibold small" for="{{ $field }}_create">{{ $label }}</label>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
+               
 
                 {{-- Submit Actions (Sticky Card) --}}
                 <div class="card border-0  rounded-4 sticky-top" style="top: 100px; z-index: 1;">

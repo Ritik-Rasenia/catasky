@@ -3,296 +3,170 @@
 @section('title', 'Dashboard')
 @section('page-title', 'Dashboard Overview')
 @section('breadcrumb')
-    <a href="{{ route('dashboard') }}"><i class="bi bi-house-door-fill me-1.5" style="font-size: 14px;"></i> Dashboard</a> &nbsp;/&nbsp; <span>Overview</span>
+    <a href="{{ route('dashboard') }}"><i class="bi bi-house-door-fill me-1"></i> Dashboard</a>
+    <i class="bi bi-chevron-right text-muted mx-2" style="font-size: 10px;"></i>
+    <span>Overview</span>
 @endsection
 
+@php
+    $daysRemaining = $subscription ? max((int) $subscription->daysRemaining(), 0) : 0;
+    $planName = $subscription?->plan?->name ?? 'No active plan';
+    $planEnds = $subscription?->ends_at ? $subscription->ends_at->format('M d, Y') : 'Not scheduled';
+    $activePercent = $stats['total_products'] > 0 ? round(($stats['active_products'] / $stats['total_products']) * 100) : 0;
+@endphp
+
 @section('content')
+<div class="subscriber-dashboard">
+    @if($subscription && $subscription->isExpired())
+        <div class="dash-alert dash-alert-danger">
+            <div class="dash-alert-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+                <strong>Subscription expired</strong>
+                <span>Renew your plan to continue displaying your B2B catalogue storefront.</span>
+            </div>
+            <a href="{{ route('subscriber.subscription.plans') }}" class="btn btn-danger btn-sm">Renew Plan</a>
+        </div>
+    @endif
 
-{{-- Subscription Status Banner --}}
-@if($subscription && $subscription->isExpired())
-<div class="alert d-flex align-items-center gap-3 mb-4 animate-fade-in" style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.16); border-radius:16px; padding:16px 20px; color:#ef4444;">
-    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-    <div class="flex-grow-1">
-        <strong style="font-weight:700;">Subscription Expired!</strong> Your current subscription has expired. Please upgrade or renew your plan to continue displaying your B2B catalogue storefront.
-    </div>
-    <a href="{{ route('subscriber.subscription.plans') }}" class="btn btn-danger btn-sm rounded-pill px-4 fw-bold">Renew Plan</a>
-</div>
-@endif
+    <section class="dash-hero">
+        <div>
+            <div class="dash-kicker">Subscriber workspace</div>
+            <h1>{{ $profile?->company_name ?? $user->name }} catalog command center</h1>
+            <p>Track catalog readiness, publish products, review sharing activity, and keep your storefront moving.</p>
+        </div>
+        <div class="dash-hero-actions">
+            <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Product</a>
+            <a href="{{ route('subscriber.share.create') }}" class="btn btn-light"><i class="bi bi-share"></i> Create Share</a>
+        </div>
+    </section>
 
-{{-- Overview Metric Grid --}}
-<div class="row g-3 mb-4">
-    <!-- Total Products -->
-    <div class="col-xl-3 col-sm-6">
-        <div class="stat-card h-100 w-100" style="border-bottom: 3px solid var(--subscriber-primary) !important;">
-            <div class="stat-icon" style="background: rgba(79, 70, 229, 0.08); color: var(--subscriber-primary);">
-                <i class="bi bi-box-seam-fill"></i>
+    <section class="dash-metrics">
+        <article class="dash-metric">
+            <span class="metric-icon metric-blue"><i class="bi bi-box-seam"></i></span>
+            <div>
+                <small>Total Products</small>
+                <strong>{{ number_format($stats['total_products']) }}</strong>
+                <span>Items registered</span>
             </div>
-            <div class="min-w-0">
-                <div class="stat-label">Total Products</div>
-                <div class="stat-value">{{ number_format($stats['total_products']) }}</div>
-                <span class="text-muted" style="font-size: 0.75rem;">Items registered</span>
+        </article>
+        <article class="dash-metric">
+            <span class="metric-icon metric-green"><i class="bi bi-check2-circle"></i></span>
+            <div>
+                <small>Active Products</small>
+                <strong>{{ number_format($stats['active_products']) }}</strong>
+                <span>{{ $activePercent }}% catalog ready</span>
             </div>
-        </div>
-    </div>
-    
-    <!-- Active Products -->
-    <div class="col-xl-3 col-sm-6">
-        <div class="stat-card h-100 w-100" style="border-bottom: 3px solid #10b981 !important;">
-            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.08); color: #10b981;">
-                <i class="bi bi-check-circle-fill"></i>
+        </article>
+        <article class="dash-metric">
+            <span class="metric-icon metric-amber"><i class="bi bi-hourglass-split"></i></span>
+            <div>
+                <small>Pending Approval</small>
+                <strong>{{ number_format($stats['pending_products']) }}</strong>
+                <span>Awaiting review</span>
             </div>
-            <div class="min-w-0">
-                <div class="stat-label">Active Products</div>
-                <div class="stat-value" style="color: #10b981;">{{ number_format($stats['active_products']) }}</div>
-                <span class="text-success" style="font-size: 0.75rem; font-weight:600;"><i class="bi bi-globe me-1"></i>Live on catalog</span>
+        </article>
+        <article class="dash-metric">
+            <span class="metric-icon metric-cyan"><i class="bi bi-eye"></i></span>
+            <div>
+                <small>Total Views</small>
+                <strong>{{ number_format($stats['total_views']) }}</strong>
+                <span>{{ number_format($stats['total_shares']) }} share links</span>
             </div>
-        </div>
-    </div>
-    
-    <!-- Pending Products -->
-    <div class="col-xl-3 col-sm-6">
-        <div class="stat-card h-100 w-100" style="border-bottom: 3px solid #f59e0b !important;">
-            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.08); color: #f59e0b;">
-                <i class="bi bi-hourglass-split"></i>
-            </div>
-            <div class="min-w-0">
-                <div class="stat-label">Pending Approval</div>
-                <div class="stat-value" style="color: #f59e0b;">{{ number_format($stats['pending_products']) }}</div>
-                <span class="text-warning" style="font-size: 0.75rem; font-weight:600;"><i class="bi bi-shield-exclamation me-1"></i>Awaiting review</span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Categories Count -->
-    <div class="col-xl-3 col-sm-6">
-        <div class="stat-card h-100 w-100" style="border-bottom: 3px solid #06b6d4 !important;">
-            <div class="stat-icon" style="background: rgba(6, 182, 212, 0.08); color: #06b6d4;">
-                <i class="bi bi-tag-fill"></i>
-            </div>
-            <div class="min-w-0">
-                <div class="stat-label">Categories</div>
-                <div class="stat-value" style="color: #06b6d4;">{{ number_format($stats['categories_count']) }}</div>
-                <span class="text-muted" style="font-size: 0.75rem;">Represented sections</span>
-            </div>
-        </div>
-    </div>
-</div>
+        </article>
+    </section>
 
-<div class="row g-4 mb-4">
-    <!-- Left Column: Subscription & Analytics -->
-    <div class="col-lg-8">
-        <!-- Subscription Status Overview Card -->
-        <div class="vp-card mb-4" style="background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); border:none; color: white;">
-            <div class="vp-card-body p-4 position-relative overflow-hidden">
-                <div class="position-absolute opacity-10 end-0 bottom-0 pointer-events-none" style="font-size: 8rem; transform: translate(10px, 30px);">
-                    <i class="bi bi-award-fill"></i>
-                </div>
-                <div class="row align-items-center">
-                    <div class="col-md-7">
-                        <div class="badge rounded-pill bg-primary bg-opacity-20 text-primary mb-2 px-3 py-1.5 fw-bold" style="font-size:0.75rem;">
-                            <i class="bi bi-star-fill me-1"></i> B2B Subscription Workspace
-                        </div>
-                        <h4 class="fw-bold mb-1 text-white" style="font-family:'Outfit', sans-serif;">
-                            @if($subscription)
-                                Plan: {{ $subscription->plan?->name ?? 'Enterprise Pro' }}
-                            @else
-                                Plan Status: No Active Subscription
-                            @endif
-                        </h4>
-                        <p class="opacity-75 small mb-3 mb-md-0 text-white-50">
-                            @if($subscription)
-                                Your subscription billing is active. You have full catalog editor privileges.
-                            @else
-                                Upgrade to a professional plan to instantly list and share custom products.
-                            @endif
-                        </p>
-                    </div>
-                    <div class="col-md-5 text-md-end">
+    <section class="dash-grid">
+        <div class="dash-main">
+            <div class="dash-plan-card">
+                <div>
+                    <div class="dash-kicker">Plan health</div>
+                    <h2>{{ $planName }}</h2>
+                    <p>
                         @if($subscription)
-                            <div class="d-inline-block text-start text-md-end bg-white bg-opacity-10 p-3 rounded-4" style="border: 1px solid rgba(255,255,255,0.08);">
-                                <div class="text-white-50 small text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing:0.04em;">Days Remaining</div>
-                                <div class="h2 fw-extrabold mb-0 brand-font text-warning mt-1" style="font-weight: 800;">{{ $subscription->daysRemaining() }} Days</div>
-                                <div class="text-white-50 extra-small mt-1">Ends: {{ $subscription->ends_at ? $subscription->ends_at->format('M d, Y') : 'N/A' }}</div>
-                            </div>
+                            Active billing with catalog editor privileges. Plan ends on {{ $planEnds }}.
                         @else
-                            <a href="{{ route('subscriber.subscription.plans') }}" class="btn btn-warning rounded-pill px-4 fw-bold text-dark ">
-                                <i class="bi bi-arrow-up-circle-fill me-1"></i> Upgrade Catalogue
-                            </a>
+                            Choose a subscription plan to unlock publishing and share workflows.
                         @endif
-                    </div>
+                    </p>
+                </div>
+                <div class="plan-ring">
+                    <strong>{{ $subscription ? $daysRemaining : 0 }}</strong>
+                    <span>days left</span>
                 </div>
             </div>
-        </div>
 
-        <!-- Product Views Line Chart -->
-        <div class="vp-card">
-            <div class="vp-card-header">
-                <h6 class="vp-card-title"><i class="bi bi-graph-up me-2 text-primary"></i>Storefront View Analytics</h6>
-            </div>
-            <div class="vp-card-body">
-                <div class="chart-container" style="position: relative; height: 300px;">
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h3><i class="bi bi-graph-up-arrow"></i> Storefront Views</h3>
+                        <span>Weekly catalog engagement</span>
+                    </div>
+                    <span class="dash-chip">{{ number_format($stats['total_downloads']) }} downloads</span>
+                </div>
+                <div class="chart-container">
                     <canvas id="productViewsChart"></canvas>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Right Column: Recent Notifications & Quick Links -->
-    <div class="col-lg-4">
-        <!-- Recent Notifications -->
-        <div class="vp-card mb-4">
-            <div class="vp-card-header d-flex justify-content-between align-items-center">
-                <h6 class="vp-card-title"><i class="bi bi-bell me-2 text-warning"></i>Recent Notifications</h6>
-                @if($stats['unread_notifications_count'] > 0)
-                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2.5 py-1 extra-small">{{ $stats['unread_notifications_count'] }} New</span>
-                @endif
-            </div>
-            <div class="vp-card-body p-0">
-                <div class="d-flex flex-column" style="max-height: 290px; overflow-y: auto;">
-                    @forelse($recentNotifications as $notif)
-                        @php
-                            $notifData = $notif->data;
-                            $icon = $notifData['icon'] ?? 'bi-info-circle';
-                            $title = $notifData['title'] ?? 'Notification';
-                            $msg = $notifData['message'] ?? '';
-                            $redirectUrl = route('subscriber.notifications.redirect', $notif->id);
-                        @endphp
-                        <a href="{{ $redirectUrl }}" class="d-flex gap-3 p-3 border-bottom text-decoration-none hover-bg" style="transition:background 0.2s; border-color: var(--border) !important;">
-                            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width:38px; height:38px; background: rgba(79, 70, 229, 0.06); color: var(--subscriber-primary);">
-                                <i class="bi {{ $icon }}"></i>
-                            </div>
-                            <div class="min-w-0 flex-grow-1">
-                                <div class="fw-bold text-dark small text-truncate d-flex align-items-center gap-2">
-                                    {{ $title }}
-                                    @if(is_null($notif->read_at))
-                                        <span class="badge bg-danger rounded-circle p-1" style="width:6px; height:6px; content:'';"></span>
-                                    @endif
-                                </div>
-                                <div class="text-muted extra-small text-truncate mt-0.5">{{ $msg }}</div>
-                                <div class="text-muted mt-1" style="font-size: 0.65rem;">{{ $notif->created_at->diffForHumans() }}</div>
-                            </div>
-                        </a>
-                    @empty
-                        <div class="text-center py-5 text-muted empty-state" style="border: none !important; background: transparent !important;">
-                            <i class="bi bi-bell-slash fs-1 text-muted opacity-25"></i>
-                            <h6 class="fw-bold text-dark mt-2 mb-1">No New Notifications</h6>
-                            <p class="text-muted extra-small mb-0">You are all caught up!</p>
-                        </div>
-                    @endforelse
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h3><i class="bi bi-box"></i> Recent Products</h3>
+                        <span>Latest catalog entries</span>
+                    </div>
+                    <a href="{{ route('subscriber.products.create') }}" class="btn btn-light btn-sm"><i class="bi bi-plus-lg"></i> Add</a>
                 </div>
-                <div class="p-3 border-top text-center bg-light bg-opacity-40" style="border-color: var(--border) !important;">
-                    <a href="{{ route('subscriber.notifications.index') }}" class="extra-small fw-bold text-primary text-decoration-none">
-                        View All Notifications <i class="bi bi-chevron-right ms-0.5"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Shortcuts -->
-        <div class="vp-card">
-            <div class="vp-card-header">
-                <h6 class="vp-card-title"><i class="bi bi-lightning-charge me-2 text-success"></i>Quick Shortcuts</h6>
-            </div>
-            <div class="vp-card-body p-3">
-                <a href="{{ route('subscriber.products.create') }}" class="btn-quick-shortcut">
-                    <span class="d-flex align-items-center gap-2.5">
-                        <i class="bi bi-plus-circle-fill text-primary" style="font-size: 16px;"></i>
-                        <span>Add New Product</span>
-                    </span>
-                    <div class="shortcut-icon-wrap">
-                        <i class="bi bi-chevron-right"></i>
-                    </div>
-                </a>
-                <a href="{{ route('subscriber.share.create') }}" class="btn-quick-shortcut" style="border-left-color: #10b981 !important;">
-                    <span class="d-flex align-items-center gap-2.5">
-                        <i class="bi bi-share-fill text-success" style="font-size: 16px;"></i>
-                        <span>Share Catalog Link</span>
-                    </span>
-                    <div class="shortcut-icon-wrap" style="background: rgba(16, 185, 129, 0.08); color: #10b981;">
-                        <i class="bi bi-chevron-right"></i>
-                    </div>
-                </a>
-                <a href="{{ route('subscriber.attributes.index') }}" class="btn-quick-shortcut" style="border-left-color: #f59e0b !important;">
-                    <span class="d-flex align-items-center gap-2.5">
-                        <i class="bi bi-sliders2 text-warning" style="font-size: 16px;"></i>
-                        <span>Manage Specifications</span>
-                    </span>
-                    <div class="shortcut-icon-wrap" style="background: rgba(245, 158, 11, 0.08); color: #f59e0b;">
-                        <i class="bi bi-chevron-right"></i>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4">
-    <!-- Recent Products -->
-    <div class="col-xl-8">
-        <div class="vp-card">
-            <div class="vp-card-header d-flex justify-content-between align-items-center">
-                <h6 class="vp-card-title"><i class="bi bi-box-seam me-2 text-primary"></i>Recent Products</h6>
-                <a href="{{ route('subscriber.products.create') }}" class="btn btn-sm btn-light border rounded-pill px-3 fw-bold extra-small" style="min-height: auto; height: 30px; padding: 4px 12px !important;"><i class="bi bi-plus-lg me-1"></i>Add Product</a>
-            </div>
-            <div class="vp-card-body p-0">
-                <div class="table-responsive" style="border: none !important; box-shadow: none !important; margin: 0 !important;">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
+                <div class="table-responsive dash-table-wrap">
+                    <table class="table align-middle mb-0 dash-table">
+                        <thead>
                             <tr>
-                                <th class="ps-3 border-0 small text-muted">Thumbnail</th>
-                                <th class="border-0 small text-muted">Product Name</th>
-                                <th class="border-0 small text-muted">SKU</th>
-                                <th class="border-0 small text-muted">Price</th>
-                                <th class="border-0 small text-muted">Status</th>
-                                <th class="text-end pe-3 border-0 small text-muted">Actions</th>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($recentProducts as $prod)
                                 <tr>
-                                    <td class="ps-3">
-                                        @if($prod->thumbnail)
-                                            <img src="{{ $prod->thumbnail_url }}" alt="" class="rounded-3 border" style="width:40px; height:40px; object-fit:cover;">
-                                        @else
-                                            <div class="rounded-3 bg-light text-muted d-flex align-items-center justify-content-center fw-bold" style="width:40px; height:40px; font-size: 0.95rem;">📦</div>
-                                        @endif
-                                    </td>
                                     <td>
-                                        <div class="fw-bold text-dark text-truncate small" style="max-width:200px;">{{ $prod->name }}</div>
-                                        <span class="text-muted extra-small">{{ $prod->category?->name ?? 'No Category' }}</span>
+                                        <div class="product-cell">
+                                            @if($prod->thumbnail)
+                                                <img src="{{ $prod->thumbnail_url }}" alt="{{ $prod->name }}">
+                                            @else
+                                                <span><i class="bi bi-box-seam"></i></span>
+                                            @endif
+                                            <div>
+                                                <strong>{{ $prod->name }}</strong>
+                                                <small>{{ $prod->category?->name ?? 'No category' }}</small>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td class="small text-muted">{{ $prod->sku ?? '-' }}</td>
+                                    <td>{{ $prod->sku ?? '-' }}</td>
                                     <td>
                                         @if($prod->offer_price)
-                                            <span class="fw-bold text-dark small">₹{{ number_format($prod->offer_price, 2) }}</span>
+                                            Rs {{ number_format($prod->offer_price, 2) }}
                                         @elseif($prod->mrp)
-                                            <span class="fw-bold text-dark small">₹{{ number_format($prod->mrp, 2) }}</span>
+                                            Rs {{ number_format($prod->mrp, 2) }}
                                         @else
-                                            <span class="text-muted small">-</span>
+                                            -
                                         @endif
                                     </td>
-                                    <td>
-                                        @if($prod->status === 'active')
-                                            <span class="badge rounded-pill bg-success-soft text-success px-2.5 py-1 extra-small">Active</span>
-                                        @elseif($prod->status === 'draft')
-                                            <span class="badge rounded-pill bg-warning-soft text-warning px-2.5 py-1 extra-small">Draft</span>
-                                        @else
-                                            <span class="badge rounded-pill bg-danger-soft text-danger px-2.5 py-1 extra-small">Inactive</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-end pe-3">
-                                        <a href="{{ route('subscriber.products.edit', $prod->id) }}" class="btn btn-white btn-sm" title="Edit Product">
-                                            <i class="bi bi-pencil text-primary"></i>
-                                        </a>
+                                    <td><span class="dash-status status-{{ $prod->status ?? 'draft' }}">{{ ucfirst($prod->status ?? 'draft') }}</span></td>
+                                    <td class="text-end">
+                                        <a href="{{ route('subscriber.products.edit', $prod->id) }}" class="icon-action" title="Edit product"><i class="bi bi-pencil"></i></a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted empty-state" style="border: none !important; background: transparent !important;">
-                                        <i class="bi bi-box-seam fs-1 opacity-25"></i>
-                                        <h6 class="fw-bold text-dark mt-2 mb-1">No Products Registered</h6>
-                                        <p class="text-muted extra-small mb-3">Add items to start sharing catalogue links.</p>
-                                        <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Create Product</a>
+                                    <td colspan="5">
+                                        <div class="dash-empty">
+                                            <i class="bi bi-box-seam"></i>
+                                            <strong>No products registered</strong>
+                                            <span>Add products to start sharing catalog links.</span>
+                                            <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary btn-sm">Create Product</a>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse
@@ -301,52 +175,637 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Timeline Activity Logs -->
-    <div class="col-xl-4">
-        <div class="vp-card">
-            <div class="vp-card-header">
-                <h6 class="vp-card-title"><i class="bi bi-clock-history me-2 text-warning"></i>Activity Timeline</h6>
+        <aside class="dash-side">
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h3><i class="bi bi-bell"></i> Notifications</h3>
+                        <span>{{ $stats['unread_notifications_count'] }} unread</span>
+                    </div>
+                </div>
+                <div class="dash-list">
+                    @forelse($recentNotifications as $notif)
+                        @php
+                            $notifData = $notif->data;
+                            $icon = $notifData['icon'] ?? 'bi-info-circle';
+                            $title = $notifData['title'] ?? 'Notification';
+                            $msg = $notifData['message'] ?? '';
+                        @endphp
+                        <a href="{{ route('subscriber.notifications.redirect', $notif->id) }}" class="dash-list-item">
+                            <span class="list-icon"><i class="bi {{ $icon }}"></i></span>
+                            <span>
+                                <strong>{{ $title }}</strong>
+                                <small>{{ Str::limit($msg, 54) }}</small>
+                                <em>{{ $notif->created_at?->diffForHumans() ?? 'Recently' }}</em>
+                            </span>
+                        </a>
+                    @empty
+                        <div class="dash-empty compact">
+                            <i class="bi bi-bell-slash"></i>
+                            <strong>No new notifications</strong>
+                            <span>You are all caught up.</span>
+                        </div>
+                    @endforelse
+                </div>
+                <a href="{{ route('subscriber.notifications.index') }}" class="dash-footer-link">View all notifications <i class="bi bi-arrow-right"></i></a>
             </div>
-            <div class="vp-card-body">
-                <div class="d-flex flex-column gap-3" style="max-height: 380px; overflow-y: auto; padding-left: 4px;">
-                    @forelse($recentActivity as $act)
-                        <div class="d-flex align-items-start gap-3 position-relative">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; flex-shrink:0;">
-                                <i class="bi bi-check-lg" style="font-size:0.75rem;"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="text-dark small fw-bold text-truncate">{{ $act->action ?? 'Modified item' }}</div>
-                                <span class="text-muted mt-0.5 d-block" style="font-size:0.7rem;">{{ $act->created_at->diffForHumans() }}</span>
-                            </div>
+
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h3><i class="bi bi-lightning-charge"></i> Shortcuts</h3>
+                        <span>Common actions</span>
+                    </div>
+                </div>
+                <div class="shortcut-stack">
+                    <a href="{{ route('subscriber.products.create') }}"><i class="bi bi-plus-circle"></i><span>Add New Product</span><i class="bi bi-chevron-right"></i></a>
+                    <a href="{{ route('subscriber.share.create') }}"><i class="bi bi-share"></i><span>Share Catalog Link</span><i class="bi bi-chevron-right"></i></a>
+                    <a href="{{ route('subscriber.attributes.index') }}"><i class="bi bi-sliders2"></i><span>Manage Specifications</span><i class="bi bi-chevron-right"></i></a>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h3><i class="bi bi-link-45deg"></i> Top Share Links</h3>
+                        <span>Most viewed links</span>
+                    </div>
+                </div>
+                <div class="dash-list">
+                    @forelse($topShareLinks as $link)
+                        <div class="dash-list-item static">
+                            <span class="list-icon"><i class="bi bi-bar-chart"></i></span>
+                            <span>
+                                <strong>{{ $link->title ?? $link->product?->name ?? 'Catalog share' }}</strong>
+                                <small>{{ number_format($link->view_count) }} views</small>
+                            </span>
                         </div>
                     @empty
-                        <div class="text-center py-5 text-muted extra-small">
-                            <i class="bi bi-clock-history d-block fs-3 mb-2 opacity-50"></i>
-                            No activities logged yet.
+                        <div class="dash-empty compact">
+                            <i class="bi bi-link"></i>
+                            <strong>No share links yet</strong>
+                            <span>Create a link to track engagement.</span>
                         </div>
                     @endforelse
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h3><i class="bi bi-clock-history"></i> Activity</h3>
+                        <span>Latest workspace events</span>
+                    </div>
+                </div>
+                <div class="activity-list">
+                    @forelse($recentActivity as $act)
+                        <div class="activity-item">
+                            <span></span>
+                            <div>
+                                <strong>{{ $act->action ?? 'Modified item' }}</strong>
+                                <small>{{ $act->created_at?->diffForHumans() ?? 'Recently' }}</small>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="dash-empty compact">
+                            <i class="bi bi-clock"></i>
+                            <strong>No activity yet</strong>
+                            <span>Events will appear here.</span>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </aside>
+    </section>
+</div>
 @endsection
+
+@push('css')
+<style>
+    .subscriber-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .dash-alert,
+    .dash-hero,
+    .dash-card,
+    .dash-metric,
+    .dash-plan-card {
+        background: var(--surface-color, #fff);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+    }
+
+    .dash-alert {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
+    }
+
+    .dash-alert-danger {
+        border-color: rgba(239, 68, 68, 0.18);
+        background: rgba(239, 68, 68, 0.06);
+    }
+
+    .dash-alert-icon,
+    .metric-icon,
+    .list-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .dash-alert-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        color: #dc2626;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .dash-alert div:nth-child(2) {
+        flex: 1;
+    }
+
+    .dash-alert strong,
+    .dash-alert span {
+        display: block;
+    }
+
+    .dash-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 28px;
+        background: linear-gradient(135deg, rgba(29, 111, 235, 0.08), rgba(16, 185, 129, 0.07)), var(--surface-color, #fff);
+    }
+
+    .dash-kicker {
+        color: var(--primary-color);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+    }
+
+    .dash-hero h1,
+    .dash-plan-card h2 {
+        margin: 0;
+        color: var(--text-primary);
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        letter-spacing: 0 !important;
+    }
+
+    .dash-hero h1 {
+        font-size: 30px;
+        line-height: 1.15;
+    }
+
+    .dash-hero p,
+    .dash-plan-card p,
+    .dash-card-header span,
+    .dash-metric span,
+    .dash-list-item small,
+    .activity-item small {
+        color: var(--text-muted);
+    }
+
+    .dash-hero p {
+        max-width: 720px;
+        margin: 10px 0 0;
+        font-size: 14px;
+    }
+
+    .dash-hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .dash-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .dash-metric {
+        display: flex;
+        gap: 14px;
+        padding: 18px;
+        min-height: 112px;
+    }
+
+    .metric-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        font-size: 20px;
+    }
+
+    .metric-blue { color: #2563eb; background: rgba(37, 99, 235, 0.1); }
+    .metric-green { color: #059669; background: rgba(16, 185, 129, 0.12); }
+    .metric-amber { color: #d97706; background: rgba(245, 158, 11, 0.12); }
+    .metric-cyan { color: #0891b2; background: rgba(6, 182, 212, 0.12); }
+
+    .dash-metric small {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .dash-metric strong {
+        display: block;
+        color: var(--text-primary);
+        font-family: 'Outfit', sans-serif;
+        font-size: 28px;
+        line-height: 1.1;
+        margin: 5px 0;
+    }
+
+    .dash-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .dash-main,
+    .dash-side {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .dash-plan-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 24px;
+        background: #0f172a;
+        border-color: #0f172a;
+        overflow: hidden;
+    }
+
+    .dash-plan-card h2,
+    .dash-plan-card p {
+        color: #fff;
+    }
+
+    .dash-plan-card p {
+        opacity: 0.72;
+        margin: 8px 0 0;
+    }
+
+    .plan-ring {
+        width: 126px;
+        height: 126px;
+        border-radius: 50%;
+        border: 10px solid rgba(255, 255, 255, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
+    }
+
+    .plan-ring strong {
+        font-family: 'Outfit', sans-serif;
+        font-size: 34px;
+        line-height: 1;
+    }
+
+    .plan-ring span {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.68);
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .dash-card {
+        overflow: hidden;
+    }
+
+    .dash-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .dash-card-header h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        color: var(--text-primary);
+        font-family: 'Outfit', sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0 !important;
+    }
+
+    .dash-card-header span {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+    }
+
+    .dash-chip {
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        background: rgba(37, 99, 235, 0.08);
+        color: #2563eb !important;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .chart-container {
+        height: 320px;
+        padding: 18px 20px 20px;
+    }
+
+    .dash-table-wrap {
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .product-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 220px;
+    }
+
+    .product-cell img,
+    .product-cell > span {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted, #f8fafc);
+    }
+
+    .product-cell img {
+        object-fit: cover;
+    }
+
+    .product-cell > span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+    }
+
+    .product-cell strong,
+    .product-cell small {
+        display: block;
+    }
+
+    .product-cell strong {
+        color: var(--text-primary);
+        max-width: 280px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dash-status {
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .status-active { color: #047857; background: rgba(16, 185, 129, 0.12); }
+    .status-draft { color: #b45309; background: rgba(245, 158, 11, 0.14); }
+    .status-inactive { color: #dc2626; background: rgba(239, 68, 68, 0.12); }
+
+    .icon-action {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface-color, #fff);
+        color: var(--primary-color);
+    }
+
+    .dash-list,
+    .shortcut-stack,
+    .activity-list {
+        padding: 14px;
+    }
+
+    .dash-list-item,
+    .shortcut-stack a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text-primary);
+        text-decoration: none;
+        margin-bottom: 10px;
+        background: var(--surface-color, #fff);
+    }
+
+    .dash-list-item:hover,
+    .shortcut-stack a:hover {
+        border-color: rgba(37, 99, 235, 0.24);
+        background: rgba(37, 99, 235, 0.03);
+    }
+
+    .dash-list-item.static:hover {
+        background: var(--surface-color, #fff);
+    }
+
+    .list-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: rgba(37, 99, 235, 0.08);
+        color: var(--primary-color);
+    }
+
+    .dash-list-item strong,
+    .dash-list-item small,
+    .dash-list-item em {
+        display: block;
+    }
+
+    .dash-list-item strong {
+        color: var(--text-primary);
+        line-height: 1.25;
+    }
+
+    .dash-list-item em {
+        color: var(--text-muted);
+        font-size: 11px;
+        font-style: normal;
+        margin-top: 4px;
+    }
+
+    .dash-footer-link {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 13px;
+        border-top: 1px solid var(--border);
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 800;
+    }
+
+    .shortcut-stack a {
+        justify-content: space-between;
+        font-weight: 800;
+    }
+
+    .shortcut-stack a i:first-child {
+        color: var(--primary-color);
+    }
+
+    .shortcut-stack a span {
+        flex: 1;
+    }
+
+    .activity-item {
+        display: flex;
+        gap: 12px;
+        padding: 0 0 18px;
+    }
+
+    .activity-item > span {
+        width: 12px;
+        height: 12px;
+        margin-top: 4px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+        flex-shrink: 0;
+    }
+
+    .activity-item strong,
+    .activity-item small {
+        display: block;
+    }
+
+    .dash-empty {
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        color: var(--text-muted);
+        padding: 24px;
+    }
+
+    .dash-empty.compact {
+        min-height: 150px;
+    }
+
+    .dash-empty i {
+        font-size: 34px;
+        opacity: 0.45;
+    }
+
+    .dash-empty strong {
+        color: var(--text-primary);
+        font-family: 'Outfit', sans-serif;
+        font-size: 16px;
+    }
+
+    html[data-theme="dark"] .dash-hero {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(16, 185, 129, 0.12)), var(--surface-color);
+    }
+
+    html[data-theme="dark"] .dash-list-item,
+    html[data-theme="dark"] .shortcut-stack a,
+    html[data-theme="dark"] .icon-action {
+        background: var(--surface-muted);
+    }
+
+    @media (max-width: 1199.98px) {
+        .dash-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dash-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .dash-hero,
+        .dash-plan-card {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .dash-hero h1 {
+            font-size: 24px;
+        }
+
+        .dash-hero-actions {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .dash-hero-actions .btn {
+            flex: 1 1 150px;
+        }
+
+        .dash-metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+            height: 260px;
+        }
+    }
+</style>
+@endpush
 
 @push('js')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const theme = document.documentElement.getAttribute('data-theme') || 'light';
-        const isDark = theme === 'dark';
-        const textColor = isDark ? '#94a3b8' : '#64748b';
-        const gridColor = isDark ? '#243041' : '#f1f5f9';
+        const canvas = document.getElementById('productViewsChart');
+        if (!canvas || typeof Chart === 'undefined') {
+            return;
+        }
 
-        const viewsCtx = document.getElementById('productViewsChart').getContext('2d');
+        const theme = document.documentElement.getAttribute('data-theme') || 'light';
+        const textColor = theme === 'dark' ? '#94a3b8' : '#64748b';
+        const gridColor = theme === 'dark' ? '#243041' : '#e2e8f0';
+        const viewsCtx = canvas.getContext('2d');
         const viewsGradient = viewsCtx.createLinearGradient(0, 0, 0, 300);
-        viewsGradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
-        viewsGradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+        viewsGradient.addColorStop(0, 'rgba(37, 99, 235, 0.24)');
+        viewsGradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
 
         const viewsChart = new Chart(viewsCtx, {
             type: 'line',
@@ -355,29 +814,30 @@
                 datasets: [{
                     label: 'Catalogue Views',
                     data: {!! json_encode($dashboardCharts['monthlyViews']['data']) !!},
-                    borderColor: '#4f46e5',
+                    borderColor: '#2563eb',
                     borderWidth: 3,
                     fill: true,
                     backgroundColor: viewsGradient,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#4f46e5',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#2563eb',
+                    pointBorderWidth: 3,
                     pointRadius: 4,
-                    tension: 0.35
+                    tension: 0.36
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
                     y: {
-                        grid: { color: gridColor, drawBorder: false },
-                        ticks: { color: textColor, font: { family: 'Poppins', size: 10 } }
+                        grid: { color: gridColor },
+                        border: { display: false },
+                        ticks: { color: textColor, font: { family: 'Poppins', size: 11 } }
                     },
                     x: {
                         grid: { display: false },
+                        border: { display: false },
                         ticks: { color: textColor, font: { family: 'Poppins', size: 11 } }
                     }
                 }
@@ -386,16 +846,12 @@
 
         window.addEventListener('themeChanged', function() {
             const nextTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const isDarkNext = nextTheme === 'dark';
-            const nextColor = isDarkNext ? '#94a3b8' : '#64748b';
-            const nextGrid = isDarkNext ? '#243041' : '#f1f5f9';
-
-            if (viewsChart) {
-                viewsChart.options.scales.y.ticks.color = nextColor;
-                viewsChart.options.scales.y.grid.color = nextGrid;
-                viewsChart.options.scales.x.ticks.color = nextColor;
-                viewsChart.update();
-            }
+            const nextColor = nextTheme === 'dark' ? '#94a3b8' : '#64748b';
+            const nextGrid = nextTheme === 'dark' ? '#243041' : '#e2e8f0';
+            viewsChart.options.scales.y.ticks.color = nextColor;
+            viewsChart.options.scales.y.grid.color = nextGrid;
+            viewsChart.options.scales.x.ticks.color = nextColor;
+            viewsChart.update();
         });
     });
 </script>

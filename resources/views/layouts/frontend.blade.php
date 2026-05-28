@@ -172,20 +172,28 @@
             border-radius: 16px;
             overflow: hidden;
             background: #ffffff;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
             text-decoration: none;
-            /* aspect-ratio keeps card square regardless of width */
-            aspect-ratio: 1 / 1;
+            /* aspect-ratio keeps card tall regardless of width */
+            aspect-ratio: 4 / 5;
             width: 100%;
             height: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .share-image-preview-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
         }
         .share-image-preview-card > div {
             width: 1080px;
-            height: 1080px;
-            transform: scale(var(--preview-scale, 0.163));
+            height: 1350px;
+            transform: scale(var(--preview-scale, 0.163)) translateZ(0);
             transform-origin: top left;
             will-change: transform;
             contain: layout paint;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
         /* Pulsing Skeleton Previews */
         .skeleton-pulse {
@@ -296,7 +304,7 @@
             .share-image-preview-card {
                 width: 100% !important;
                 height: auto !important;
-                aspect-ratio: 1 / 1 !important;
+                aspect-ratio: 4 / 5 !important;
             }
             #pdf-preview-frame-details,
             #pdf-preview-frame-images {
@@ -559,20 +567,22 @@
     </footer>
 
     <!-- Floating Sticky Multi-Selection Glass Bar -->
-    <div id="selection-bar" class="floating-bar">
+    <div id="selection-bar" class="floating-bar" data-authenticated="{{ auth()->check() ? 'true' : 'false' }}">
         <div class="bar-actions">
-            <!-- Left button: Selected count -->
-            <button class="bar-pill-btn selected-btn" onclick="openSharingModal('selection')" title="View Selected Blueprints">
-                <i class="bi bi-list-task me-2"></i>Selected (<span id="selected-count">0</span>)
-            </button>
-            <!-- Center button: Share PDF -->
-            <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
-                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
-            </button>
-            <!-- Right button: Share Image -->
-            <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
-                <i class="bi bi-images me-2"></i>Image Share
-            </button>
+            @auth
+                <!-- Left button: Selected count -->
+                <button class="bar-pill-btn selected-btn" onclick="openSharingModal('selection')" title="View Selected Blueprints">
+                    <i class="bi bi-list-task me-2"></i>Selected (<span id="selected-count">0</span>)
+                </button>
+                <!-- Center button: Share PDF -->
+                <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
+                    <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
+                </button>
+                <!-- Right button: Share Image -->
+                <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
+                    <i class="bi bi-images me-2"></i>Image Share
+                </button>
+            @endauth
         </div>
     </div>
 
@@ -872,6 +882,16 @@
                                                     <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-note" style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
+
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Include link</h6>
+                                                    <p class="text-secondary small mb-0" style="max-width: 280px;">Make generated PDF buttons and image calls-to-action open the catalogue.</p>
+                                                </div>
+                                                <div class="form-check form-switch p-0 m-0">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-include-link" checked style="width: 42px; height: 22px; cursor: pointer;">
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- Inline Note Text Input -->
@@ -966,27 +986,51 @@
                                         
                                         <!-- Loader -->
                                         <div id="pdf-preview-loader-images" class="w-100 flex-grow-1" style="min-height: 460px; overflow: hidden; background: #f1f5f9; display: flex; align-items: center; justify-content: center; position: relative;">
-                                            <div class="preview-skeleton-page" style="pointer-events: none; opacity: 0.7; width: 100%; height: 100%; padding: 16px;">
-                                                <div class="share-image-preview-grid" style="padding: 0; gap: 10px; pointer-events: none; opacity: 0.7;">
-                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
-                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                            <div class="preview-skeleton-page" style="pointer-events: none; opacity: 0.8; width: 100%; height: 100%; padding: 16px;">
+                                                <div class="share-image-preview-grid" style="padding: 0; gap: 14px; pointer-events: none;">
+                                                    <div class="preview-skeleton-card" style="width: 100%; aspect-ratio: 4/5; border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff; padding: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                                        <div style="flex-grow: 1; position: relative; background: #f8fafc;">
+                                                            <div class="skeleton-pulse" style="width: 100%; height: 100%;"></div>
+                                                            <div style="position: absolute; top: 16px; left: 16px; width: 60%; height: 16px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                            <div style="position: absolute; top: 38px; left: 16px; width: 40%; height: 10px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                        </div>
+                                                        <div style="height: 40px; background: #000000; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                                                            <div style="width: 45%; height: 10px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                            <div style="width: 25%; height: 12px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                        </div>
                                                     </div>
-                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
-                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    <div class="preview-skeleton-card" style="width: 100%; aspect-ratio: 4/5; border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff; padding: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                                        <div style="flex-grow: 1; position: relative; background: #f8fafc;">
+                                                            <div class="skeleton-pulse" style="width: 100%; height: 100%;"></div>
+                                                            <div style="position: absolute; top: 16px; left: 16px; width: 60%; height: 16px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                            <div style="position: absolute; top: 38px; left: 16px; width: 40%; height: 10px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                        </div>
+                                                        <div style="height: 40px; background: #000000; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                                                            <div style="width: 45%; height: 10px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                            <div style="width: 25%; height: 12px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                        </div>
                                                     </div>
-                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
-                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    <div class="preview-skeleton-card" style="width: 100%; aspect-ratio: 4/5; border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff; padding: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                                        <div style="flex-grow: 1; position: relative; background: #f8fafc;">
+                                                            <div class="skeleton-pulse" style="width: 100%; height: 100%;"></div>
+                                                            <div style="position: absolute; top: 16px; left: 16px; width: 60%; height: 16px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                            <div style="position: absolute; top: 38px; left: 16px; width: 40%; height: 10px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                        </div>
+                                                        <div style="height: 40px; background: #000000; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                                                            <div style="width: 45%; height: 10px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                            <div style="width: 25%; height: 12px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                        </div>
                                                     </div>
-                                                    <div class="preview-skeleton-card" style="width: 100%; height: 130px; padding: 6px;">
-                                                        <div class="skeleton-pulse preview-skeleton-img" style="height: 80px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-name" style="height: 10px; width: 80%; margin-top: 4px;"></div>
-                                                        <div class="skeleton-pulse preview-skeleton-price" style="height: 10px; width: 40%; margin-top: 2px;"></div>
+                                                    <div class="preview-skeleton-card" style="width: 100%; aspect-ratio: 4/5; border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff; padding: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                                        <div style="flex-grow: 1; position: relative; background: #f8fafc;">
+                                                            <div class="skeleton-pulse" style="width: 100%; height: 100%;"></div>
+                                                            <div style="position: absolute; top: 16px; left: 16px; width: 60%; height: 16px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                            <div style="position: absolute; top: 38px; left: 16px; width: 40%; height: 10px; border-radius: 4px;" class="skeleton-pulse"></div>
+                                                        </div>
+                                                        <div style="height: 40px; background: #000000; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                                                            <div style="width: 45%; height: 10px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                            <div style="width: 25%; height: 12px; border-radius: 4px; background: #333;" class="skeleton-pulse"></div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1077,6 +1121,7 @@
             showGallery: true,
             showWatermark: false,
             showNotes: false,
+            includeLink: true,
             catalogTitle: 'Premium Selection',
             noteText: 'An Award For Every Achievement & Effort',
             logoPos: 'bottom-right'
@@ -1123,11 +1168,11 @@
 
         function formatProductPrice(product, fallback = 'On Request') {
             if (!product) return fallback;
-            const rawPrice = product.price !== null && product.price !== undefined && String(product.price).trim() !== ''
-                ? product.price
-                : null;
+            const rawPrice = [product.sale_price, product.offer_price, product.price, product.mrp].find(value => {
+                return value !== null && value !== undefined && String(value).trim() !== '' && !Number.isNaN(Number(value));
+            }) || null;
             if (rawPrice !== null && !Number.isNaN(Number(rawPrice))) {
-                return '&#8377; ' + Number(rawPrice).toLocaleString('en-IN', {
+                return '₹ ' + Number(rawPrice).toLocaleString('en-IN', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 });
@@ -1469,7 +1514,7 @@
             };
 
             // Bind settings changes to live CSS preview updates (only on change, preventing keyup rendering storms)
-            $(document).on('change', '#share-catalog-title, #share-show-title, #share-show-price, #share-show-gallery, #share-add-watermark, #share-add-note, #share-note-text', function() {
+            $(document).on('change', '#share-catalog-title, #share-show-title, #share-show-price, #share-show-gallery, #share-add-watermark, #share-add-note, #share-include-link, #share-note-text', function() {
                 updateExportSettingsFromControls();
                 invalidatePreparedShareDocs();
                 syncShareSettingMirrors();
@@ -1557,6 +1602,7 @@
                 exportSettings.showWatermark = $('#share-add-watermark').is(':checked');
                 exportSettings.showNotes = $('#share-add-note').is(':checked');
                 exportSettings.showNote = exportSettings.showNotes;
+                exportSettings.includeLink = $('#share-include-link').is(':checked');
                 exportSettings.noteText = $('#share-note-text').val() || '';
                 exportSettings.logoPos = $('#share-logo-pos').val() || 'bottom-right';
                 return exportSettings;
@@ -1569,6 +1615,7 @@
                 $('#share-show-gallery').prop('checked', !!exportSettings.showGallery);
                 $('#share-add-watermark').prop('checked', !!exportSettings.showWatermark);
                 $('#share-add-note').prop('checked', !!exportSettings.showNotes);
+                $('#share-include-link').prop('checked', !!exportSettings.includeLink);
                 $('#share-note-text').val(exportSettings.noteText || '');
                 $('#share-logo-pos').val(exportSettings.logoPos || 'bottom-right');
             }
@@ -1609,6 +1656,7 @@
                     showPrice: settings.showPrice,
                     showWatermark: settings.showWatermark,
                     showNote: settings.showNotes,
+                    includeLink: settings.includeLink,
                     noteText: settings.noteText,
                     logoPos: settings.logoPos
                 });
@@ -1902,6 +1950,7 @@
             }
 
              function prepareImageShareDocs(options = {}) {
+                window._imageProgressMax = 0; // RESET progress tracking counter to ensure accuracy
                 const type = 'images';
                 const cacheKey = getShareCacheKey(type);
                 const existing = window.preparedShareDocs[type];
@@ -2062,7 +2111,24 @@
             function openWhatsAppWithLink(settings, extraMsg) {
                 const catalogUrl = `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
                 const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
-                const msg = `*${title}*\n\n${extraMsg ? extraMsg + '\n\n' : ''}View our curated catalogue:\n👉 ${catalogUrl}`;
+                
+                let productListText = '';
+                if (settings && settings.includeLink) {
+                    selectedProducts.forEach((id, index) => {
+                        const cached = window.cachedProductDetails[id.toString()];
+                        if (cached && cached.success && cached.product) {
+                            const p = cached.product;
+                            const productUrl = `${window.location.origin}/product/${p.slug}`;
+                            productListText += `${index + 1}. *${p.name}*\n👉 ${productUrl}\n\n`;
+                        }
+                    });
+                }
+                
+                let msg = `*${title}*\n\n${extraMsg ? extraMsg + '\n\n' : ''}`;
+                if (productListText) {
+                    msg += `Selected Products (Tap to view):\n\n${productListText}`;
+                }
+                msg += `View Full Curated Catalogue:\n👉 ${catalogUrl}`;
                 openWhatsAppChat(msg);
             }
 
@@ -2144,11 +2210,42 @@
 
                     let sharedSuccess = false;
                     
+                    // Construct caption text with active product links if includeLink is checked
+                    const catalogUrl = `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                    const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
+                    let productListText = '';
+                    
+                    if (settings.includeLink) {
+                        batches[i].forEach(file => {
+                            const filename = file.name;
+                            const matches = filename.match(/^(.*?)_(primary|gallery_\d+)\.jpg$/);
+                            if (matches && matches[1]) {
+                                const slug = matches[1];
+                                const cached = Object.values(window.cachedProductDetails).find(c => c && c.product && c.product.slug === slug);
+                                if (cached && cached.product) {
+                                    const p = cached.product;
+                                    const productUrl = `${window.location.origin}/product/${p.slug}`;
+                                    // Add to caption text
+                                    if (!productListText.includes(p.name)) {
+                                        productListText += `*${p.name}*:\n👉 ${productUrl}\n\n`;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    let captionText = `*${title}*\n\n`;
+                    if (productListText) {
+                        captionText += `Tap to View Products:\n${productListText}`;
+                    }
+                    captionText += `View Full Curated Catalogue:\n👉 ${catalogUrl}`;
+                    
                     // We attempt direct automatic native share first!
                     try {
                         await navigator.share({
                             files: batches[i],
-                            title: 'CATASKY Products'
+                            title: title,
+                            text: '' // Requirement 4 & 5: Only share image without caption links/text below the image
                         });
                         sharedCount += batches[i].length;
                         sharedSuccess = true;
@@ -2163,7 +2260,8 @@
                             try {
                                 await navigator.share({
                                     files: batches[i],
-                                    title: 'CATASKY Products'
+                                    title: title,
+                                    text: '' // Requirement 4 & 5: Only share image without caption links/text below the image
                                 });
                                 sharedCount += batches[i].length;
                                 sharedSuccess = true;
@@ -2353,27 +2451,30 @@
                 const showPrice = settings.showPrice;
                 const showWatermark = settings.showWatermark;
                 const showNote = settings.showNotes;
+                const includeLink = settings.includeLink;
                 const noteText = settings.noteText || 'An Award For Every Achievement & Effort';
                 const logoPos = settings.logoPos || 'bottom-right';
                 const productName = p.name || 'Product';
                 const partCode = p.part_code || '';
                 const displayPrice = formatProductPrice(p);
                 
-                // Dynamic Quality Tuning: Use HD (1200) for large batches to load 3.2x faster, 2K (2160) for smaller ones!
-                const CANVAS_SIZE = (selectedProducts && selectedProducts.length > 6) ? 1200 : 2160;
-                const DESIGN     = 800;     // internal design coordinate space
-                const SCALE      = CANVAS_SIZE / DESIGN; // 2.7
+                // Requirement 1 & 2: HD+ 4:5 aspect ratio (2160x2700 px resolution for guaranteed crispness!)
+                const CANVAS_WIDTH  = 2160;
+                const CANVAS_HEIGHT = 2700;
+                const DESIGN_WIDTH  = 800;     // internal design coordinate width
+                const DESIGN_HEIGHT = 1000;    // internal design coordinate height
+                const SCALE         = 2.7;     // CANVAS_WIDTH / DESIGN_WIDTH = 2.7
 
                 const canvas = document.createElement('canvas');
-                canvas.width  = CANVAS_SIZE;
-                canvas.height = CANVAS_SIZE;
+                canvas.width  = CANVAS_WIDTH;
+                canvas.height = CANVAS_HEIGHT;
                 const ctx = canvas.getContext('2d', { alpha: false });
 
                 // High-quality image smoothing for crisp product photos
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
 
-                // All drawing uses 800×800 design coords; ctx.scale maps → 2160×2160
+                // Scale design context (800x1000 coords mapped to 2160x2700 pixels)
                 ctx.scale(SCALE, SCALE);
 
                 const footerHeight   = 104;
@@ -2382,13 +2483,12 @@
 
                 // ── WHITE BACKGROUND ───────────────────────────────────────────────────
                 ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, DESIGN, DESIGN);
+                ctx.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
 
-                // ── PRODUCT IMAGE ──────────────────────────────────────────────────────
+                // ── PRODUCT IMAGE (object-fit: cover inside canvas coordinates) ────────
                 const img  = await loadImage(imgUrl);
-                const imgY = showTitle ? 95 : 28;
-                const imgH = showTitle ? 515 : 582;
-                drawContainImage(ctx, img, 26, imgY, 748, imgH);
+                const imgH = DESIGN_HEIGHT - imageAreaBottom;
+                drawCoverImage(ctx, img, 0, 0, DESIGN_WIDTH, imgH);
 
                 // ── TOP TITLE + SHORT DESCRIPTION ─────────────────────────────────────
                 if (showTitle) {
@@ -2411,19 +2511,19 @@
                     const logoImg = await loadImage(window.companyLogoBase64);
                     if (logoImg) {
                         let logoX = 686;
-                        let logoY = DESIGN - imageAreaBottom - 18 - 42; // default: bottom-right
+                        let logoY = DESIGN_HEIGHT - imageAreaBottom - 18 - 42; // default: bottom-right
                         if (logoPos === 'top-left')    { logoX = 24;  logoY = 22; }
                         else if (logoPos === 'top-right')   { logoX = 686; logoY = 22; }
-                        else if (logoPos === 'bottom-left') { logoX = 24;  logoY = DESIGN - imageAreaBottom - 18 - 42; }
+                        else if (logoPos === 'bottom-left') { logoX = 24;  logoY = DESIGN_HEIGHT - imageAreaBottom - 18 - 42; }
                         drawContainImage(ctx, logoImg, logoX, logoY, 90, 42);
                     }
                 }
 
                 // ── YELLOW NOTE BAR ───────────────────────────────────────────────────
                 if (showNote) {
-                    const noteY = DESIGN - footerHeight - noteHeight;
+                    const noteY = DESIGN_HEIGHT - footerHeight - noteHeight;
                     ctx.fillStyle = '#FFD000';
-                    ctx.fillRect(0, noteY, DESIGN, noteHeight);
+                    ctx.fillRect(0, noteY, DESIGN_WIDTH, noteHeight);
 
                     ctx.fillStyle    = '#000000';
                     ctx.font         = '900 17px "Outfit", "Poppins", sans-serif';
@@ -2433,13 +2533,13 @@
                     ctx.fillText(`CODE: ${partCode}`, 48, noteY + noteHeight / 2);
 
                     ctx.textAlign = 'right';
-                    ctx.fillText(noteText, DESIGN - 48, noteY + noteHeight / 2);
+                    ctx.fillText(noteText, DESIGN_WIDTH - 48, noteY + noteHeight / 2);
                 }
 
                 // ── BLACK FOOTER ──────────────────────────────────────────────────────
-                const footerY = DESIGN - footerHeight;
+                const footerY = DESIGN_HEIGHT - footerHeight;
                 ctx.fillStyle = '#000000';
-                ctx.fillRect(0, footerY, DESIGN, footerHeight);
+                ctx.fillRect(0, footerY, DESIGN_WIDTH, footerHeight);
 
                 ctx.textBaseline = 'middle';
 
@@ -2468,25 +2568,24 @@
                     ctx.fillStyle = '#ffffff';
                     ctx.font      = '900 28px "Outfit", "Poppins", sans-serif';
                     ctx.textAlign = 'right';
-                    ctx.fillText(displayPrice, DESIGN - 48, footerY + 32);
+                    ctx.fillText(displayPrice, DESIGN_WIDTH - 48, footerY + 32);
                 }
 
-                // "TAP TO VIEW" pill
-                const pillW = 110, pillH = 32;
-                const pillX = DESIGN - 48 - pillW;
-                const pillY = footerY + 52;
-                drawRoundRect(ctx, pillX, pillY, pillW, pillH, 16, '#ffffff', null);
-                ctx.fillStyle = '#000000';
-                ctx.font      = '900 13px "Outfit", "Poppins", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('TAP TO VIEW', pillX + pillW / 2, pillY + pillH / 2);
+                if (includeLink) {
+                    const pillW = 110, pillH = 32;
+                    const pillX = DESIGN_WIDTH - 48 - pillW;
+                    const pillY = footerY + 52;
+                    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 16, '#ffffff', null);
+                    ctx.fillStyle = '#000000';
+                    ctx.font      = '900 13px "Outfit", "Poppins", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('TAP TO VIEW', pillX + pillW / 2, pillY + pillH / 2);
+                }
 
                 // ── EXPORT: ULTRA HIGH-RESOLUTION (SUPER SHARP & OPTIMIZED FILE SIZE) ───────────────────
-                // We ALWAYS use 'image/jpeg' for sharing because WebP is not fully supported 
-                // by the receiving intents of many apps (like WhatsApp, Gmail, etc.) on mobile.
-                // JPEG has 100% compatibility across all platforms and apps.
+                // Increase quality to 0.88 for maximum HD preview preservation during WhatsApp transfers
                 return new Promise(resolve => {
-                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.82);
+                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.88);
                 });
             }
 
@@ -2579,7 +2678,7 @@
 
             function formatDisplayPrice(value) {
                 const price = String(value || 'On Request').trim();
-                return price.includes('\u20B9') || price.includes('&#8377;') || price.toLowerCase().includes('request') ? price : '&#8377; ' + price;
+                return price.includes('\u20B9') || price.includes('&#8377;') || price.toLowerCase().includes('request') ? price : '₹ ' + price;
             }
 
             function getImagePdfItems(validDataList) {
@@ -2619,6 +2718,7 @@
                 const showPrice = settings.showPrice;
                 const showWatermark = settings.showWatermark;
                 const showNote = settings.showNotes;
+                const includeLink = settings.includeLink;
                 const noteText = escapeHtml(settings.noteText || 'An Award For Every Achievement & Effort');
                 const logoPos = settings.logoPos || 'bottom-right';
                 const productName = escapeHtml(p.name || 'Product');
@@ -2638,8 +2738,8 @@
                 }
 
                 return `
-                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1080px;overflow:hidden;position:relative;background:#ffffff;will-change:transform;contain:layout paint;">
-                    <div style="width:800px;height:800px;transform:scale(1.35);transform-origin:top left;position:absolute;top:0;left:0;will-change:transform;contain:layout paint;box-sizing:border-box;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
+                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1350px;overflow:hidden;position:relative;background:#ffffff;will-change:transform;contain:layout paint;">
+                    <div style="width:800px;height:1000px;transform:scale(1.35);transform-origin:top left;position:absolute;top:0;left:0;will-change:transform;contain:layout paint;box-sizing:border-box;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
                         <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background:#ffffff;">
                             ${showTitle ? `
                             <div style="position:absolute;top:34px;left:44px;right:210px;z-index:4;color:#000000;">
@@ -2653,8 +2753,8 @@
                             </div>` : ''}
 
                             ${imgUrl
-                                ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:26px;right:26px;top:${showTitle ? '95px' : '28px'};bottom:26px;width:748px;height:${showTitle ? '515px' : '582px'};object-fit:contain;display:block;">`
-                                : `<div style="position:absolute;left:26px;right:26px;top:80px;bottom:40px;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;">No Image</div>`
+                                ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;">`
+                                : `<div style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;z-index:1;">No Image</div>`
                             }
                         </div>
 
@@ -2671,7 +2771,7 @@
                             </div>
                             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
                                 ${showPrice ? `<div style="font-size:28px;font-weight:900;white-space:nowrap;">${displayPrice}</div>` : ''}
-                                <div style="background:#ffffff;color:#000000;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0;">Tap to view</div>
+                                ${includeLink ? `<div style="background:#ffffff;color:#000000;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0;cursor:pointer;">Tap to view</div>` : ''}
                             </div>
                         </div>
                     </div>
@@ -2694,7 +2794,7 @@
                     const item = pageItems[index];
                     if (item) {
                         slotsHtml += `
-                        <div style="width:218px;height:218px;position:relative;border-radius:8px;overflow:hidden;background:#ffffff;border:1.5px solid #E2E8F0;box-sizing:border-box;">
+                        <div class="pdf-product-link-target" data-slug="${item.product && item.product.slug ? escapeHtml(item.product.slug) : ''}" style="width:218px;height:218px;position:relative;border-radius:8px;overflow:hidden;background:#ffffff;border:1.5px solid #E2E8F0;box-sizing:border-box;cursor:pointer;">
                             <div style="width:1080px;height:1080px;transform:scale(0.20185);transform-origin:top left;will-change:transform;contain:layout paint;">
                                 ${renderImagePdfBoxHtml(item, { companyLogo })}
                             </div>
@@ -2739,12 +2839,14 @@
 
             window.updateSelectionUI = function() {
                 const count = selectedProducts.length;
+                const isAuthenticated = $('#selection-bar').data('authenticated') === true || $('#selection-bar').data('authenticated') === 'true';
                 
                 // Sync badge counters
                 $('#cart-count, #mobile-cart-count, #selected-count, .selected-count-span').text(count);
 
-                // Show or hide floating selection bar
-                if (count > 0) {
+                // Show the export actions only for logged-in users. Logged-in users keep
+                // the bar visible at 0 selections so they can open the empty selection state.
+                if (isAuthenticated) {
                     $('#selection-bar').addClass('active');
                 } else {
                     $('#selection-bar').removeClass('active');
@@ -2931,8 +3033,7 @@
                     
                     // If selection count is 0, also disable preview actions in other tabs
                     $('#pdf-share-btn-details, #pdf-download-btn-details, #pdf-direct-btn-details, #pdf-api-btn-details, #pdf-share-btn-images, #pdf-download-btn-images, #pdf-direct-btn-images, #pdf-api-btn-images').attr('disabled', true).css({ 'opacity': '0.5', 'pointer-events': 'none' });
-                    // Hide the floating bar on the page
-                    $('#selection-bar').removeClass('active');
+                    updateSelectionUISafe();
                     return;
                 }
                 
@@ -3371,20 +3472,43 @@
                     // The card inner div is 1080px wide; scale = cardDisplayWidth / 1080.
                     // We target ~2 columns on mobile (~160px each) and 176px on desktop.
                     const previewScale = (176 / 1080).toFixed(4); // 0.1630
+                    const includeLink = getShareSettings().includeLink;
                     const html = `
                         <div class="share-image-preview-grid">
                             ${previewItems.map(item => {
                                 const slug = item.product && item.product.slug ? item.product.slug : '';
                                 const url = slug ? `${window.location.origin}/product/${slug}` : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                                const inner = `<div style="--preview-scale:${previewScale};">${renderImagePdfBoxHtml(item)}</div>`;
+                                if (!includeLink) {
+                                    return `<div class="share-image-preview-card">${inner}</div>`;
+                                }
                                 return `
                                     <a class="share-image-preview-card" href="${url}" target="_blank">
-                                        <div style="--preview-scale:${previewScale};">${renderImagePdfBoxHtml(item)}</div>
+                                        ${inner}
                                     </a>
                                 `;
                             }).join('')}
                         </div>
                     `;
                     $('#pdf-preview-html-images').html(html);
+                    
+                    // Initialize dynamic scale synchronization for zero-gap previews on any device
+                    if (window.previewResizeObserver) {
+                        window.previewResizeObserver.disconnect();
+                    }
+                    const ro = new ResizeObserver(entries => {
+                        for (let entry of entries) {
+                            const card = entry.target;
+                            const width = card.clientWidth;
+                            if (width > 0) {
+                                const scale = (width / 1080).toFixed(6);
+                                card.style.setProperty('--preview-scale', scale);
+                            }
+                        }
+                    });
+                    document.querySelectorAll('.share-image-preview-card').forEach(card => ro.observe(card));
+                    window.previewResizeObserver = ro;
+
                     $('#pdf-preview-page-images').css({ width: '100%', height: 'auto', minHeight: '460px', transform: 'none', boxShadow: 'none', background: '#f8fafc' });
                     $('#pdf-preview-scale-wrap-images').css({ height: 'auto', display: 'block', overflow: 'auto' });
                     loader.removeClass('d-flex').addClass('d-none');
@@ -3574,12 +3698,14 @@
                                 const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
                                 
                                 // Extract MRP and Offer price
-                                const mrpValue = p.price !== null && p.price !== undefined && String(p.price).trim() !== '' 
-                                    ? '₹ ' + Number(p.price).toLocaleString('en-IN') 
+                                const mrpRaw = p.price ?? p.mrp;
+                                const offerRaw = p.sale_price ?? p.offer_price;
+                                const mrpValue = mrpRaw !== null && mrpRaw !== undefined && String(mrpRaw).trim() !== '' 
+                                    ? '₹ ' + Number(mrpRaw).toLocaleString('en-IN') 
                                     : 'On Request';
                                 
-                                const offerValue = p.sale_price !== null && p.sale_price !== undefined && String(p.sale_price).trim() !== '' 
-                                    ? '₹ ' + Number(p.sale_price).toLocaleString('en-IN') 
+                                const offerValue = offerRaw !== null && offerRaw !== undefined && String(offerRaw).trim() !== '' 
+                                    ? '₹ ' + Number(offerRaw).toLocaleString('en-IN') 
                                     : 'On Request';
 
                                 gridHtml += `
@@ -3587,7 +3713,7 @@
                                     <!-- Image Box -->
                                     <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
                                         ${imgUrl 
-                                            ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
+                                            ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; max-width: 100%; max-height: 100%;">`
                                             : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
                                         }
                                         <!-- MRP overlay inside image box at bottom-left -->
@@ -3908,20 +4034,22 @@
                             const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
                             
                             // Extract MRP and Offer price
-                            const mrpValue = p.price !== null && p.price !== undefined && String(p.price).trim() !== '' 
-                                ? '₹ ' + Number(p.price).toLocaleString('en-IN') 
+                            const mrpRaw = p.price ?? p.mrp;
+                            const offerRaw = p.sale_price ?? p.offer_price;
+                            const mrpValue = mrpRaw !== null && mrpRaw !== undefined && String(mrpRaw).trim() !== '' 
+                                ? '₹ ' + Number(mrpRaw).toLocaleString('en-IN') 
                                 : 'On Request';
                             
-                            const offerValue = p.sale_price !== null && p.sale_price !== undefined && String(p.sale_price).trim() !== '' 
-                                ? '₹ ' + Number(p.sale_price).toLocaleString('en-IN') 
+                            const offerValue = offerRaw !== null && offerRaw !== undefined && String(offerRaw).trim() !== '' 
+                                ? '₹ ' + Number(offerRaw).toLocaleString('en-IN') 
                                 : 'On Request';
 
                             gridHtml += `
-                            <div style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: inline-flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif;">
+                            <div class="pdf-product-link-target" data-slug="${escapeHtml(p.slug)}" style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: inline-flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif; cursor: pointer;">
                                 <!-- Image Box -->
                                 <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
                                     ${imgUrl 
-                                        ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
+                                        ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; max-width: 100%; max-height: 100%;">`
                                         : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
                                     }
                                     <!-- MRP overlay inside image box at bottom-left -->
@@ -4000,6 +4128,36 @@
 
                 wrapper.innerHTML = pagesHtml;
 
+                // Dynamically extract card coordinate positions in millimeters before compilation
+                const allPagesLinks = [];
+                const pageElements = wrapper.querySelectorAll('.pdf-page');
+                pageElements.forEach((pageEl) => {
+                    const links = [];
+                    const cards = pageEl.querySelectorAll('.pdf-product-link-target');
+                    cards.forEach(card => {
+                        const slug = card.getAttribute('data-slug');
+                        if (slug) {
+                            let top = card.offsetTop;
+                            let left = card.offsetLeft;
+                            let parent = card.offsetParent;
+                            while (parent && parent !== pageEl) {
+                                top += parent.offsetTop;
+                                left += parent.offsetLeft;
+                                parent = parent.offsetParent;
+                            }
+                            const pxToMm = 210 / 790;
+                            links.push({
+                                slug: slug,
+                                x: left * pxToMm,
+                                y: top * pxToMm,
+                                w: card.offsetWidth * pxToMm,
+                                h: card.offsetHeight * pxToMm
+                            });
+                        }
+                    });
+                    allPagesLinks.push(links);
+                });
+
                 // Keep it in the viewport so the browser decodes/paints it, but hide it completely (opacity: 0.02, z-index: -99999)
                 const prevStyle = container.getAttribute('style');
                 container.setAttribute('style',
@@ -4031,7 +4189,7 @@
                 await new Promise(resolve => setTimeout(resolve, 200));
 
                 // ── 4. RENDER INDIVIDUAL PAGES (Pipelined Parallel Captures) ──
-                const pageElements = wrapper.querySelectorAll('.pdf-page');
+                // Reusing pageElements declared above
                 const pageCanvases = new Array(pageElements.length);
 
                 try {
@@ -4048,10 +4206,10 @@
                                 updateExporterProgress(type, `Compiling Page ${pageIdx + 1} of ${pageElements.length}...`);
                             }
 
-                                const renderScale = (selectedProducts && selectedProducts.length > 8) ? 1.5 : 2.25;
+                                const renderScale = (selectedProducts && selectedProducts.length > 8) ? 2.5 : 3.0;
                                 batch.push(
                                     html2canvas(pageEl, {
-                                        scale:           renderScale, // 2.25 is extremely crisp and fast!
+                                        scale:           renderScale, // 3.0/2.5 is extremely high-resolution crisp print quality!
                                     useCORS:         true,
                                     allowTaint:      false,
                                     backgroundColor: '#ffffff',
@@ -4088,31 +4246,31 @@
                 }
                 const pdf = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
+                const includeLink = getShareSettings().includeLink;
                 const targetUrl = window.location.origin + '/catalogue?products=' + selectedProducts.join(',');
 
                 for (let i = 0; i < pageCanvases.length; i++) {
                     if (i > 0) pdf.addPage();
                     const canvas = pageCanvases[i];
-                    // Save as high-quality JPEG to keep sizes small and compile fast
-                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                    // Save as high-quality JPEG to keep sizes small and compile fast (using 0.95 quality for sharp vector look)
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
                     // Render exactly across full page A4 (210mm x 297mm) with zero margin
                     pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
 
-                    if (type !== 'details') {
-                        const chunk = imageChunks[i];
-                        if (chunk && chunk.length) {
-                            chunk.forEach((item, j) => {
-                                const col = j % 3;
-                                const row = Math.floor(j / 3);
-                                const x = 14.1 + col * 62.0;
-                                const y = 37.2 + row * 62.2;
-                                if (item.product && item.product.slug) {
-                                    const productUrl = window.location.origin + '/product/' + item.product.slug;
-                                    pdf.link(x, y, 58.0, 58.0, { url: productUrl });
+                    if (includeLink) {
+                        // 1. Full-page backdrop link: "pdf me kahi bhi click karenge to us pdf ke sabhi product dikhnge"
+                        pdf.link(0, 0, 210, 297, { url: targetUrl });
+
+                        // 2. Highly precise dynamic product card links: "jis box par click karke vo product open hoga"
+                        const pageLinks = allPagesLinks[i];
+                        if (pageLinks && pageLinks.length) {
+                            pageLinks.forEach(link => {
+                                if (link.slug) {
+                                    const productUrl = window.location.origin + '/product/' + link.slug;
+                                    pdf.link(link.x, link.y, link.w, link.h, { url: productUrl });
                                 }
                             });
                         }
-                        pdf.link(13, 269, 184, 16, { url: targetUrl });
                     }
                 }
 
