@@ -40,6 +40,8 @@
                                     <td>
                                         @if($enquiry->product_id)
                                             <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-2 small">Product</span>
+                                        @elseif($enquiry->subscriber_product_id)
+                                            <span class="badge bg-purple bg-opacity-10 text-purple rounded-pill px-2 small" style="background: rgba(147, 51, 234, 0.08); color: rgb(147, 51, 234);">Sub Product</span>
                                         @elseif($enquiry->brand_id)
                                             <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-2 small">Brand</span>
                                         @else
@@ -54,6 +56,8 @@
                                     <td>
                                         @if($enquiry->product)
                                             <div class="small fw-bold text-primary">{{ Str::limit($enquiry->product->name, 30) }}</div>
+                                        @elseif($enquiry->subscriberProduct)
+                                            <div class="small fw-bold text-purple" style="color: rgb(147, 51, 234);">{{ Str::limit($enquiry->subscriberProduct->name, 30) }} <small class="badge bg-light text-muted border" style="font-size: 0.6rem;">Sub</small></div>
                                         @elseif($enquiry->brand)
                                             <div class="small fw-bold text-primary">{{ $enquiry->brand->name }}</div>
                                         @elseif($enquiry->subject)

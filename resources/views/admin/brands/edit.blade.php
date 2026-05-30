@@ -18,7 +18,7 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-lg-12">
             <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <form action="{{ route('admin.brands.update', $brand->id) }}" method="POST" enctype="multipart/form-data">
@@ -89,28 +89,7 @@
             </div>
         </div>
         
-        <div class="col-lg-4">
-            <div class="card border-0  rounded-4 bg-primary bg-opacity-10 mb-4">
-                <div class="card-body p-4 text-primary">
-                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-info me-2"></i>Editing Record</h6>
-                    <p class="small mb-0">You are currently modifying an existing brand. Updates will be reflected across all associated products immediately upon saving.</p>
-                </div>
-            </div>
-            
-            <div class="card border-0  rounded-4">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3">Quick Stats</h6>
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="small text-muted">Created:</span>
-                        <span class="small fw-bold text-dark">{{ $brand->created_at->format('M d, Y') }}</span>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <span class="small text-muted">Last Updated:</span>
-                        <span class="small fw-bold text-dark">{{ $brand->updated_at->diffForHumans() }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+      
     </div>
 </div>
 

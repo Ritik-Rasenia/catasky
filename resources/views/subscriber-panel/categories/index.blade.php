@@ -32,7 +32,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($categories as $category)
+                                @foreach($categories as $category)
                                 <tr>
                                     <td class="ps-4 text-muted">{{ $loop->iteration }}</td>
                                     <td>
@@ -70,11 +70,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">No categories found.</td>
-                                </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

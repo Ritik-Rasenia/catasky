@@ -36,6 +36,7 @@ class ProfileController extends Controller
             'whatsapp_number' => 'nullable|string|max:20',
             'website'         => 'nullable|url|max:255',
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:2048',
+            'banner'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'profile_image'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'primary_color'   => 'nullable|string|max:7',
             'secondary_color' => 'nullable|string|max:7',
@@ -64,8 +65,14 @@ class ProfileController extends Controller
             $profileData['logo'] = $filename;
         }
 
+        if ($request->hasFile('banner')) {
+            $bannerFilename = Str::random(20) . '.' . $request->file('banner')->getClientOriginalExtension();
+            $request->file('banner')->move(public_path('uploads/subscriber-banners'), $bannerFilename);
+            $profileData['banner'] = $bannerFilename;
+        }
+
         $currentStoreStatus = $user->subscriberProfile?->store_status ?? 'draft';
-        if ($currentStoreStatus === 'draft' || $currentStoreStatus === 'rejected') {
+        if ($request->input('submit_store') == 1 || $currentStoreStatus === 'draft' || $currentStoreStatus === 'rejected') {
             $currentStoreStatus = 'pending';
         }
 

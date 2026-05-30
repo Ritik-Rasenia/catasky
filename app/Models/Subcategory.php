@@ -16,11 +16,17 @@ class Subcategory extends Model
         'slug',
         'image',
         'status',
+        'subscriber_id',
     ];
 
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function subscriber()
+    {
+        return $this->belongsTo(User::class, 'subscriber_id');
     }
 
     public function products()

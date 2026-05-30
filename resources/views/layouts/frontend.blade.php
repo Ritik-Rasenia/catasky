@@ -9,8 +9,8 @@
 
     @php
         $settings = \App\Models\Setting::first();
-        $logoBase64 = '';
-        if ($settings && $settings->logo) {
+        $logoBase64 = isset($logoBase64) && !empty($logoBase64) ? $logoBase64 : '';
+        if (empty($logoBase64) && $settings && $settings->logo) {
             $logoPath = public_path('uploads/settings/' . $settings->logo);
             if (file_exists($logoPath) && is_file($logoPath)) {
                 $type = pathinfo($logoPath, PATHINFO_EXTENSION);
@@ -26,6 +26,13 @@
         $siteDescription = $settings->site_description ?? 'Premium B2B catalogue and product sharing platform.';
         $faviconUrl = ($settings && $settings->favicon) ? asset('uploads/settings/' . $settings->favicon) : asset('uploads/fav.png');
         $footerLogoUrl = ($settings && $settings->footer_logo) ? asset('uploads/settings/' . $settings->footer_logo) : $logoBase64;
+
+        if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
+            $siteTitle = $profile->company_name;
+            if ($profile->logo) {
+                $footerLogoUrl = asset('uploads/subscriber-logos/' . $profile->logo);
+            }
+        }
     @endphp
 
     <title>@yield('title', $siteTitle . ' - Premium B2B Catalogue')</title>
@@ -342,14 +349,23 @@
     <nav class="navbar navbar-expand-lg navbar-premium">
         <div class="container">
             <!-- Brand Logo -->
-            <a class="navbar-brand d-flex align-items-center gap-3" href="{{ route('home') }}">
-                @if($settings && $settings->logo)
-                    <img src="{{ asset('uploads/settings/' . $settings->logo) }}" alt="{{ $settings->site_title ?? 'Catasky' }}" decoding="async" style="max-height: 40px; object-fit: contain;">
-                @else
-                    <div class="logo-icon">C</div>
-                @endif
-               
-            </a>
+            @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('subscriber_store', $profile->company_slug) }}">
+                    @if($profile->logo)
+                        <img src="{{ asset('uploads/subscriber-logos/' . $profile->logo) }}" alt="{{ $profile->company_name }}" decoding="async" style="max-height: 40px; object-fit: contain;">
+                    @else
+                        <div class="logo-icon bg-primary text-white" style="background: linear-gradient(135deg, var(--primary), var(--secondary)) !important; color: white !important; display: flex; align-items: center; justify-content: center;">{{ strtoupper(substr($profile->company_name, 0, 1)) }}</div>
+                    @endif
+                </a>
+            @else
+                <a class="navbar-brand d-flex align-items-center gap-3" href="{{ route('home') }}">
+                    @if($settings && $settings->logo)
+                        <img src="{{ asset('uploads/settings/' . $settings->logo) }}" alt="{{ $settings->site_title ?? 'Catasky' }}" decoding="async" style="max-height: 40px; object-fit: contain;">
+                    @else
+                        <div class="logo-icon">C</div>
+                    @endif
+                </a>
+            @endif
 
             <!-- Mobile Navbar Controls -->
             <div class="d-flex align-items-center gap-2 d-lg-none">
@@ -472,29 +488,38 @@
             <div class="row g-4 justify-content-between">
                 <!-- Col 1: Bio -->
                 <div class="col-lg-4 col-md-6 col-12">
-                    <a href="{{ route('home') }}" class="d-flex align-items-center gap-2 text-decoration-none mb-3">
+                    @php
+                        $homeUrl = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) 
+                            ? route('subscriber_store', $profile->company_slug) 
+                            : route('home');
+                        $footerBio = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                            ? ($profile->bio ?: $siteDescription)
+                            : $siteDescription;
+                    @endphp
+                    <a href="{{ $homeUrl }}" class="d-flex align-items-center gap-2 text-decoration-none mb-3">
                         @if($footerLogoUrl)
-                            <img src="{{ $footerLogoUrl }}" alt="{{ $siteTitle }}" loading="lazy" decoding="async" style="max-height: 42px; max-width: 170px; object-fit: contain;">
+                            <img src="{{ $footerLogoUrl }}" alt="{{ isset($profile) ? $profile->company_name : $siteTitle }}" loading="lazy" decoding="async" style="max-height: 42px; max-width: 170px; object-fit: contain;">
                         @else
                             <div class="logo-icon bg-white text-dark fw-bold ">C</div>
                         @endif
-                       
                     </a>
                     <p class="text-white-50 small mb-4" style="max-width: 320px;">
-                        {{ $siteDescription }}
+                        {{ $footerBio }}
                     </p>
                     <div class="d-flex gap-2">
-                        @foreach([
-                            'facebook' => 'bi-facebook',
-                            'twitter' => 'bi-twitter-x',
-                            'linkedin' => 'bi-linkedin',
-                            'instagram' => 'bi-instagram',
-                            'youtube' => 'bi-youtube',
-                        ] as $social => $icon)
-                            @if($settings && $settings->{$social})
-                                <a href="{{ $settings->{$social} }}" target="_blank" rel="noopener" class="social-icon" aria-label="{{ ucfirst($social) }}"><i class="bi {{ $icon }} text-white-50"></i></a>
-                            @endif
-                        @endforeach
+                        @if(!isset($isSubscriberStore) || !$isSubscriberStore)
+                            @foreach([
+                                'facebook' => 'bi-facebook',
+                                'twitter' => 'bi-twitter-x',
+                                'linkedin' => 'bi-linkedin',
+                                'instagram' => 'bi-instagram',
+                                'youtube' => 'bi-youtube',
+                            ] as $social => $icon)
+                                @if($settings && $settings->{$social})
+                                    <a href="{{ $settings->{$social} }}" target="_blank" rel="noopener" class="social-icon" aria-label="{{ ucfirst($social) }}"><i class="bi {{ $icon }} text-white-50"></i></a>
+                                @endif
+                            @endforeach
+                        @endif
                     </div>
                 </div>
 
@@ -502,8 +527,13 @@
                 <div class="col-lg-2 col-md-6 col-6">
                     <h6 class="fw-bold text-white mb-3" style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Quick Links</h6>
                     <ul class="list-unstyled d-flex flex-column gap-2 small">
-                        <li><a href="{{ route('home') }}" class="text-white-50 text-decoration-none hover-white">Home Page</a></li>
-                        <li><a href="{{ route('catalogue') }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
+                        @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                            <li><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Store Home</a></li>
+                            <li><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
+                        @else
+                            <li><a href="{{ route('home') }}" class="text-white-50 text-decoration-none hover-white">Home Page</a></li>
+                            <li><a href="{{ route('catalogue') }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
+                        @endif
                         <li><a href="{{ route('contact') }}" class="text-white-50 text-decoration-none hover-white">Contact Us</a></li>
                     </ul>
                 </div>
@@ -513,10 +543,26 @@
                     <h6 class="fw-bold text-white mb-3" style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Categories</h6>
                     <ul class="list-unstyled d-flex flex-column gap-2 small">
                         @php
-                            $footerCats = \App\Models\Category::where('status', 1)->take(4)->get();
+                            if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
+                                $categoryIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
+                                    ->where('status', 'active')
+                                    ->pluck('category_id')
+                                    ->unique();
+                                $footerCats = \App\Models\Category::whereIn('id', $categoryIds)
+                                    ->where('status', 1)
+                                    ->take(4)
+                                    ->get();
+                            } else {
+                                $footerCats = \App\Models\Category::where('status', 1)->take(4)->get();
+                            }
                         @endphp
                         @foreach($footerCats as $fcat)
-                            <li><a href="{{ route('category.products', $fcat->slug) }}" class="text-white-50 text-decoration-none hover-white">{{ $fcat->name }}</a></li>
+                            @php
+                                $catUrl = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) 
+                                    ? route('subscriber_store', $profile->company_slug) . '?category=' . $fcat->slug 
+                                    : route('category.products', $fcat->slug);
+                            @endphp
+                            <li><a href="{{ $catUrl }}" class="text-white-50 text-decoration-none hover-white">{{ $fcat->name }}</a></li>
                         @endforeach
                     </ul>
                 </div>
@@ -525,19 +571,36 @@
                 <div class="col-lg-3 col-md-6 col-12">
                     <h6 class="fw-bold text-white mb-3" style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Support Center</h6>
                     <ul class="list-unstyled d-flex flex-column gap-2 small text-white-50 mb-4">
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-envelope-fill text-primary"></i>
-                            <span>{{ $settings->email ?? 'support@catasky.com' }}</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-telephone-fill text-primary"></i>
-                            <span>{{ $settings->phone ?? '+91 99999 88888' }}</span>
-                        </li>
-                        @if($settings && $settings->address)
-                            <li class="d-flex align-items-start gap-2">
-                                <i class="bi bi-geo-alt-fill text-primary"></i>
-                                <span>{{ $settings->address }}</span>
+                        @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                            <li class="d-flex align-items-center gap-2">
+                                <i class="bi bi-envelope-fill text-primary"></i>
+                                <span>{{ $profile->email_for_inquiries ?: ($profile->user->email ?? 'support@catasky.com') }}</span>
                             </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <i class="bi bi-telephone-fill text-primary"></i>
+                                <span>{{ $profile->phone ?: ($profile->whatsapp_number ?: '+91 99999 88888') }}</span>
+                            </li>
+                            @if($profile->address)
+                                <li class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                                    <span>{{ $profile->address }}{{ $profile->city ? ', ' . $profile->city : '' }}{{ $profile->pincode ? ' - ' . $profile->pincode : '' }}</span>
+                                </li>
+                            @endif
+                        @else
+                            <li class="d-flex align-items-center gap-2">
+                                <i class="bi bi-envelope-fill text-primary"></i>
+                                <span>{{ $settings->email ?? 'support@catasky.com' }}</span>
+                            </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <i class="bi bi-telephone-fill text-primary"></i>
+                                <span>{{ $settings->phone ?? '+91 99999 88888' }}</span>
+                            </li>
+                            @if($settings && $settings->address)
+                                <li class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                                    <span>{{ $settings->address }}</span>
+                                </li>
+                            @endif
                         @endif
                     </ul>
                     
@@ -556,7 +619,7 @@
 
             <!-- Footer Bottom copyright -->
             <div class="border-top border-secondary border-opacity-20 mt-4 pt-4 d-flex flex-column flex-md-row align-items-center justify-content-between text-white-50 small">
-                <p class="m-0">&copy; {{ date('Y') }} {{ $siteTitle }}. All Rights Reserved.</p>
+                <p class="m-0">&copy; {{ date('Y') }} {{ isset($profile) ? $profile->company_name : $siteTitle }}. All Rights Reserved.</p>
                 <div class="d-flex gap-3 mt-2 mt-md-0">
                     <a href="#" class="text-white-50 text-decoration-none hover-white">Terms of Service</a>
                     <span class="opacity-25">|</span>
@@ -684,7 +747,7 @@
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Additional pictures</label>
-                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-show-gallery" type="checkbox" checked style="width: 42px; height: 22px;">
+                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-show-gallery" type="checkbox" style="width: 42px; height: 22px;">
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Watermark</label>
@@ -694,10 +757,15 @@
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Notes</label>
                                             <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-note" type="checkbox" style="width: 42px; height: 22px;">
                                         </div>
-<div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
-<label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Include link</label>
-<input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-include-link" type="checkbox" style="width: 42px; height: 22px;">
-</div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Include link</h6>
+                                                <p class="text-secondary small mb-0" style="max-width: 280px;">Make generated PDF buttons and image calls-to-action open the catalogue.</p>
+                                            </div>
+                                            <div class="form-check form-switch p-0 m-0">
+                                                <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-include-link" checked style="width: 42px; height: 22px; cursor: pointer;">
+                                            </div>
+                                        </div>
                                         <input type="text" class="form-control rounded-3 p-2 share-setting-mirror" data-share-setting="share-note-text" value="An Award For Every Achievement & Effort" style="font-size: 0.8rem;">
                                         <div>
                                             <label class="form-label fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">Logo position</label>
@@ -857,7 +925,7 @@
                                                     <p class="text-secondary small mb-0" style="max-width: 280px;">if additional pictures are present in the product, they will also be shared</p>
                                                 </div>
                                                 <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-show-gallery" checked style="width: 42px; height: 22px; cursor: pointer;">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-show-gallery" style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
 
@@ -883,15 +951,6 @@
                                                 </div>
                                             </div>
 
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Include link</h6>
-                                                    <p class="text-secondary small mb-0" style="max-width: 280px;">Make generated PDF buttons and image calls-to-action open the catalogue.</p>
-                                                </div>
-                                                <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-include-link" checked style="width: 42px; height: 22px; cursor: pointer;">
-                                                </div>
-                                            </div>
                                         </div>
 
                                         <!-- Inline Note Text Input -->
@@ -1113,12 +1172,20 @@
         // must live outside $(document).ready() so inline onclick
         // handlers can always find them, regardless of DOM-ready timing.
         // ============================================================
+        const isSubscriber = {{ (isset($isSubscriberStore) && $isSubscriberStore) ? 'true' : 'false' }};
+        const companySlug = "{{ isset($profile) ? $profile->company_slug : '' }}";
+        const storageKey = isSubscriber ? 'selected_products_store_' + companySlug : 'selected_products_admin';
+
         var selectedProducts = [];
         window.companyLogoBase64 = "@if($settings && $settings->logo && !empty($logoBase64)){{ $logoBase64 }}@else @endif";
+        window.isSubscriberStore = {{ (isset($isSubscriberStore) && $isSubscriberStore) ? 'true' : 'false' }};
+        window.userIsSubscriber = {{ (auth()->check() && auth()->user()->isSubscriber()) ? 'true' : 'false' }};
+        window.currentUserId = {{ auth()->check() ? auth()->id() : 'null' }};
+        window.storeOwnerId = {{ isset($profile) ? $profile->user_id : 'null' }};
         const exportSettings = {
             showTitle: true,
             showPrice: true,
-            showGallery: true,
+            showGallery: false,
             showWatermark: false,
             showNotes: false,
             includeLink: true,
@@ -1220,7 +1287,7 @@
         window.updateProgressText = updateProgressText;
         window.setExportButtonsState = setExportButtonsState;
         try {
-            selectedProducts = JSON.parse(localStorage.getItem('selected_products')) || [];
+            selectedProducts = JSON.parse(localStorage.getItem(storageKey)) || [];
             if (!Array.isArray(selectedProducts)) {
                 selectedProducts = [];
             }
@@ -1229,6 +1296,14 @@
         } catch (e) {
             console.error("Error parsing selected_products from localStorage:", e);
             selectedProducts = [];
+        }
+
+        // Restrict subscribers: clear selection if they are on an admin or unauthorized catalogue/page
+        if (window.userIsSubscriber) {
+            if (!window.isSubscriberStore || window.currentUserId !== window.storeOwnerId) {
+                selectedProducts = [];
+                localStorage.setItem(storageKey, JSON.stringify([]));
+            }
         }
 
         // Smart device-aware WhatsApp router (routes to WhatsApp Web on desktops/Chrome, and App on mobile)
@@ -1258,7 +1333,8 @@
             if (window.cachedProductDetails[idStr]) {
                 return Promise.resolve(window.cachedProductDetails[idStr]);
             }
-            return fetch('/api/product-details/' + idStr)
+            const url = '/api/product-details/' + idStr + (window.isSubscriberStore ? '?is_subscriber=1&company_slug=' + companySlug : '');
+            return fetch(url)
                 .then(res => {
                     if (!res.ok) {
                         throw new Error('API HTTP error: ' + res.status);
@@ -1291,7 +1367,8 @@
                 return window.activeFetchPromise.then(() => fetchMultipleProductDetails(ids));
             }
             
-            window.activeFetchPromise = fetch('/api/products-details?ids=' + encodeURIComponent(uncachedIds.join(',')))
+            const url = '/api/products-details?ids=' + encodeURIComponent(uncachedIds.join(',')) + (window.isSubscriberStore ? '&is_subscriber=1&company_slug=' + companySlug : '');
+            window.activeFetchPromise = fetch(url)
                 .then(res => {
                     if (!res.ok) {
                         throw new Error('Bulk API HTTP error: ' + res.status);
@@ -1316,6 +1393,12 @@
         }
 
         function toggleSelection(productId, btn) {
+            if (window.userIsSubscriber) {
+                if (!window.isSubscriberStore || window.currentUserId !== window.storeOwnerId) {
+                    alert("Subscribers can only select and share their own products from their own storefront catalog.");
+                    return;
+                }
+            }
             productId = productId.toString();
             var index = selectedProducts.indexOf(productId);
 
@@ -1333,7 +1416,7 @@
                 trackAnalyticsEventSafe('select_product', productId);
             }
 
-            localStorage.setItem('selected_products', JSON.stringify(selectedProducts));
+            localStorage.setItem(storageKey, JSON.stringify(selectedProducts));
             if (typeof window.invalidatePreparedShareDocs === 'function') {
                 window.invalidatePreparedShareDocs();
             } else if (window.preparedShareDocs) {
@@ -1394,7 +1477,8 @@
                 trackAnalyticsEvent('view_details', productId);
 
                 // Load product details via AJAX
-                $.get('/product/' + productId + '/details', function(response) {
+                const url = '/product/' + productId + '/details' + (window.isSubscriberStore ? '?is_subscriber=1&company_slug=' + companySlug : '');
+                $.get(url, function(response) {
                     $('#drawer-content').html(response);
                     syncDrawerButton(productId);
                 }).fail(function() {
@@ -2109,7 +2193,9 @@
 
             // Opens WhatsApp directly with a prefilled message (catalogue link + optional caption)
             function openWhatsAppWithLink(settings, extraMsg) {
-                const catalogUrl = `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                const catalogUrl = window.isSubscriberStore 
+                    ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}`
+                    : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
                 const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
                 
                 let productListText = '';
@@ -2118,7 +2204,9 @@
                         const cached = window.cachedProductDetails[id.toString()];
                         if (cached && cached.success && cached.product) {
                             const p = cached.product;
-                            const productUrl = `${window.location.origin}/product/${p.slug}`;
+                            const productUrl = window.isSubscriberStore
+                                ? `${window.location.origin}/product/${p.slug}?is_subscriber=1&company_slug=${companySlug}`
+                                : `${window.location.origin}/product/${p.slug}`;
                             productListText += `${index + 1}. *${p.name}*\n👉 ${productUrl}\n\n`;
                         }
                     });
@@ -2211,7 +2299,9 @@
                     let sharedSuccess = false;
                     
                     // Construct caption text with active product links if includeLink is checked
-                    const catalogUrl = `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                    const catalogUrl = window.isSubscriberStore 
+                        ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}`
+                        : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
                     const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
                     let productListText = '';
                     
@@ -2224,7 +2314,9 @@
                                 const cached = Object.values(window.cachedProductDetails).find(c => c && c.product && c.product.slug === slug);
                                 if (cached && cached.product) {
                                     const p = cached.product;
-                                    const productUrl = `${window.location.origin}/product/${p.slug}`;
+                                    const productUrl = window.isSubscriberStore
+                                        ? `${window.location.origin}/product/${p.slug}?is_subscriber=1&company_slug=${companySlug}`
+                                        : `${window.location.origin}/product/${p.slug}`;
                                     // Add to caption text
                                     if (!productListText.includes(p.name)) {
                                         productListText += `*${p.name}*:\n👉 ${productUrl}\n\n`;
@@ -2724,55 +2816,53 @@
                 const productName = escapeHtml(p.name || 'Product');
                 const partCode = escapeHtml(p.part_code || '');
                 const displayPrice = formatProductPrice(p);
-                const footerHeight = 104;
-                const noteHeight = showNote ? 58 : 0;
+                const footerHeight = 140;
+                const noteHeight = showNote ? 78 : 0;
                 const imageAreaBottom = footerHeight + noteHeight;
 
-                let logoPosStyle = 'top: 22px; right: 24px;';
+                let logoPosStyle = 'top: 30px; right: 32px;';
                 if (logoPos === 'top-left') {
-                    logoPosStyle = 'top: 22px; left: 24px;';
+                    logoPosStyle = 'top: 30px; left: 32px;';
                 } else if (logoPos === 'bottom-left') {
-                    logoPosStyle = `bottom: ${imageAreaBottom + 18}px; left: 24px;`;
+                    logoPosStyle = `bottom: ${imageAreaBottom + 24}px; left: 32px;`;
                 } else if (logoPos === 'bottom-right') {
-                    logoPosStyle = `bottom: ${imageAreaBottom + 18}px; right: 24px;`;
+                    logoPosStyle = `bottom: ${imageAreaBottom + 24}px; right: 32px;`;
                 }
 
                 return `
-                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1350px;overflow:hidden;position:relative;background:#ffffff;will-change:transform;contain:layout paint;">
-                    <div style="width:800px;height:1000px;transform:scale(1.35);transform-origin:top left;position:absolute;top:0;left:0;will-change:transform;contain:layout paint;box-sizing:border-box;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background:#ffffff;">
-                            ${showTitle ? `
-                            <div style="position:absolute;top:34px;left:44px;right:210px;z-index:4;color:#000000;">
-                                <div style="font-size:23px;font-weight:900;line-height:1.12;letter-spacing:0;">${productName}</div>
-                                ${p.short_description ? `<div style="font-size:13px;font-weight:700;line-height:1.2;margin-top:4px;">${escapeHtml(p.short_description)}</div>` : ''}
-                            </div>` : ''}
-
-                            ${showWatermark && companyLogo ? `
-                            <div style="position:absolute;${logoPosStyle}width:90px;height:42px;z-index:5;display:flex;align-items:center;justify-content:center;">
-                                <img src="${companyLogo}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
-                            </div>` : ''}
-
-                            ${imgUrl
-                                ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;">`
-                                : `<div style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;z-index:1;">No Image</div>`
-                            }
-                        </div>
-
-                        ${showNote ? `
-                        <div style="position:absolute;left:0;right:0;bottom:${footerHeight}px;height:${noteHeight}px;background:#FFD000;color:#000000;display:flex;align-items:center;justify-content:space-between;padding:0 48px;box-sizing:border-box;font-weight:900;">
-                            <div style="font-size:17px;">CODE: ${partCode}</div>
-                            <div style="font-size:17px;text-transform:uppercase;text-align:right;max-width:430px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${noteText}</div>
+                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1350px;overflow:hidden;position:relative;background:#ffffff;will-change:transform;contain:layout paint;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
+                    <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background:#ffffff;">
+                        ${showTitle ? `
+                        <div style="position:absolute;top:46px;left:60px;right:284px;z-index:4;color:#000000;">
+                            <div style="font-size:32px;font-weight:900;line-height:1.12;letter-spacing:0;">${productName}</div>
+                            ${p.short_description ? `<div style="font-size:18px;font-weight:700;line-height:1.2;margin-top:6px;">${escapeHtml(p.short_description)}</div>` : ''}
                         </div>` : ''}
 
-                        <div style="position:absolute;left:0;right:0;bottom:0;height:${footerHeight}px;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:space-between;padding:0 48px;box-sizing:border-box;">
-                            <div style="min-width:0;max-width:${showPrice ? '500px' : '680px'};">
-                                <div style="font-size:14px;color:#FFD000;font-weight:900;text-transform:uppercase;margin-bottom:6px;">CODE: ${partCode}</div>
-                                ${showTitle ? `<div style="font-size:25px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${productName}</div>` : ''}
-                            </div>
-                            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-                                ${showPrice ? `<div style="font-size:28px;font-weight:900;white-space:nowrap;">${displayPrice}</div>` : ''}
-                                ${includeLink ? `<div style="background:#ffffff;color:#000000;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0;cursor:pointer;">Tap to view</div>` : ''}
-                            </div>
+                        ${showWatermark && companyLogo ? `
+                        <div style="position:absolute;${logoPosStyle}width:120px;height:56px;z-index:5;display:flex;align-items:center;justify-content:center;">
+                            <img src="${companyLogo}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
+                        </div>` : ''}
+
+                        ${imgUrl
+                            ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;">`
+                            : `<div style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;z-index:1;">No Image</div>`
+                        }
+                    </div>
+
+                    ${showNote ? `
+                    <div style="position:absolute;left:0;right:0;bottom:${footerHeight}px;height:${noteHeight}px;background:#FFD000;color:#000000;display:flex;align-items:center;justify-content:space-between;padding:0 64px;box-sizing:border-box;font-weight:900;">
+                        <div style="font-size:23px;">CODE: ${partCode}</div>
+                        <div style="font-size:23px;text-transform:uppercase;text-align:right;max-width:580px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${noteText}</div>
+                    </div>` : ''}
+
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:${footerHeight}px;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:space-between;padding:0 64px;box-sizing:border-box;">
+                        <div style="min-width:0;max-width:${showPrice ? '680px' : '920px'};">
+                            <div style="font-size:19px;color:#FFD000;font-weight:900;text-transform:uppercase;margin-bottom:8px;">CODE: ${partCode}</div>
+                            ${showTitle ? `<div style="font-size:34px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${productName}</div>` : ''}
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+                            ${showPrice ? `<div style="font-size:38px;font-weight:900;white-space:nowrap;">${displayPrice}</div>` : ''}
+                            ${includeLink ? `<div style="background:#ffffff;color:#000000;border-radius:999px;padding:9px 22px;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0;cursor:pointer;">Tap to view</div>` : ''}
                         </div>
                     </div>
                 </div>
@@ -2830,7 +2920,7 @@
                         ${titleHtml}
                     </div>
 
-                    <div style="width:100%;background:#4F46E5;color:#ffffff;text-align:center;font-size:20px;font-weight:900;font-family:'Outfit',sans-serif;padding:19px;border-radius:8px;letter-spacing:0;display:flex;align-items:center;justify-content:center;gap:10px;box-sizing:border-box;text-transform:uppercase;">
+                    <div class="pdf-catalog-link-target" style="width:100%;background:#4F46E5;color:#ffffff;text-align:center;font-size:20px;font-weight:900;font-family:'Outfit',sans-serif;padding:19px;border-radius:8px;letter-spacing:0;display:flex;align-items:center;justify-content:center;gap:10px;box-sizing:border-box;text-transform:uppercase;cursor:pointer;">
                         PRESS TO OPEN &rarr;
                     </div>
                 </div>
@@ -2991,7 +3081,7 @@
             // Force clear full selection without confirmation if needed (fallback for deleted/invalid products)
             window.clearFullSelectionForce = function() {
                 selectedProducts = [];
-                localStorage.setItem('selected_products', JSON.stringify(selectedProducts));
+                localStorage.setItem(storageKey, JSON.stringify(selectedProducts));
                 updateSelectionUISafe();
                 populateModalSelectionList();
                 $('#sharingModal').modal('hide');
@@ -3136,7 +3226,7 @@
                         return;
                     }
                     selectedProducts = [];
-                    localStorage.setItem('selected_products', JSON.stringify(selectedProducts));
+                    localStorage.setItem(storageKey, JSON.stringify(selectedProducts));
                     updateSelectionUISafe();
                     populateModalSelectionList();
                     $('#sharingModal').modal('hide');
@@ -3477,7 +3567,13 @@
                         <div class="share-image-preview-grid">
                             ${previewItems.map(item => {
                                 const slug = item.product && item.product.slug ? item.product.slug : '';
-                                const url = slug ? `${window.location.origin}/product/${slug}` : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                                const url = slug 
+                                    ? (window.isSubscriberStore 
+                                        ? `${window.location.origin}/product/${slug}?is_subscriber=1&company_slug=${companySlug}` 
+                                        : `${window.location.origin}/product/${slug}`)
+                                    : (window.isSubscriberStore 
+                                        ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}` 
+                                        : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`);
                                 const inner = `<div style="--preview-scale:${previewScale};">${renderImagePdfBoxHtml(item)}</div>`;
                                 if (!includeLink) {
                                     return `<div class="share-image-preview-card">${inner}</div>`;
@@ -3982,6 +4078,11 @@
                             <div style="font-size: 1.05rem; color: rgba(255, 255, 255, 0.75); font-weight: 500; font-family:'Poppins', sans-serif; max-width: 550px; line-height: 1.45;">
                                 Curated product specifications, pricing matrices, and commercial guidelines prepared exclusively for your reviewing.
                             </div>
+                            <div style="margin-top: 15px;">
+                                <div class="pdf-catalog-link-target" style="display: inline-block; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: #ffffff; border-radius: 30px; padding: 10px 24px; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);">
+                                    View Full Collection Online &rarr;
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -4087,8 +4188,13 @@
                                         : `<div style="width: 40px; height: 40px; border-radius: 8px; background: #1D6FEB; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem;">C</div>`
                                     }
                                 </div>
-                                <div style="font-size: 0.85rem; color: #333333; font-weight: bold;">
-                                    Date: ${dateStr}
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="pdf-catalog-link-target" style="background: #1D6FEB; color: #ffffff; border-radius: 20px; padding: 5px 12px; font-size: 0.72rem; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        View Full Collection
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #333333; font-weight: bold;">
+                                        Date: ${dateStr}
+                                    </div>
                                 </div>
                             </div>
 
@@ -4108,7 +4214,11 @@
                                 <div style="font-weight: bold;">
                                     ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}
                                 </div>
-                                <div style="font-weight: bold;">Page ${pageIndex + 1} of ${totalProductPages}</div>
+                                <div style="font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                                    <span class="pdf-catalog-link-target" style="color: #1D6FEB; cursor: pointer; text-decoration: underline; font-weight: bold;">View Selection Online</span>
+                                    <span>&bull;</span>
+                                    <span>Page ${pageIndex + 1} of ${totalProductPages}</span>
+                                </div>
                             </div>
                         </div>
                         `;
@@ -4130,6 +4240,7 @@
 
                 // Dynamically extract card coordinate positions in millimeters before compilation
                 const allPagesLinks = [];
+                const allPagesCatalogLinks = [];
                 const pageElements = wrapper.querySelectorAll('.pdf-page');
                 pageElements.forEach((pageEl) => {
                     const links = [];
@@ -4156,6 +4267,27 @@
                         }
                     });
                     allPagesLinks.push(links);
+
+                    const catalogLinks = [];
+                    const els = pageEl.querySelectorAll('.pdf-catalog-link-target');
+                    els.forEach(el => {
+                        let top = el.offsetTop;
+                        let left = el.offsetLeft;
+                        let parent = el.offsetParent;
+                        while (parent && parent !== pageEl) {
+                            top += parent.offsetTop;
+                            left += parent.offsetLeft;
+                            parent = parent.offsetParent;
+                        }
+                        const pxToMm = 210 / 790;
+                        catalogLinks.push({
+                            x: left * pxToMm,
+                            y: top * pxToMm,
+                            w: el.offsetWidth * pxToMm,
+                            h: el.offsetHeight * pxToMm
+                        });
+                    });
+                    allPagesCatalogLinks.push(catalogLinks);
                 });
 
                 // Keep it in the viewport so the browser decodes/paints it, but hide it completely (opacity: 0.02, z-index: -99999)
@@ -4247,7 +4379,9 @@
                 const pdf = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
                 const includeLink = getShareSettings().includeLink;
-                const targetUrl = window.location.origin + '/catalogue?products=' + selectedProducts.join(',');
+                const targetUrl = window.isSubscriberStore 
+                    ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}`
+                    : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
 
                 for (let i = 0; i < pageCanvases.length; i++) {
                     if (i > 0) pdf.addPage();
@@ -4258,15 +4392,22 @@
                     pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
 
                     if (includeLink) {
-                        // 1. Full-page backdrop link: "pdf me kahi bhi click karenge to us pdf ke sabhi product dikhnge"
-                        pdf.link(0, 0, 210, 297, { url: targetUrl });
+                        // 1. Precise collection links on the header/footer/cover catalog button areas:
+                        const catalogLinks = allPagesCatalogLinks[i];
+                        if (catalogLinks && catalogLinks.length) {
+                            catalogLinks.forEach(link => {
+                                pdf.link(link.x, link.y, link.w, link.h, { url: targetUrl });
+                            });
+                        }
 
                         // 2. Highly precise dynamic product card links: "jis box par click karke vo product open hoga"
                         const pageLinks = allPagesLinks[i];
                         if (pageLinks && pageLinks.length) {
                             pageLinks.forEach(link => {
                                 if (link.slug) {
-                                    const productUrl = window.location.origin + '/product/' + link.slug;
+                                    const productUrl = window.isSubscriberStore
+                                        ? `${window.location.origin}/product/${link.slug}?is_subscriber=1&company_slug=${companySlug}`
+                                        : `${window.location.origin}/product/${link.slug}`;
                                     pdf.link(link.x, link.y, link.w, link.h, { url: productUrl });
                                 }
                             });
@@ -4429,7 +4570,7 @@
 
             // Re-sync selectedProducts with localStorage and run initial UI sync at the end of ready block
             try {
-                selectedProducts = JSON.parse(localStorage.getItem('selected_products')) || [];
+                selectedProducts = JSON.parse(localStorage.getItem(storageKey)) || [];
                 if (!Array.isArray(selectedProducts)) {
                     selectedProducts = [];
                 }

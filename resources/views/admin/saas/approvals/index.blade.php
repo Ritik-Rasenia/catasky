@@ -17,7 +17,7 @@
 /* ── Stat Cards ────────────────────────────────────────────── */
 .ap-stat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-bottom: 28px;
 }
@@ -293,13 +293,6 @@ html[data-theme="dark"] .ap-tab-btn.active { background: #1e293b; }
             <div class="ap-stat-label">Store Approvals</div>
         </div>
     </div>
-    <div class="ap-stat-card amber">
-        <div class="ap-stat-icon"><i class="bi bi-sliders"></i></div>
-        <div>
-            <div class="ap-stat-num">{{ count($pendingAttributes) }}</div>
-            <div class="ap-stat-label">Attribute Approvals</div>
-        </div>
-    </div>
 </div>
 
 {{-- ── Tab Bar ───────────────────────────────────────────────── --}}
@@ -313,11 +306,6 @@ html[data-theme="dark"] .ap-tab-btn.active { background: #1e293b; }
         <span class="ap-tab-icon ti-emerald"><i class="bi bi-shop"></i></span>
         Store
         <span class="ap-tab-badge {{ !count($pendingStores) ? 'zero' : '' }}">{{ count($pendingStores) }}</span>
-    </button>
-    <button type="button" class="ap-tab-btn" data-tab="attributes">
-        <span class="ap-tab-icon ti-amber"><i class="bi bi-sliders"></i></span>
-        Custom Attribute
-        <span class="ap-tab-badge {{ !count($pendingAttributes) ? 'zero' : '' }}">{{ count($pendingAttributes) }}</span>
     </button>
 </div>
 
@@ -509,79 +497,7 @@ html[data-theme="dark"] .ap-tab-btn.active { background: #1e293b; }
 {{-- ╔══════════════════════════════════════════════════════════╗
      ║  TAB 3 — Custom Attribute Approvals                     ║
      ╚══════════════════════════════════════════════════════════╝ --}}
-<div class="ap-panel" id="tab-attributes" style="display:none;">
-    <div class="ap-panel-header">
-        <div class="ap-panel-title">
-            <span class="ap-tab-icon ti-amber" style="width:40px;height:40px;border-radius:12px;font-size:1.1rem;"><i class="bi bi-sliders"></i></span>
-            <div>
-                <div class="ap-panel-title-text">Custom Attributes Queue</div>
-                <div class="ap-panel-subtitle">Subscriber-created custom attributes awaiting approval to promote to global</div>
-            </div>
-        </div>
-        <span class="sb sb-pending"><i class="bi bi-hourglass-split"></i> {{ count($pendingAttributes) }} Pending</span>
-    </div>
 
-    @if(count($pendingAttributes))
-    <div class="table-responsive">
-        <table class="ap-tbl">
-            <thead>
-                <tr>
-                    <th class="ps-4">#</th>
-                    <th>Attribute</th>
-                    <th>Type</th>
-                    <th>Group</th>
-                    <th>Subscriber / Store</th>
-                    <th>Created</th>
-                    <th class="text-end pe-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($pendingAttributes as $i => $attr)
-                <tr>
-                    <td class="ps-4 text-muted" style="font-size:.75rem;">{{ $i + 1 }}</td>
-                    <td>
-                        <div class="fw-bold">{{ $attr->name }}</div>
-                        <div class="text-muted" style="font-size:.72rem;">Slug: {{ $attr->slug }}</div>
-                    </td>
-                    <td>
-                        <span class="badge bg-info-soft">{{ \App\Models\Attribute::TYPES[$attr->type] ?? $attr->type }}</span>
-                    </td>
-                    <td>
-                        <span class="text-muted">{{ $attr->group->name ?? 'None' }}</span>
-                    </td>
-                    <td>
-                        <div class="fw-semibold" style="font-size:.85rem;">{{ $attr->subscriber->subscriberProfile->company_name ?? 'Subscriber' }}</div>
-                        <div class="text-muted" style="font-size:.72rem;">{{ $attr->subscriber->name ?? '' }}</div>
-                    </td>
-                    <td class="text-muted" style="font-size:.8rem;">
-                        {{ $attr->created_at->format('M d, Y') }}
-                        <div style="font-size:.68rem;">{{ $attr->created_at->diffForHumans() }}</div>
-                    </td>
-                    <td class="text-end pe-4">
-                        <div class="d-flex justify-content-end align-items-center gap-2 flex-wrap">
-                            <form action="{{ route('admin.attributes.approve', $attr->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn-ap-action btn-ap-approve" title="Approve"><i class="bi bi-check-lg"></i></button>
-                            </form>
-                            <form action="{{ route('admin.attributes.reject', $attr->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn-ap-action btn-ap-reject" title="Reject"><i class="bi bi-x-lg"></i></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-    @else
-    <div class="ap-empty">
-        <div class="ap-empty-icon" style="background:rgba(245,158,11,.07);color:#FCD34D;"><i class="bi bi-sliders"></i></div>
-        <h6>All Attributes Cleared</h6>
-        <p>No custom attribute requests in the queue.</p>
-    </div>
-    @endif
-</div>
 
 
 {{-- ╔══════════════════════════════════════════════════════════╗
@@ -655,35 +571,7 @@ html[data-theme="dark"] .ap-tab-btn.active { background: #1e293b; }
     </div>
 </div>
 
-{{-- Product Modal --}}
-<div class="modal fade vd-modal" id="modalProduct" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:500px;">
-        <div class="modal-content">
-            <div class="vd-modal-header">
-                <span class="ap-tab-icon ti-amber" style="width:46px;height:46px;border-radius:14px;font-size:1.2rem;flex-shrink:0;"><i class="bi bi-box-seam-fill"></i></span>
-                <div>
-                    <h5 class="fw-bold mb-0" id="modal-prod-heading" style="font-family:'Outfit',sans-serif;">Product Details</h5>
-                    <div class="text-muted" style="font-size:.75rem;">Catalogue Approval Review</div>
-                </div>
-                <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="vd-modal-body">
-                <div id="mp-thumb-wrap" class="mb-3 text-center d-none">
-                    <img id="mp-thumb" src="" alt="Product" style="height:130px;border-radius:14px;object-fit:cover;border:1px solid var(--border-color);">
-                </div>
-                <div class="vd-row"><span class="vd-label"><i class="bi bi-tag me-1"></i>Product Name</span><span class="vd-val fw-bold" id="mp-name">—</span></div>
-                <div class="vd-row"><span class="vd-label"><i class="bi bi-upc-scan me-1"></i>Part Code</span><span class="vd-val" id="mp-code">—</span></div>
-                <div class="vd-row"><span class="vd-label"><i class="bi bi-layers me-1"></i>Category</span><span class="vd-val" id="mp-cat">—</span></div>
-                <div class="vd-row"><span class="vd-label"><i class="bi bi-shop me-1"></i>Store</span><span class="vd-val" id="mp-store">—</span></div>
-                <div class="vd-row"><span class="vd-label"><i class="bi bi-person me-1"></i>Owner</span><span class="vd-val" id="mp-owner">—</span></div>
-                <div class="vd-row"><span class="vd-label"><i class="bi bi-calendar me-1"></i>Created</span><span class="vd-val" id="mp-date">—</span></div>
-            </div>
-            <div class="vd-modal-footer">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 @endsection
 
@@ -699,7 +587,7 @@ document.querySelectorAll('.ap-tab-btn').forEach(btn => {
         this.classList.add('active');
 
         // hide all panels
-        ['accounts','stores','attributes'].forEach(t => {
+        ['accounts','stores'].forEach(t => {
             const el = document.getElementById('tab-' + t);
             if (el) el.style.display = 'none';
         });
@@ -758,27 +646,6 @@ function openStoreModal(id, name, slug, gst, website, address, primary, secondar
     document.getElementById('ms-approve-form').action =
         '{{ url("dashboard/saas/approvals/store") }}/' + id + '/approve';
     new bootstrap.Modal(document.getElementById('modalStore')).show();
-}
-
-/* ── Product Modal ──────────────────────────────────────── */
-function openProductModal(name, code, cat, store, owner, thumb, date) {
-    document.getElementById('modal-prod-heading').textContent = name;
-    document.getElementById('mp-name').textContent  = name;
-    document.getElementById('mp-code').textContent  = code  || '—';
-    document.getElementById('mp-cat').textContent   = cat   || '—';
-    document.getElementById('mp-store').textContent = store || '—';
-    document.getElementById('mp-owner').textContent = owner || '—';
-    document.getElementById('mp-date').textContent  = date;
-
-    const wrap = document.getElementById('mp-thumb-wrap');
-    const img  = document.getElementById('mp-thumb');
-    if (thumb) {
-        img.src = thumb;
-        wrap.classList.remove('d-none');
-    } else {
-        wrap.classList.add('d-none');
-    }
-    new bootstrap.Modal(document.getElementById('modalProduct')).show();
 }
 </script>
 @endpush

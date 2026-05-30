@@ -14,7 +14,7 @@ class BrandController extends Controller
      */
     public function index()
     {
-        $brands = Brand::latest()->get();
+        $brands = Brand::with('subscriber.subscriberProfile')->latest()->get();
 
         return view('admin.brands.index', compact('brands'));
     }

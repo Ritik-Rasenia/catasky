@@ -239,20 +239,16 @@
         <h1 class="glass-title">Verify Your Email 🔒</h1>
         <p class="glass-subtitle">Enter the 6-digit compliance code sent to your registered address <strong>{{ $email }}</strong> to verify business identity.</p>
 
-        <!-- Premium simulated code card -->
-        <div class="simulated-notification">
-            <div class="icon">
-                <i class="bi bi-shield-check"></i>
-            </div>
-            <div class="msg">
-                <strong style="color:#34D399;display:block;margin-bottom:2px;">[Simulated Verification Portal]</strong>
-                Your 6-digit confirmation code is: <span style="font-family:monospace;font-size:0.95rem;background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#fff;font-weight:700;letter-spacing:1px;">{{ $otpCode }}</span>
-            </div>
-        </div>
-
         @if ($errors->any())
         <div class="alert alert-danger border-0 text-start small mb-4 py-2 px-3 rounded-3" style="background:rgba(239,68,68,0.08);color:#FCA5A5;">
             <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ $errors->first() }}
+        </div>
+        @endif
+
+        @if (session('success'))
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:12px 16px;color:#4ADE80;font-size:0.85rem;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>{{ session('success') }}</span>
         </div>
         @endif
 
@@ -279,7 +275,10 @@
         </form>
 
         <div class="text-center">
-            <button type="button" class="btn-resend" onclick="resendOtp()">
+            <form action="{{ route('subscriber.resend-otp') }}" method="POST" id="resend-form" style="display:none;">
+                @csrf
+            </form>
+            <button type="button" class="btn-resend" onclick="document.getElementById('resend-form').submit()">
                 <i class="bi bi-arrow-clockwise me-1"></i>Resend Code
             </button>
         </div>

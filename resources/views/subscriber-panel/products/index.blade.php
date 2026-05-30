@@ -50,7 +50,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($products as $product)
+                                @foreach($products as $product)
                                 <tr>
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center">
@@ -115,11 +115,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">No products found in the catalogue.</td>
-                                </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

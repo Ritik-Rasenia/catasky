@@ -5,8 +5,10 @@
 @section('content')
 
 @php
-    // Fetch all active categories dynamically in the view to keep the backend controller untouched
-    $allCategories = \App\Models\Category::where('status', 1)->get();
+    // Fetch all active categories dynamically in the view if not overridden by controller
+    if (!isset($allCategories)) {
+        $allCategories = \App\Models\Category::where('status', 1)->get();
+    }
 @endphp
 
 <!-- Catalog Header & Categories Pill bar -->
@@ -17,14 +19,25 @@
         <div class="d-flex flex-column gap-3">
             <!-- Horizontal Scrollable Category Chips -->
             <div class="category-scroll pt-2">
-                <a href="{{ route('catalogue') }}" class="category-chip {{ ($category->id ?? 0) == 0 ? 'active' : '' }}">
-                    🔥 All
-                </a>
-                @foreach($allCategories as $cat)
-                    <a href="{{ route('category.products', $cat->slug) }}" class="category-chip {{ ($category->id ?? 0) == $cat->id ? 'active' : '' }}">
-                        {{ $cat->name }}
+                @if(isset($isSubscriberStore) && $isSubscriberStore)
+                    <a href="{{ request()->url() }}{{ request('search') ? '?search='.urlencode(request('search')) : '' }}" class="category-chip {{ !request('category') ? 'active' : '' }}">
+                        🔥 All
                     </a>
-                @endforeach
+                    @foreach($allCategories as $cat)
+                        <a href="?category={{ $cat->slug }}{{ request('search') ? '&search='.urlencode(request('search')) : '' }}" class="category-chip {{ request('category') === $cat->slug ? 'active' : '' }}">
+                            {{ $cat->name }}
+                        </a>
+                    @endforeach
+                @else
+                    <a href="{{ route('catalogue') }}" class="category-chip {{ ($category->id ?? 0) == 0 ? 'active' : '' }}">
+                        🔥 All
+                    </a>
+                    @foreach($allCategories as $cat)
+                        <a href="{{ route('category.products', $cat->slug) }}" class="category-chip {{ ($category->id ?? 0) == $cat->id ? 'active' : '' }}">
+                            {{ $cat->name }}
+                        </a>
+                    @endforeach
+                @endif
             </div>
         </div>
     </div>
@@ -48,9 +61,11 @@
                         <div class="d-grid gap-2">
                             @php
                                 $currentSub = request()->query('subcategory');
-                                $subcategories = isset($category->id) && $category->id > 0
-                                    ? \App\Models\Subcategory::where('category_id', $category->id)->get()
-                                    : \App\Models\Subcategory::take(10)->get();
+                                if (!isset($subcategories)) {
+                                    $subcategories = isset($category->id) && $category->id > 0
+                                        ? \App\Models\Subcategory::where('category_id', $category->id)->get()
+                                        : \App\Models\Subcategory::take(10)->get();
+                                }
                             @endphp
                             
                             @forelse($subcategories as $sub)
@@ -226,16 +241,13 @@
                             <!-- Image Frame -->
                             <div class="product-image-container" onclick="openDrawer('{{ $product->id }}')">
                                 @php
-                                    $thumbnail = $product->thumbnail;
-                                    if (!filter_var($thumbnail, FILTER_VALIDATE_URL)) {
-                                        $thumbnail = asset('uploads/products/' . $thumbnail);
-                                    }
+                                    $thumbnail = $product->thumbnail_url;
                                 @endphp
                                 <img src="{{ $thumbnail }}" alt="{{ $product->name }}" loading="lazy" decoding="async">
                                 
                                 <!-- Floating Quick Look button -->
-                                <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-75 opacity-0 card-hover-btn" style="transition: all 0.3s ease;">
-                                    <button class="btn btn-premium btn-premium-dark w-100 py-2 small shadow-lg" onclick="event.stopPropagation(); openDrawer('{{ $product->id }}')">
+                                <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-85 opacity-0 card-hover-btn" style="transition: all 0.3s ease;">
+                                    <button class="btn btn-premium btn-premium-dark w-100 py-2 small shadow-lg" onclick="event.stopPropagation(); openDrawer('{{ $product->id }}')" style="white-space: nowrap;">
                                         <i class="bi bi-eye"></i> Quick View
                                     </button>
                                 </div>
@@ -246,23 +258,24 @@
                                 <span class="small text-secondary mb-1" style="font-size:0.75rem; font-weight: 500;">
                                     {{ $product->category->name ?? 'Corporate Segment' }}
                                 </span>
-                                <h6 class="product-title" onclick="openDrawer('{{ $product->id }}')">
+                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'">
                                     {{ $product->name }}
                                 </h6>
                                 
-                                <div class="product-meta">
+                                <div class="product-meta mb-1">
                                     <i class="bi bi-layers me-1 text-primary"></i> {{ $product->part_code ?: 'MOQ: 100 pcs' }}
                                 </div>
 
-                                <div class="product-price-row">
-                                    <div class="product-price-val">
-                                        @if($product->price)
-                                            ₹{{ number_format($product->price, 2) }}
-                                        @else
-                                            {{ $product->variant ?: 'On Request' }}
-                                        @endif
-                                    </div>
-                                    <button class="btn btn-premium btn-premium-outline select-btn-main py-2 px-3" onclick="toggleSelection('{{ $product->id }}', this)">
+                                <div class="product-price-val mb-3" style="font-size: 0.8rem !important; font-weight: 700 !important; color: var(--primary) !important;">
+                                    @if($product->price)
+                                        ₹{{ number_format($product->price, 2) }}
+                                    @else
+                                        {{ $product->variant ?: 'On Request' }}
+                                    @endif
+                                </div>
+
+                                <div class="product-price-row pt-2" style="border-top: 1px dashed var(--border); display: flex; justify-content: center; width: 100%;">
+                                    <button class="btn btn-premium btn-premium-outline select-btn-main w-100 py-2 px-3" onclick="toggleSelection('{{ $product->id }}', this)">
                                         <i class="bi bi-bag-plus"></i> Select
                                     </button>
                                 </div>
@@ -273,7 +286,11 @@
                             <i class="bi bi-search text-secondary display-1 opacity-25 d-block mb-3"></i>
                             <h4 class="fw-bold mt-4 text-dark">No products match selection</h4>
                             <p class="text-secondary mx-auto" style="max-width: 350px;">We couldn't locate any product matching the active subcategory or price tiers.</p>
-                            <a href="{{ route('catalogue') }}" class="btn btn-premium btn-premium-primary mt-3">Reset Catalogue</a>
+                            @if(isset($isSubscriberStore) && $isSubscriberStore)
+                                <a href="javascript:void(0)" onclick="resetFilters()" class="btn btn-premium btn-premium-primary mt-3">Reset Catalogue</a>
+                            @else
+                                <a href="{{ route('catalogue') }}" class="btn btn-premium btn-premium-primary mt-3">Reset Catalogue</a>
+                            @endif
                         </div>
                     @endforelse
                 </div>
@@ -290,6 +307,15 @@
 </section>
 
 <style>
+    .product-image-container {
+        background: #ffffff !important;
+    }
+    .product-image-container img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
     /* Desktop Sticky Sidebar styling to prevent overflowing footer & scroll internally */
     .sticky-top-sidebar {
         position: sticky;

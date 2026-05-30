@@ -87,12 +87,8 @@ class SaaSApprovalController extends Controller
             ->latest()
             ->get();
 
-        // 3. Pending Custom Attributes Queue (Subscriber Custom Fields)
-        $pendingAttributes = \App\Models\Attribute::where('is_global', false)
-            ->where('approval_status', 'pending')
-            ->with(['subscriber', 'group'])
-            ->latest()
-            ->get();
+        // 3. Consolidated Approvals (Attributes are now auto-approved)
+        $pendingAttributes = collect();
 
         return view('admin.saas.approvals.index', compact('pendingAccounts', 'pendingStores', 'pendingAttributes'));
     }

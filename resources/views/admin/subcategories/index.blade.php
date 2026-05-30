@@ -30,12 +30,13 @@
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Image</th>
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Parent Category</th>
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Subcategory Name</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">Subscriber</th>
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Status</th>
                                     <th class="text-end pe-4 border-0 text-uppercase small fw-bold text-muted">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($subcategories as $subcategory)
+                                @foreach($subcategories as $subcategory)
                                 <tr>
                                     <td class="ps-4 text-muted">{{ $loop->iteration }}</td>
                                     <td>
@@ -52,6 +53,13 @@
                                     </td>
                                     <td>
                                         <span class="fw-bold text-dark">{{ $subcategory->name }}</span>
+                                    </td>
+                                    <td>
+                                        @if($subcategory->subscriber)
+                                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">{{ $subcategory->subscriber->subscriberProfile->company_name ?? $subcategory->subscriber->name }}</span>
+                                        @else
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">System (Admin)</span>
+                                        @endif
                                     </td>
                                     <td>
                                         @if($subcategory->status == '1')
@@ -80,11 +88,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">No subcategories found.</td>
-                                </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

@@ -40,10 +40,10 @@
                  style="max-height: 90%; max-width: 90%; object-fit: contain; z-index: 2; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);">
             
             <!-- Floating Quick Look -->
-            <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-75 card-hover-btn" style="transition: all 0.3s ease; opacity: 0; transform: translate(-50%, 10px); z-index: 3;">
+            <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-85 card-hover-btn" style="transition: all 0.3s ease; opacity: 0; transform: translate(-50%, 10px); z-index: 3;">
                 <button class="btn btn-dark w-100 py-2 small shadow-lg rounded-pill fw-bold border-0" 
                         onclick="event.stopPropagation(); openDrawer('{{ $product->id }}')" 
-                        style="font-size: 0.75rem; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                        style="font-size: 0.75rem; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); white-space: nowrap;">
                     <i class="bi bi-eye me-1"></i> Quick View
                 </button>
             </div>
@@ -66,7 +66,7 @@
             </div>
 
             <h6 class="product-title fw-bold text-dark mb-2 cursor-pointer text-truncate" 
-                onclick="openDrawer('{{ $product->id }}')" 
+                onclick="window.location.href='{{ route('product.details', $product->slug) }}'" 
                 title="{{ $product->name }}" 
                 style="font-size: 0.95rem; font-family: 'Outfit', sans-serif; transition: color 0.2s;">
                 {{ $product->name }}

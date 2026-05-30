@@ -13,6 +13,18 @@
     $planName = $subscription?->plan?->name ?? 'No active plan';
     $planEnds = $subscription?->ends_at ? $subscription->ends_at->format('M d, Y') : 'Not scheduled';
     $activePercent = $stats['total_products'] > 0 ? round(($stats['active_products'] / $stats['total_products']) * 100) : 0;
+
+    $filterDescriptions = [
+        'all_time' => 'All time overview',
+        'today' => 'Today\'s hourly activity',
+        'yesterday' => 'Yesterday\'s hourly activity',
+        'this_week' => 'Weekly daily breakdown',
+        'last_30_days' => 'Last 30 days activity',
+        'this_month' => 'This month\'s daily breakdown',
+        'last_month' => 'Last month\'s daily breakdown',
+        'this_year' => 'This year\'s monthly breakdown',
+    ];
+    $filterDesc = $filterDescriptions[$currentFilter] ?? 'Overview';
 @endphp
 
 @section('content')
@@ -34,7 +46,19 @@
             <h1>{{ $profile?->company_name ?? $user->name }} catalog command center</h1>
             <p>Track catalog readiness, publish products, review sharing activity, and keep your storefront moving.</p>
         </div>
-        <div class="dash-hero-actions">
+        <div class="dash-hero-actions d-flex align-items-center gap-2">
+            <form method="GET" id="filterForm" class="d-inline-block m-0">
+                <select name="filter" class="form-select form-select-sm border shadow-sm px-3" onchange="this.form.submit()" style="background-color: var(--surface-color, #fff); color: var(--text-primary); font-size: 0.85rem; height: 38px; border-radius: 10px; border: 1px solid var(--border) !important; min-width: 140px; cursor: pointer;">
+                    <option value="all_time" {{ $currentFilter === 'all_time' ? 'selected' : '' }}>All Time</option>
+                    <option value="today" {{ $currentFilter === 'today' ? 'selected' : '' }}>Today</option>
+                    <option value="yesterday" {{ $currentFilter === 'yesterday' ? 'selected' : '' }}>Yesterday</option>
+                    <option value="this_week" {{ $currentFilter === 'this_week' ? 'selected' : '' }}>This Week</option>
+                    <option value="last_30_days" {{ $currentFilter === 'last_30_days' ? 'selected' : '' }}>Last 30 Days</option>
+                    <option value="this_month" {{ $currentFilter === 'this_month' ? 'selected' : '' }}>This Month</option>
+                    <option value="last_month" {{ $currentFilter === 'last_month' ? 'selected' : '' }}>Last Month</option>
+                    <option value="this_year" {{ $currentFilter === 'this_year' ? 'selected' : '' }}>This Year</option>
+                </select>
+            </form>
             <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Product</a>
             <a href="{{ route('subscriber.share.create') }}" class="btn btn-light"><i class="bi bi-share"></i> Create Share</a>
         </div>
@@ -99,7 +123,7 @@
                 <div class="dash-card-header">
                     <div>
                         <h3><i class="bi bi-graph-up-arrow"></i> Storefront Views</h3>
-                        <span>Weekly catalog engagement</span>
+                        <span>Catalog engagement — {{ $filterDesc }}</span>
                     </div>
                     <span class="dash-chip">{{ number_format($stats['total_downloads']) }} downloads</span>
                 </div>
@@ -807,13 +831,17 @@
         viewsGradient.addColorStop(0, 'rgba(37, 99, 235, 0.24)');
         viewsGradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
 
+        // Real data from database — last 7 days of catalogue views
+        const chartLabels = {!! json_encode($dashboardCharts['monthlyViews']['labels']) !!};
+        const chartData   = {!! json_encode($dashboardCharts['monthlyViews']['data']) !!};
+
         const viewsChart = new Chart(viewsCtx, {
             type: 'line',
             data: {
-                labels: {!! json_encode($dashboardCharts['monthlyViews']['labels']) !!},
+                labels: chartLabels,
                 datasets: [{
                     label: 'Catalogue Views',
-                    data: {!! json_encode($dashboardCharts['monthlyViews']['data']) !!},
+                    data: chartData,
                     borderColor: '#2563eb',
                     borderWidth: 3,
                     fill: true,
@@ -828,12 +856,26 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.parsed.y + ' views';
+                            }
+                        }
+                    }
+                },
                 scales: {
                     y: {
+                        beginAtZero: true,
                         grid: { color: gridColor },
                         border: { display: false },
-                        ticks: { color: textColor, font: { family: 'Poppins', size: 11 } }
+                        ticks: {
+                            color: textColor,
+                            font: { family: 'Poppins', size: 11 },
+                            precision: 0
+                        }
                     },
                     x: {
                         grid: { display: false },
@@ -847,9 +889,9 @@
         window.addEventListener('themeChanged', function() {
             const nextTheme = document.documentElement.getAttribute('data-theme') || 'light';
             const nextColor = nextTheme === 'dark' ? '#94a3b8' : '#64748b';
-            const nextGrid = nextTheme === 'dark' ? '#243041' : '#e2e8f0';
+            const nextGrid  = nextTheme === 'dark' ? '#243041' : '#e2e8f0';
             viewsChart.options.scales.y.ticks.color = nextColor;
-            viewsChart.options.scales.y.grid.color = nextGrid;
+            viewsChart.options.scales.y.grid.color  = nextGrid;
             viewsChart.options.scales.x.ticks.color = nextColor;
             viewsChart.update();
         });

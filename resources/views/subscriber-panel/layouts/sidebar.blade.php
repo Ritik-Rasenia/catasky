@@ -14,13 +14,12 @@
         };
 
         $canSee = function (?string $permission, ?string $route = null) use ($user): bool {
-            // Super Admin / Admin can see everything
-            if ($user?->hasRole('Super Admin') || $user?->hasRole('admin')) {
-                return true;
-            }
-
-            // Default permission check for staff
+            // Default permission check for staff / non-subscribers
             if ($user && !$user->hasRole('Subscriber')) {
+                // Super Admin / Admin can see everything in the workspace
+                if ($user->hasRole('Super Admin') || $user->hasRole('admin')) {
+                    return true;
+                }
                 return !$permission || $user->can($permission);
             }
 
@@ -44,13 +43,13 @@
             ];
 
             if (!$route) {
-                return !$permission || $user->can($permission);
+                return !$permission || ($user && $user->can($permission));
             }
 
-            // If subscriber is pending approval or has no active subscription, only show basic items
-            $subProfile = $user->subscriberProfile;
+            // If subscriber is pending approval or has no active subscription, strictly limit visible tabs to basic items
+            $subProfile = $user ? $user->subscriberProfile : null;
             $isApproved = $subProfile && $subProfile->isApproved();
-            if (!$isApproved || !$user->hasActiveSubscription()) {
+            if (!$isApproved || !$user || !$user->hasActiveSubscription()) {
                 $limited = [
                     'dashboard',
                     'subscriber.profile.edit',
@@ -60,7 +59,7 @@
                 return in_array($route, $limited, true);
             }
 
-            return in_array($route, $subscriberAllowed, true) || (!$permission || $user->can($permission));
+            return in_array($route, $subscriberAllowed, true) || (!$permission || ($user && $user->can($permission)));
         };
 
         $menuSections = [
@@ -101,18 +100,18 @@
                         'active'     => ['subscriber.subcategories.*'],
                     ],
                     [
-                        'label'      => 'Products',
-                        'icon'       => 'bi-box-seam-fill',
-                        'route'      => 'subscriber.products.index',
-                        'permission' => 'products.view',
-                        'active'     => ['subscriber.products.*'],
-                    ],
-                    [
                         'label'      => 'Attributes',
                         'icon'       => 'bi-sliders',
                         'route'      => 'subscriber.attributes.index',
                         'permission' => 'products.view',
                         'active'     => ['subscriber.attributes.*'],
+                    ],
+                    [
+                        'label'      => 'Products',
+                        'icon'       => 'bi-box-seam-fill',
+                        'route'      => 'subscriber.products.index',
+                        'permission' => 'products.view',
+                        'active'     => ['subscriber.products.*'],
                     ],
                 ],
             ],
@@ -189,8 +188,14 @@
                 <div class="collapse show section-collapse-wrapper" id="collapse-{{ $sectionSlug }}">
                     @foreach($visibleItems as $item)
                         @php
-                            $active = $isActive($item['active'] ?? []);
-                            $href = isset($item['route']) ? route($item['route']) : ($item['url'] ?? '#');
+                            $href = isset($item['route']) ? route($item['route'], $item['route_params'] ?? []) : ($item['url'] ?? '#');
+                            
+                            $active = false;
+                            if (isset($item['route']) && $item['route'] === 'subscriber.profile.edit') {
+                                $active = request()->routeIs('subscriber.profile.edit');
+                            } else {
+                                $active = $isActive($item['active'] ?? []);
+                            }
                         @endphp
 
                         <a href="{{ $href }}" class="nav-link {{ $active ? 'active' : '' }}">

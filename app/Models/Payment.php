@@ -31,6 +31,14 @@ class Payment extends Model
         return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
 
+    /**
+     * Alias for plan() — some controllers/views reference this as subscriptionPlan.
+     */
+    public function subscriptionPlan()
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
     public function invoice()
     {
         return $this->hasOne(Invoice::class);

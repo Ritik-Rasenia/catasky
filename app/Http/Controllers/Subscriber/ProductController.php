@@ -32,7 +32,7 @@ class ProductController extends Controller
         }
 
         $products = $query->latest()->paginate(12);
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::where('subscriber_id', $user->id)->orderBy('name')->get();
 
         return view('subscriber-panel.products.index', compact('products', 'categories'));
     }
@@ -40,14 +40,15 @@ class ProductController extends Controller
     public function create()
     {
         $user = auth()->user();
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::where('subscriber_id', $user->id)->orderBy('name')->get();
+        $brands = \App\Models\Brand::where('subscriber_id', $user->id)->orderBy('name')->get();
         $attributes = Attribute::where('user_id', $user->id)
             ->where('is_active', true)
             ->with(['group', 'options'])
             ->orderBy('sort_order')
             ->get();
 
-        return view('subscriber-panel.products.create', compact('categories', 'attributes'));
+        return view('subscriber-panel.products.create', compact('categories', 'brands', 'attributes'));
     }
 
     public function store(Request $request)
@@ -57,11 +58,15 @@ class ProductController extends Controller
             'category_id'       => 'required|exists:categories,id',
             'subcategory_id'    => 'required|exists:subcategories,id',
             'child_category_id' => 'nullable|exists:child_categories,id',
+            'brand_id'          => 'nullable|exists:brands,id',
             'status'            => 'required|in:active,inactive,draft',
-            'mrp'               => 'nullable|numeric|min:0',
-            'offer_price'       => 'nullable|numeric|min:0',
+            'price'             => 'nullable|numeric|min:0',
+            'stock'             => 'nullable|integer|min:0',
+            'stock_status'      => 'nullable|string|in:in_stock,out_of_stock',
             'short_description' => 'nullable|string|max:1000',
             'full_description'  => 'nullable|string',
+            'meta_title'        => 'nullable|string|max:255',
+            'meta_description'  => 'nullable|string',
             'thumbnail'         => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'images.*'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
@@ -71,6 +76,12 @@ class ProductController extends Controller
         $data['user_id'] = $user->id;
         $data['slug'] = Str::slug($request->name) . '-' . Str::random(6);
         $data['tags'] = $request->tags ? array_map('trim', explode(',', $request->tags)) : null;
+
+        // If price is passed, populate mrp and offer_price for backward compatibility
+        if ($request->has('price')) {
+            $data['offer_price'] = $request->price;
+            $data['mrp'] = $request->price;
+        }
 
         // Visibility toggles
         $data['pdf_show_mrp'] = $request->boolean('pdf_show_mrp');
@@ -89,7 +100,7 @@ class ProductController extends Controller
             $data['thumbnail'] = $this->uploadImage($request->file('thumbnail'), 'subscriber-products');
         }
 
-        $data['approval_status'] = 'pending';
+        $data['approval_status'] = 'approved';
         $product = SubscriberProduct::create($data);
 
         // Upload additional images
@@ -126,8 +137,9 @@ class ProductController extends Controller
         $this->authorizeSubscriberProduct($product);
         $user = auth()->user();
         $product->load(['images', 'attributeValues.attribute']);
-        $categories = Category::orderBy('name')->get();
-        $subcategories = $product->category_id ? Subcategory::where('category_id', $product->category_id)->get() : collect();
+        $categories = Category::where('subscriber_id', $user->id)->orderBy('name')->get();
+        $brands = \App\Models\Brand::where('subscriber_id', $user->id)->orderBy('name')->get();
+        $subcategories = $product->category_id ? Subcategory::where('subscriber_id', $user->id)->where('category_id', $product->category_id)->get() : collect();
         $productTypes = $product->subcategory_id ? \App\Models\ChildCategory::where('subcategory_id', $product->subcategory_id)->get() : collect();
         $attributes = Attribute::where('user_id', $user->id)
             ->where('is_active', true)
@@ -137,7 +149,7 @@ class ProductController extends Controller
 
         $existingValues = $product->attributeValues->keyBy('attribute_id');
 
-        return view('subscriber-panel.products.edit', compact('product', 'categories', 'subcategories', 'productTypes', 'attributes', 'existingValues'));
+        return view('subscriber-panel.products.edit', compact('product', 'categories', 'brands', 'subcategories', 'productTypes', 'attributes', 'existingValues'));
     }
 
     public function update(Request $request, SubscriberProduct $product)
@@ -149,15 +161,27 @@ class ProductController extends Controller
             'category_id'       => 'required|exists:categories,id',
             'subcategory_id'    => 'required|exists:subcategories,id',
             'child_category_id' => 'nullable|exists:child_categories,id',
+            'brand_id'          => 'nullable|exists:brands,id',
             'status'            => 'required|in:active,inactive,draft',
-            'mrp'               => 'nullable|numeric|min:0',
-            'offer_price'       => 'nullable|numeric|min:0',
+            'price'             => 'nullable|numeric|min:0',
+            'stock'             => 'nullable|integer|min:0',
+            'stock_status'      => 'nullable|string|in:in_stock,out_of_stock',
+            'short_description' => 'nullable|string|max:1000',
+            'full_description'  => 'nullable|string',
+            'meta_title'        => 'nullable|string|max:255',
+            'meta_description'  => 'nullable|string',
             'thumbnail'         => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'images.*'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         $data = $request->except(['_token', '_method', 'thumbnail', 'images', 'attributes']);
         $data['tags'] = $request->tags ? array_map('trim', explode(',', $request->tags)) : null;
+
+        // If price is passed, populate mrp and offer_price for backward compatibility
+        if ($request->has('price')) {
+            $data['offer_price'] = $request->price;
+            $data['mrp'] = $request->price;
+        }
         $data['pdf_show_mrp'] = $request->boolean('pdf_show_mrp');
         $data['pdf_show_offer_price'] = $request->boolean('pdf_show_offer_price');
         $data['pdf_show_description'] = $request->boolean('pdf_show_description');
@@ -173,7 +197,7 @@ class ProductController extends Controller
             $data['thumbnail'] = $this->uploadImage($request->file('thumbnail'), 'subscriber-products');
         }
 
-        $data['approval_status'] = 'pending';
+        $data['approval_status'] = 'approved';
         $product->update($data);
 
         // Upload new images
@@ -325,8 +349,11 @@ class ProductController extends Controller
     }
 
     // AJAX: get subcategory-specific dynamic attributes template (preferred)
-    public function getSubcategoryAttributes(Request $request, $subcategoryId)
+    public function getSubcategoryAttributes(Request $request, $subcategoryId = null)
     {
+        if (!$subcategoryId) {
+            return response()->json([]);
+        }
         $subcatAttrs = \App\Models\SubcategoryAttribute::where('subcategory_id', $subcategoryId)
             ->with(['attribute' => function($q) {
                 $q->where('is_active', true)
@@ -404,7 +431,8 @@ class ProductController extends Controller
     // AJAX: get subcategories
     public function getSubcategories(Request $request)
     {
-        $subcategories = Subcategory::where('category_id', $request->category_id)
+        $subcategories = Subcategory::where('subscriber_id', auth()->id())
+            ->where('category_id', $request->category_id)
             ->orderBy('name')
             ->get(['id', 'name']);
         return response()->json($subcategories);

@@ -80,6 +80,7 @@ Route::get('/api/product-details/{id}', [FrontendController::class, 'apiProductD
 Route::get('/product/{id}/details', [FrontendController::class, 'productQuickView'])->name('product.quickview');
 Route::get('/pricing', [FrontendController::class, 'pricing'])->name('pricing');
 Route::get('/store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('store.catalog');
+Route::get('/subscriber_store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('subscriber_store');
 
 /*
 |--------------------------------------------------------------------------
@@ -102,6 +103,9 @@ Route::prefix('subscriber')->name('subscriber.')->group(function () {
         Route::post('/verify-otp', [SubscriberAuthController::class, 'verifyOtp'])->name('verify-otp.submit');
         Route::get('/forgot-password', [SubscriberAuthController::class, 'showForgotForm'])->name('forgot');
         Route::post('/forgot-password', [SubscriberAuthController::class, 'sendResetLink'])->name('forgot.submit');
+        Route::get('/reset-password/{token}', [SubscriberAuthController::class, 'showResetPasswordForm'])->name('reset-password');
+        Route::post('/reset-password', [SubscriberAuthController::class, 'resetPassword'])->name('reset-password.submit');
+        Route::post('/resend-otp', [SubscriberAuthController::class, 'resendOtp'])->name('resend-otp');
     });
 });
 
@@ -321,7 +325,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/get-subcategories', [SubscriberProductController::class, 'getSubcategories'])->name('get-subcategories');
         Route::get('/get-product-types', [SubscriberProductController::class, 'getProductTypes'])->name('get-product-types');
         Route::get('/api/category-attributes/{category}', [SubscriberProductController::class, 'getCategoryAttributes'])->name('api.category-attributes');
-        Route::get('/api/subcategory-attributes/{subcategory}', [SubscriberProductController::class, 'getSubcategoryAttributes'])->name('api.subcategory-attributes');
+        Route::get('/api/subcategory-attributes/{subcategory?}', [SubscriberProductController::class, 'getSubcategoryAttributes'])->name('api.subcategory-attributes');
         Route::get('/products-ops/import/template', [SubscriberProductController::class, 'downloadTemplate'])->name('products.import.template');
         Route::get('/products-ops/import', [SubscriberProductController::class, 'importPage'])->name('products.import');
         Route::post('/products-ops/import', [SubscriberProductController::class, 'import'])->name('products.import.submit');
@@ -361,6 +365,8 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
         Route::get('/subscription/plans', [SubscriptionController::class, 'plans'])->name('subscription.plans');
         Route::get('/subscription/checkout/{plan}', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
+        Route::post('/subscription/pay/razorpay-order/{plan}', [SubscriptionController::class, 'createRazorpayOrder'])->name('subscription.razorpay.order');
+        Route::post('/subscription/pay/razorpay-verify/{plan}', [SubscriptionController::class, 'verifyRazorpayPayment'])->name('subscription.razorpay.verify');
         Route::post('/subscription/pay/{plan}', [SubscriptionController::class, 'processDummyPayment'])->name('subscription.pay');
         Route::get('/subscription/invoice/{invoice}', [SubscriptionController::class, 'invoiceDownload'])->name('subscription.invoice');
 
@@ -468,6 +474,8 @@ Route::post('/product/{slug}/review', [FrontendController::class, 'submitReview'
 Route::get('/product/{slug}/pdf', [FrontendController::class, 'downloadProductPdf'])->name('product.pdf');
 Route::get('/sitemap.xml', [FrontendController::class, 'sitemap'])->name('sitemap');
 Route::get('/api/products-filter', [FrontendController::class, 'apiFilterProducts'])->name('api.products.filter');
+
+Route::get('/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('store.public');
 
 /*
 |--------------------------------------------------------------------------

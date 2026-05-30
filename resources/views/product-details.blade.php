@@ -41,35 +41,50 @@
             <!-- Left Panel: Product Image Gallery -->
             <div class="col-lg-6">
                 <div class="position-sticky" style="top: 100px;">
-                    <!-- Main Product Image Frame -->
-                    <div class="premium-card bg-white p-3 border-0 rounded-4  mb-3 position-relative overflow-hidden text-center d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
-                        <img id="main-product-image" src="{{ $product->thumbnail_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3" style="max-height: 100%; object-fit: contain; transition: transform 0.3s ease;">
-                        
-                        @if($product->part_code)
-                            <span class="position-absolute top-3 start-3 badge rounded-pill px-3 py-2 small fw-bold bg-dark text-white " style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                <i class="bi bi-tag-fill me-1 text-primary"></i> {{ $product->part_code }}
-                            </span>
-                        @endif
-                    </div>
-
-                    <!-- Gallery Thumbnails (only if more images are present) -->
-                    @if($product->images && $product->images->count() > 0)
-                        <div class="d-flex gap-2 overflow-x-auto pb-2 justify-content-center">
-                            <!-- Thumbnail 1: Main Image -->
-                            <div class="gallery-thumb active rounded-3 border p-1 bg-white cursor-pointer overflow-hidden" onclick="changeMainImage('{{ $product->thumbnail_url }}', this)" style="width: 80px; height: 80px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center;">
-                                <img src="{{ $product->thumbnail_url }}" loading="lazy" decoding="async" style="max-height: 100%; object-fit: contain;">
-                            </div>
-                            <!-- Loop other gallery images -->
-                            @foreach($product->images as $img)
-                                @php
-                                    $imgUrl = filter_var($img->image, FILTER_VALIDATE_URL) ? $img->image : asset('uploads/products/gallery/' . $img->image);
-                                @endphp
-                                <div class="gallery-thumb rounded-3 border p-1 bg-white cursor-pointer overflow-hidden" onclick="changeMainImage('{{ $imgUrl }}', this)" style="width: 80px; height: 80px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center;">
-                                    <img src="{{ $imgUrl }}" loading="lazy" decoding="async" style="max-height: 100%; object-fit: contain;">
+                    <div class="row g-3">
+                        <!-- Vertical Thumbnails Column (hidden on mobile, shown beautifully vertically on desktop) -->
+                        <div class="col-md-2 order-2 order-md-1">
+                            <div class="d-flex flex-row flex-md-column gap-2 overflow-auto pb-2 pb-md-0 thumbnail-vertical-strip" style="max-height: 480px;">
+                                <!-- Thumbnail 1: Main Image -->
+                                <div class="gallery-thumb active rounded-3 border p-1 bg-white cursor-pointer overflow-hidden position-relative" 
+                                     onclick="changeMainImage('{{ $product->thumbnail_url }}', this)" 
+                                     onmouseover="changeMainImage('{{ $product->thumbnail_url }}', this)"
+                                     style="width: 100%; min-width: 60px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                                    <img src="{{ $product->thumbnail_url }}" loading="lazy" decoding="async" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                 </div>
-                            @endforeach
+                                <!-- Loop other gallery images -->
+                                @if($product->images && $product->images->count() > 0)
+                                    @foreach($product->images as $img)
+                                        @php
+                                            $imgUrl = filter_var($img->image, FILTER_VALIDATE_URL) ? $img->image : asset('uploads/products/gallery/' . $img->image);
+                                        @endphp
+                                        <div class="gallery-thumb rounded-3 border p-1 bg-white cursor-pointer overflow-hidden position-relative" 
+                                             onclick="changeMainImage('{{ $imgUrl }}', this)" 
+                                             onmouseover="changeMainImage('{{ $imgUrl }}', this)"
+                                             style="width: 100%; min-width: 60px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                                            <img src="{{ $imgUrl }}" loading="lazy" decoding="async" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                        </div>
+                                    @endforeach
+                                @endif
+                            </div>
                         </div>
-                    @endif
+
+                        <!-- Main Product Image Frame (takes remaining space) -->
+                        <div class="col-md-10 order-1 order-md-2">
+                            <div class="main-image-zoom-container premium-card bg-white p-3 border-0 rounded-4 mb-3 position-relative overflow-hidden text-center d-flex align-items-center justify-content-center" 
+                                 style="aspect-ratio: 1/1;"
+                                 onmousemove="zoomImage(event)"
+                                 onmouseleave="resetZoom()">
+                                <img id="main-product-image" src="{{ $product->thumbnail_url }}" alt="{{ $product->name }}" class="img-fluid rounded-3" style="max-height: 95%; max-width: 95%; object-fit: contain; transform-origin: center center; transition: transform 0.1s ease-out;">
+                                
+                                @if($product->part_code)
+                                    <span class="position-absolute top-3 start-3 badge rounded-pill px-3 py-2 small fw-bold bg-dark text-white " style="font-size: 0.75rem; letter-spacing: 0.5px; z-index: 5;">
+                                        <i class="bi bi-tag-fill me-1 text-primary"></i> {{ $product->part_code }}
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -108,9 +123,82 @@
                     <!-- Product Short Description -->
                     <div class="bg-white p-4 rounded-4 border-0 ">
                         <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-text-fill text-primary me-2"></i> Short Description</h6>
-                        <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.6;">
-                            {{ $product->short_description ?: 'No description provided. Please submit an inquiry for detailed customized corporate specifications, packaging variants, and branding mockups.' }}
-                        </p>
+                        <div class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                            {!! $product->short_description ?: 'No description provided. Please submit an inquiry for detailed customized corporate specifications, packaging variants, and branding mockups.' !!}
+                        </div>
+                    </div>
+
+                    <!-- Key Product Information Grid -->
+                    <div class="bg-white p-4 rounded-4 border-0">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i> Product Information</h6>
+                        <div class="row g-3">
+                            @if($product->brand)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Brand</div>
+                                    <div class="fw-semibold text-dark">{{ $product->brand->name }}</div>
+                                </div>
+                            @endif
+                            @if($product->category)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Category</div>
+                                    <div class="fw-semibold text-dark">{{ $product->category->name }}</div>
+                                </div>
+                            @endif
+                            @if($product->subcategory)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Subcategory</div>
+                                    <div class="fw-semibold text-dark">{{ $product->subcategory->name }}</div>
+                                </div>
+                            @endif
+                            @if($product->sku)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">SKU / Item Code</div>
+                                    <div class="fw-semibold text-dark">{{ $product->sku }}</div>
+                                </div>
+                            @endif
+                            @if($product->part_code)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Part Code</div>
+                                    <div class="fw-semibold text-dark">{{ $product->part_code }}</div>
+                                </div>
+                            @endif
+                            @if($product->part_number)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Part Number</div>
+                                    <div class="fw-semibold text-dark">{{ $product->part_number }}</div>
+                                </div>
+                            @endif
+                            @if($product->stock)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Stock Quantity</div>
+                                    <div class="fw-semibold text-dark">{{ $product->stock }} Units Available</div>
+                                </div>
+                            @endif
+                            @if($product->tax)
+                                <div class="col-sm-6 col-12">
+                                    <div class="small text-secondary">Tax Detail</div>
+                                    <div class="fw-semibold text-dark">{{ $product->tax }}% B2B Tax</div>
+                                </div>
+                            @endif
+                        </div>
+                        
+                        @if($product->tags)
+                            @php
+                                $tagsArray = is_string($product->tags) ? explode(',', $product->tags) : (is_array($product->tags) ? $product->tags : []);
+                            @endphp
+                            @if(!empty($tagsArray))
+                                <div class="mt-3 pt-3 border-top">
+                                    <div class="small text-secondary mb-2">Keywords / Tags</div>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach($tagsArray as $tag)
+                                            @if(trim($tag))
+                                                <span class="badge bg-light text-secondary rounded-pill border px-2-5 py-1 small" style="font-size: 0.72rem;">#{{ trim($tag) }}</span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
                     </div>
 
                     <!-- Custom B2B Inquiry Card Form -->
@@ -129,6 +217,7 @@
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
                                 <input type="hidden" name="brand_id" value="{{ $product->brand_id }}">
+                                <input type="hidden" name="is_subscriber_product" value="{{ $product instanceof \App\Models\SubscriberProduct ? '1' : '0' }}">
 
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -164,48 +253,83 @@
             </div>
         </div>
 
-        <!-- Details & Description Tabs -->
+        <!-- Details & Description Block -->
         <div class="row mt-5 pt-3">
             <div class="col-12">
-                <div class="premium-card bg-white p-4 p-md-5 border-0 rounded-4 ">
-                    <ul class="nav nav-tabs border-bottom-2 mb-4" id="productTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold px-4 py-2 border-0 bg-transparent text-primary position-relative" id="details-tab" data-bs-toggle="tab" data-bs-target="#details-pane" type="button" role="tab" aria-controls="details-pane" aria-selected="true" style="transition: all 0.3s; border-bottom: 2px solid transparent;">
-                                Description
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold px-4 py-2 border-0 bg-transparent text-secondary position-relative ms-2" id="spec-tab" data-bs-toggle="tab" data-bs-target="#spec-pane" type="button" role="tab" aria-controls="spec-pane" aria-selected="false" style="transition: all 0.3s; border-bottom: 2px solid transparent;">
-                                B2B Packaging & Delivery
-                            </button>
-                        </li>
-                    </ul>
-                    <div class="tab-content" id="productTabsContent">
-                        <div class="tab-pane fade show active" id="details-pane" role="tabpanel" aria-labelledby="details-tab">
-                            <p class="text-secondary mb-0 leading-relaxed" style="font-size: 1rem;">
-                                {!! nl2br(e($product->description ?: 'No detailed description available for this B2B corporate gift item. It is built using standard-compliant premium grade materials and supports highly optimized branding options.')) !!}
-                            </p>
+                <div class="premium-card bg-white p-4 p-md-5 border-0 rounded-4">
+                    <h4 class="fw-bold text-dark mb-4 brand-font" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-file-text text-primary me-2"></i> Product Information & Description</h4>
+                    
+                    <div class="text-secondary mb-0 leading-relaxed" style="font-size: 1rem;">
+                        <!-- Main Description / Short Description -->
+                        <div class="mb-4">
+                            @if($product->description)
+                                {!! $product->description !!}
+                            @else
+                                {!! $product->short_description !!}
+                            @endif
                         </div>
-                        <div class="tab-pane fade" id="spec-pane" role="tabpanel" aria-labelledby="spec-tab">
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-box-seam text-primary me-2"></i> Bulk Packaging Specs</h6>
-                                    <ul class="text-secondary small ps-3">
-                                        <li class="mb-2">Individual high-grade corporate velvet pouch or standard box included.</li>
-                                        <li class="mb-2">Secure master box packaging with extra cushioning to prevent delivery breaks.</li>
-                                        <li class="mb-2">Supports custom-printed brand cardboard boxes (extra charge).</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-truck text-primary me-2"></i> Shipping & Turnaround</h6>
-                                    <ul class="text-secondary small ps-3">
-                                        <li class="mb-2">Mockup Creation: 24-48 Hours post design receipt.</li>
-                                        <li class="mb-2">Production Timeline: 7-10 Business days under standard MOQs.</li>
-                                        <li class="mb-2">Delivery: Secure nationwide bulk freight from central warehouse.</li>
-                                    </ul>
+
+                        <!-- Additional Information -->
+                        @if($product->additional_info)
+                            <div class="mt-4 pt-4 border-top">
+                                <h5 class="fw-bold text-dark mb-3" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-info-square text-primary me-2"></i> Additional Information</h5>
+                                <div class="text-secondary">
+                                    {!! $product->additional_info !!}
                                 </div>
                             </div>
-                        </div>
+                        @endif
+
+                        <!-- Packaging Details -->
+                        @if($product->packaging)
+                            <div class="mt-4 pt-4 border-top">
+                                <h5 class="fw-bold text-dark mb-3" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-box-seam text-primary me-2"></i> Packaging & Logistics</h5>
+                                <div class="text-secondary">
+                                    {!! $product->packaging !!}
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Technical Specifications Table -->
+                        @php
+                            $specs = [];
+                            if($product->specifications) {
+                                $specs = json_decode($product->specifications, true) ?: [];
+                            }
+                        @endphp
+
+                        @if(!empty($specs))
+                            <div class="mt-4 pt-4 border-top">
+                                <h5 class="fw-bold text-dark mb-3" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-info-circle text-primary me-2"></i> Technical Specifications</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-bordered align-middle mb-0" style="border-radius: 8px; overflow: hidden; font-size: 0.9rem;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 35%;">Parameter</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($specs as $key => $value)
+                                                @php
+                                                    if (is_string($value)) {
+                                                        $decoded = json_decode($value, true);
+                                                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                                            $value = implode(', ', $decoded);
+                                                        }
+                                                    } elseif (is_array($value)) {
+                                                        $value = implode(', ', $value);
+                                                    }
+                                                @endphp
+                                                <tr>
+                                                    <td class="fw-semibold text-secondary">{{ $key }}</td>
+                                                    <td class="text-dark">{{ $value }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -267,15 +391,40 @@
     .p-2-5 {
         padding: 0.65rem 0.85rem;
     }
-    .nav-tabs .nav-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background: var(--primary-gradient);
-        border-radius: 3px;
+    .main-image-zoom-container {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 1/1;
+        cursor: zoom-in;
+    }
+    .main-image-zoom-container img {
+        max-height: 95%;
+        max-width: 95%;
+        object-fit: contain;
+        transition: transform 0.1s ease-out;
+        transform-origin: center center;
+    }
+    /* Vertical strip custom scrollbar */
+    .thumbnail-vertical-strip::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+    .thumbnail-vertical-strip::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    .thumbnail-vertical-strip::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .thumbnail-vertical-strip::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
 </style>
 
@@ -290,6 +439,23 @@
         
         // Add active class to clicked thumbnail
         thumbElement.classList.add('active');
+    }
+
+    function zoomImage(e) {
+        const container = e.currentTarget;
+        const img = container.querySelector('#main-product-image');
+        const rect = container.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        img.style.transformOrigin = `${x}% ${y}%`;
+        img.style.transform = 'scale(2.2)';
+    }
+
+    function resetZoom() {
+        const img = document.getElementById('main-product-image');
+        img.style.transformOrigin = 'center center';
+        img.style.transform = 'scale(1)';
     }
 </script>
 @endsection

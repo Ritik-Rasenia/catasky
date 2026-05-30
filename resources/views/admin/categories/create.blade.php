@@ -18,7 +18,7 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-lg-12">
             <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <form action="{{ route('admin.categories.store') }}" method="POST" enctype="multipart/form-data">
@@ -77,14 +77,7 @@
             </div>
         </div>
         
-        <div class="col-lg-4">
-            <div class="card border-0  rounded-4 bg-primary bg-opacity-10 mb-4">
-                <div class="card-body p-4 text-primary">
-                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-info me-2"></i>Information</h6>
-                    <p class="small mb-0">Categories are the top-level containers for your products. A well-organized category structure improves SEO and user navigation on your website.</p>
-                </div>
-            </div>
-        </div>
+       
     </div>
 </div>
 

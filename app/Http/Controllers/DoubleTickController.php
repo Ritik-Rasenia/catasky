@@ -409,7 +409,20 @@ class DoubleTickController extends Controller
 
         // Resolve product models
         $ids = explode(',', $share->product_ids);
-        $products = Product::whereIn('id', $ids)->where('status', 1)->get();
+        
+        $creator = \App\Models\User::find($share->user_id);
+        $isSubscriber = $creator && $creator->hasRole('Subscriber');
+        
+        if ($isSubscriber) {
+            $products = \App\Models\SubscriberProduct::where('user_id', $share->user_id)
+                ->whereIn('id', $ids)
+                ->where('status', 'active')
+                ->get();
+        } else {
+            $products = Product::whereIn('id', $ids)
+                ->where('status', 1)
+                ->get();
+        }
 
         return view('c_catalogue', compact('share', 'products'));
     }

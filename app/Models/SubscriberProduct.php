@@ -11,9 +11,10 @@ class SubscriberProduct extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'category_id', 'subcategory_id', 'child_category_id',
-        'name', 'slug', 'sku', 'mrp', 'offer_price', 'currency',
+        'user_id', 'category_id', 'subcategory_id', 'child_category_id', 'brand_id',
+        'name', 'slug', 'sku', 'mrp', 'offer_price', 'price', 'currency',
         'thumbnail', 'short_description', 'full_description', 'tags',
+        'stock', 'stock_status', 'meta_title', 'meta_description',
         'featured', 'status', 'approval_status',
         'pdf_show_mrp', 'pdf_show_offer_price', 'pdf_show_description',
         'pdf_show_attributes', 'pdf_show_images', 'pdf_show_short_desc',
@@ -39,7 +40,7 @@ class SubscriberProduct extends Model
         'share_show_attributes' => 'boolean',
     ];
 
-    protected $appends = ['thumbnail_url', 'thumbnail_srcset', 'preview_image_url', 'share_image_url', 'discount_percentage'];
+    protected $appends = ['thumbnail_url', 'thumbnail_srcset', 'preview_image_url', 'share_image_url', 'discount_percentage', 'description'];
 
     public function getThumbnailUrlAttribute(): string
     {
@@ -103,6 +104,11 @@ class SubscriberProduct extends Model
         return null;
     }
 
+    public function getDescriptionAttribute(): ?string
+    {
+        return $this->full_description;
+    }
+
     public function subscriber()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -111,6 +117,11 @@ class SubscriberProduct extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function category()

@@ -32,7 +32,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($brands as $brand)
+                                @foreach($brands as $brand)
                                 <tr>
                                     <td class="ps-4 text-muted">{{ $loop->iteration }}</td>
                                     <td>
@@ -70,11 +70,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">No brands found.</td>
-                                </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

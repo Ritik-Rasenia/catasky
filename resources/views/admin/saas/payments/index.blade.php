@@ -163,7 +163,12 @@
                             <td>
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 small rounded">
                                     @if(strtolower($payment->gateway) === 'razorpay')
-                                        <i class="bi bi-wallet2 text-primary me-1"></i> Razorpay (Sandbox)
+                                        <i class="bi bi-wallet2 text-primary me-1"></i> Razorpay 
+                                        @if(str_contains(strtolower($payment->notes ?? ''), 'sandbox') || str_contains(strtolower($payment->notes ?? ''), 'test') || str_starts_with($payment->transaction_id ?? '', 'pay_test') || (isset($payment->gateway_response['mode']) && $payment->gateway_response['mode'] === 'test'))
+                                            (Sandbox)
+                                        @else
+                                            (Live)
+                                        @endif
                                     @elseif(strtolower($payment->gateway) === 'stripe')
                                         <i class="bi bi-stripe text-info me-1"></i> Stripe
                                     @elseif(strtolower($payment->gateway) === 'paypal')

@@ -4,12 +4,7 @@
 
 @section('content')
 <div class="vp-page-header">
-    <div>
-        <h1 class="vp-page-title">Subscription & Billing</h1>
-        <div class="vp-breadcrumb">
-            <a href="{{ route('subscriber.dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <span>Subscription</span>
-        </div>
-    </div>
+   
     <div class="d-flex gap-2">
         @if($activeSubscription)
             <a href="{{ route('subscriber.subscription.checkout', $activeSubscription->plan) }}" class="btn btn-outline-primary" style="border-radius:10px;">

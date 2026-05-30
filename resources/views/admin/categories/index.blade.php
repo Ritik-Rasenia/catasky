@@ -29,12 +29,13 @@
                                     <th class="ps-4 border-0 text-uppercase small fw-bold text-muted">#</th>
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Image</th>
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Category Name</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">Subscriber</th>
                                     <th class="border-0 text-uppercase small fw-bold text-muted">Status</th>
                                     <th class="text-end pe-4 border-0 text-uppercase small fw-bold text-muted">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($categories as $category)
+                                @foreach($categories as $category)
                                 <tr>
                                     <td class="ps-4 text-muted">{{ $loop->iteration }}</td>
                                     <td>
@@ -48,6 +49,13 @@
                                     </td>
                                     <td>
                                         <span class="fw-bold text-dark">{{ $category->name }}</span>
+                                    </td>
+                                    <td>
+                                        @if($category->subscriber)
+                                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">{{ $category->subscriber->subscriberProfile->company_name ?? $category->subscriber->name }}</span>
+                                        @else
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">System (Admin)</span>
+                                        @endif
                                     </td>
                                     <td>
                                         @if($category->status == '1')
@@ -76,11 +84,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">No categories found.</td>
-                                </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

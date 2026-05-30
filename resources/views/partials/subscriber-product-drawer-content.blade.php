@@ -1,8 +1,5 @@
 @php
-    $thumbnail = $product->thumbnail;
-    if (!filter_var($thumbnail, FILTER_VALIDATE_URL)) {
-        $thumbnail = asset('uploads/products/' . $thumbnail);
-    }
+    $thumbnail = $product->thumbnail_url;
     $gallery = $product->images;
 @endphp
 
@@ -32,7 +29,7 @@
             @php
                 $gUrl = $g->image;
                 if (!filter_var($gUrl, FILTER_VALIDATE_URL)) {
-                    $gUrl = asset('uploads/products/gallery/' . $gUrl);
+                    $gUrl = asset('uploads/subscriber-products/gallery/' . $gUrl);
                 }
             @endphp
             <img src="{{ $gUrl }}" class="img-swatch" loading="lazy" decoding="async" onclick="swapDrawerImage('{{ $gUrl }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--border);">
@@ -53,13 +50,20 @@
     
     <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
         <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-bold py-1 px-3 small-text">
-            {{ $product->part_code ?: 'MOQ: 100 pcs' }}
+            {{ $product->sku ?: 'SKU' }}
         </span>
         <span class="text-gradient fw-bold fs-5 ms-auto">
-            @if($product->price)
+            @if($product->offer_price)
+                &#8377;{{ number_format($product->offer_price, 2) }}
+                @if($product->mrp)
+                    <span class="text-muted text-decoration-line-through fs-6 ms-1" style="font-size: 0.8rem;">&#8377;{{ number_format($product->mrp, 2) }}</span>
+                @endif
+            @elseif($product->price)
                 &#8377;{{ number_format($product->price, 2) }}
+            @elseif($product->mrp)
+                &#8377;{{ number_format($product->mrp, 2) }}
             @else
-                {{ $product->variant ?: 'On Request' }}
+                On Request
             @endif
         </span>
     </div>
@@ -113,61 +117,41 @@
             <div class="d-grid gap-2">
                 @if($product->sku)
                     <div class="d-flex justify-content-between border-bottom pb-1">
-                        <span class="fw-bold">SKU / Item Code</span>
+                        <span class="fw-bold">SKU</span>
                         <span>{{ $product->sku }}</span>
                     </div>
                 @endif
-                @if($product->part_code)
+                @if($product->mrp)
                     <div class="d-flex justify-content-between border-bottom pb-1">
-                        <span class="fw-bold">Part Code</span>
-                        <span>{{ $product->part_code }}</span>
+                        <span class="fw-bold">MRP</span>
+                        <span>&#8377;{{ number_format($product->mrp, 2) }}</span>
                     </div>
                 @endif
-                @if($product->part_number)
+                @if($product->offer_price)
                     <div class="d-flex justify-content-between border-bottom pb-1">
-                        <span class="fw-bold">Part Number</span>
-                        <span>{{ $product->part_number }}</span>
-                    </div>
-                @endif
-                @if($product->stock)
-                    <div class="d-flex justify-content-between border-bottom pb-1">
-                        <span class="fw-bold">Stock Available</span>
-                        <span>{{ $product->stock }} Units</span>
-                    </div>
-                @endif
-                @if($product->tax)
-                    <div class="d-flex justify-content-between border-bottom pb-1">
-                        <span class="fw-bold">Tax Detail</span>
-                        <span>{{ $product->tax }}% B2B Tax</span>
+                        <span class="fw-bold">Offer Price</span>
+                        <span>&#8377;{{ number_format($product->offer_price, 2) }}</span>
                     </div>
                 @endif
                 
-                @php
-                    $specs = [];
-                    if($product->specifications) {
-                        $specs = json_decode($product->specifications, true) ?: [];
-                    }
-                @endphp
-                
-                @forelse($specs as $key => $value)
-                    @php
-                        if (is_string($value)) {
-                            $decoded = json_decode($value, true);
-                            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                                $value = implode(', ', $decoded);
+                @forelse($product->attributeValues as $val)
+                    @if($val->attribute)
+                        @php
+                            $displayVal = $val->value;
+                            if ($val->attribute->type === 'multiselect' || $val->attribute->type === 'checkbox') {
+                                try {
+                                    $parsed = json_decode($val->value, true);
+                                    $displayVal = is_array($parsed) ? implode(', ', $parsed) : $val->value;
+                                } catch(\Throwable $e) {}
                             }
-                        } elseif (is_array($value)) {
-                            $value = implode(', ', $value);
-                        }
-                    @endphp
-                    <div class="d-flex justify-content-between border-bottom pb-1">
-                        <span class="fw-bold">{{ $key }}</span>
-                        <span>{{ $value }}</span>
-                    </div>
-                @empty
-                    @if(!$product->sku && !$product->part_code && !$product->part_number && !$product->stock && !$product->tax)
-                        <div class="text-muted text-center py-2" style="font-size:0.75rem;">No technical specifications defined for this product.</div>
+                        @endphp
+                        <div class="d-flex justify-content-between border-bottom pb-1">
+                            <span class="fw-bold">{{ $val->attribute->name }}</span>
+                            <span>{{ $displayVal }} {{ $val->attribute->unit ?: '' }}</span>
+                        </div>
                     @endif
+                @empty
+                    <div class="text-muted text-center py-2" style="font-size:0.75rem;">No technical specifications defined for this product.</div>
                 @endforelse
             </div>
         </div>

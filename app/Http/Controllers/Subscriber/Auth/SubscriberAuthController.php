@@ -110,6 +110,14 @@ class SubscriberAuthController extends Controller
         ]);
         $request->session()->put('registration_otp', $otp);
 
+        // Dispatch real registration verification email
+        try {
+            \Illuminate\Support\Facades\Notification::route('mail', $request->email)
+                ->notify(new \App\Notifications\OtpVerificationNotification($otp));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Registration OTP dispatch failed: ' . $e->getMessage());
+        }
+
         return redirect()->route('subscriber.verify-otp')
             ->with('success', 'A 6-digit verification code has been dispatched to your email.');
     }
@@ -122,9 +130,30 @@ class SubscriberAuthController extends Controller
         }
 
         $email = $request->session()->get('registration_data')['email'];
-        $otpCode = $request->session()->get('registration_otp');
 
-        return view('subscriber-panel.auth.otp', compact('email', 'otpCode'));
+        return view('subscriber-panel.auth.otp', compact('email'));
+    }
+
+    public function resendOtp(Request $request)
+    {
+        if (!$request->session()->has('registration_data')) {
+            return redirect()->route('subscriber.register')
+                ->with('error', 'Please fill the registration form first.');
+        }
+
+        $regData = $request->session()->get('registration_data');
+        $otp = (string)rand(100000, 999999);
+        $request->session()->put('registration_otp', $otp);
+
+        try {
+            \Illuminate\Support\Facades\Notification::route('mail', $regData['email'])
+                ->notify(new \App\Notifications\OtpVerificationNotification($otp));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Resend OTP dispatch failed: ' . $e->getMessage());
+        }
+
+        return redirect()->route('subscriber.verify-otp')
+            ->with('success', 'A new 6-digit verification code has been dispatched to your email.');
     }
 
     public function verifyOtp(Request $request)
@@ -153,9 +182,9 @@ class SubscriberAuthController extends Controller
             'password' => Hash::make($regData['password']),
         ]);
 
-        // Assign Subscriber role
+        // Assign Subscriber role (strictly synchronize to prevent any role leaks)
         $subscriberRole = Role::firstOrCreate(['name' => 'Subscriber', 'guard_name' => 'web']);
-        $user->assignRole($subscriberRole);
+        $user->syncRoles([$subscriberRole]);
 
         // Create subscriber profile (Pending Compliance Approval default)
         $companySlug = Str::slug($regData['company_name']);
@@ -210,15 +239,95 @@ class SubscriberAuthController extends Controller
 
     public function sendResetLink(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $request->validate([
+            'email' => 'required|email|exists:users,email'
+        ], [
+            'email.exists' => 'This email is not registered in our system.'
+        ]);
 
-        // Basic implementation - in production use Password::sendResetLink
         $user = User::where('email', $request->email)->first();
         if ($user && $user->hasRole('Subscriber')) {
-            // TODO: Send reset email
+            $token = Str::random(60);
+            
+            // Save token to password_reset_tokens table
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $request->email],
+                [
+                    'token' => Hash::make($token),
+                    'created_at' => now()
+                ]
+            );
+
+            try {
+                \Illuminate\Support\Facades\Notification::route('mail', $request->email)
+                    ->notify(new \App\Notifications\ForgotPasswordNotification($token, $request->email));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Forgot password link dispatch failed: ' . $e->getMessage());
+            }
         }
 
-        return back()->with('success', 'If this email is registered, you will receive a password reset link shortly.');
+        return back()->with('status', 'If this email is registered, you will receive a password reset link shortly.');
+    }
+
+    public function showResetPasswordForm($token, Request $request)
+    {
+        $email = $request->query('email');
+        
+        $resetRecord = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->first();
+
+        if (!$resetRecord || !Hash::check($token, $resetRecord->token)) {
+            return redirect()->route('subscriber.forgot')
+                ->withErrors(['email' => 'This password reset link is invalid or has expired. Please request a new one.']);
+        }
+
+        // Expire link after 1 hour (3600 seconds)
+        if (Carbon::parse($resetRecord->created_at)->addSeconds(3600)->isPast()) {
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $email)->delete();
+            return redirect()->route('subscriber.forgot')
+                ->withErrors(['email' => 'This password reset link has expired. Please request a new one.']);
+        }
+
+        return view('subscriber-panel.auth.reset-password', compact('token', 'email'));
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'                 => 'required',
+            'email'                 => 'required|email|exists:users,email',
+            'password'              => 'required|min:8|confirmed',
+        ], [
+            'password.confirmed' => 'Password confirmation does not match.',
+        ]);
+
+        $resetRecord = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$resetRecord || !Hash::check($request->token, $resetRecord->token)) {
+            return redirect()->route('subscriber.forgot')
+                ->withErrors(['email' => 'This password reset link is invalid or has expired. Please request a new one.']);
+        }
+
+        if (Carbon::parse($resetRecord->created_at)->addSeconds(3600)->isPast()) {
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return redirect()->route('subscriber.forgot')
+                ->withErrors(['email' => 'This password reset link has expired. Please request a new one.']);
+        }
+
+        // Update user password
+        $user = User::where('email', $request->email)->first();
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        // Delete used token
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return redirect()->route('subscriber.login')
+            ->with('success', 'Your password has been successfully reset. You can now log in with your new password.');
     }
 
     public function logout(Request $request)

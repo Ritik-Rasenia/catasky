@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Subcategory;
 use App\Models\Category;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SubcategoryController extends Controller
 {
@@ -15,7 +16,7 @@ class SubcategoryController extends Controller
      */
     public function index()
     {
-        $subcategories = Subcategory::with('category')->latest()->get();
+        $subcategories = Subcategory::where('subscriber_id', auth()->id())->with('category')->latest()->get();
 
         return view('subscriber-panel.subcategories.index', compact('subcategories'));
     }
@@ -25,7 +26,7 @@ class SubcategoryController extends Controller
      */
     public function create()
     {
-        $categories = Category::where('status', 1)->get();
+        $categories = Category::where('subscriber_id', auth()->id())->where('status', 1)->get();
         return view('subscriber-panel.subcategories.create', compact('categories'));
     }
 
@@ -35,10 +36,18 @@ class SubcategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name'        => 'required|unique:subcategories,name',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'status'      => 'required',
+            'category_id' => [
+                'required',
+                Rule::exists('categories', 'id')->where('subscriber_id', auth()->id())
+            ],
+            'name' => [
+                'required',
+                Rule::unique('subcategories', 'name')->where(function ($query) {
+                    return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                })
+            ],
+            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'status' => 'required',
         ]);
 
         $imageName = null;
@@ -50,11 +59,12 @@ class SubcategoryController extends Controller
         }
 
         Subcategory::create([
-            'category_id' => $request->category_id,
-            'name'        => $request->name,
-            'slug'        => Str::slug($request->name),
-            'image'       => $imageName,
-            'status'      => $request->status,
+            'category_id'   => $request->category_id,
+            'name'          => $request->name,
+            'slug'          => Str::slug($request->name),
+            'image'         => $imageName,
+            'status'        => $request->status,
+            'subscriber_id' => auth()->id(),
         ]);
 
         return redirect()
@@ -67,7 +77,7 @@ class SubcategoryController extends Controller
      */
     public function show(string $id)
     {
-        $subcategory = Subcategory::findOrFail($id);
+        $subcategory = Subcategory::where('subscriber_id', auth()->id())->findOrFail($id);
         return view('subscriber-panel.subcategories.show', compact('subcategory'));
     }
 
@@ -76,8 +86,8 @@ class SubcategoryController extends Controller
      */
     public function edit(string $id)
     {
-        $subcategory = Subcategory::findOrFail($id);
-        $categories = Category::where('status', 1)->get();
+        $subcategory = Subcategory::where('subscriber_id', auth()->id())->findOrFail($id);
+        $categories = Category::where('subscriber_id', auth()->id())->where('status', 1)->get();
         return view('subscriber-panel.subcategories.edit', compact('subcategory', 'categories'));
     }
 
@@ -86,13 +96,23 @@ class SubcategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $subcategory = Subcategory::findOrFail($id);
+        $subcategory = Subcategory::where('subscriber_id', auth()->id())->findOrFail($id);
 
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name'        => 'required|unique:subcategories,name,'.$subcategory->id,
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'status'      => 'required',
+            'category_id' => [
+                'required',
+                Rule::exists('categories', 'id')->where('subscriber_id', auth()->id())
+            ],
+            'name' => [
+                'required',
+                Rule::unique('subcategories', 'name')
+                    ->ignore($subcategory->id)
+                    ->where(function ($query) {
+                        return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                    })
+            ],
+            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'status' => 'required',
         ]);
 
         $imageName = $subcategory->image;
@@ -125,7 +145,7 @@ class SubcategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        $subcategory = Subcategory::findOrFail($id);
+        $subcategory = Subcategory::where('subscriber_id', auth()->id())->findOrFail($id);
 
         if($subcategory->image && file_exists(public_path('uploads/subcategories/'.$subcategory->image))){
             unlink(public_path('uploads/subcategories/'.$subcategory->image));

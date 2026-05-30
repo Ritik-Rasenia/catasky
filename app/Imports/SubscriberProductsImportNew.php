@@ -159,7 +159,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                     'tags'              => $tagsArray,
                     'featured'          => $featured,
                     'status'            => $status,
-                    'approval_status'   => 'pending',
+                    'approval_status'   => 'approved', // Auto-approved for B2B subscriber
                 ]);
  
                 // Initialize default Variant (for stock/inventory)

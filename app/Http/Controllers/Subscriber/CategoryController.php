@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Category;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -14,7 +15,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::latest()->get();
+        $categories = Category::where('subscriber_id', auth()->id())->latest()->get();
 
         return view('subscriber-panel.categories.index', compact('categories'));
     }
@@ -33,9 +34,14 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'      => 'required|unique:categories,name',
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'status'    => 'required',
+            'name' => [
+                'required',
+                Rule::unique('categories', 'name')->where(function ($query) {
+                    return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                })
+            ],
+            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'status' => 'required',
         ]);
 
         $imageName = null;
@@ -47,10 +53,11 @@ class CategoryController extends Controller
         }
 
         Category::create([
-            'name'      => $request->name,
-            'slug'      => Str::slug($request->name),
-            'image'     => $imageName,
-            'status'    => $request->status,
+            'name'          => $request->name,
+            'slug'          => Str::slug($request->name),
+            'image'         => $imageName,
+            'status'        => $request->status,
+            'subscriber_id' => auth()->id(),
         ]);
 
         return redirect()
@@ -63,7 +70,7 @@ class CategoryController extends Controller
      */
     public function show(string $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::where('subscriber_id', auth()->id())->findOrFail($id);
         return view('subscriber-panel.categories.show', compact('category'));
     }
 
@@ -72,7 +79,7 @@ class CategoryController extends Controller
      */
     public function edit(string $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::where('subscriber_id', auth()->id())->findOrFail($id);
         return view('subscriber-panel.categories.edit', compact('category'));
     }
 
@@ -81,12 +88,19 @@ class CategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::where('subscriber_id', auth()->id())->findOrFail($id);
 
         $request->validate([
-            'name'      => 'required|unique:categories,name,'.$category->id,
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'status'    => 'required',
+            'name' => [
+                'required',
+                Rule::unique('categories', 'name')
+                    ->ignore($category->id)
+                    ->where(function ($query) {
+                        return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                    })
+            ],
+            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'status' => 'required',
         ]);
 
         $imageName = $category->image;
@@ -118,7 +132,7 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::where('subscriber_id', auth()->id())->findOrFail($id);
 
         if($category->image && file_exists(public_path('uploads/categories/'.$category->image))){
             unlink(public_path('uploads/categories/'.$category->image));

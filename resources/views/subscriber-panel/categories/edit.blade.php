@@ -18,7 +18,7 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-lg-12">
             <div class="card border-0  rounded-4">
                 <div class="card-body p-4">
                     <form action="{{ route('subscriber.categories.update', $category->id) }}" method="POST" enctype="multipart/form-data">
@@ -89,14 +89,7 @@
             </div>
         </div>
         
-        <div class="col-lg-4">
-            <div class="card border-0  rounded-4 bg-primary bg-opacity-10 mb-4">
-                <div class="card-body p-4 text-primary">
-                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-info me-2"></i>Editing Record</h6>
-                    <p class="small mb-0">You are modifying an existing category. Updates will instantly refresh across the site.</p>
-                </div>
-            </div>
-        </div>
+        
     </div>
 </div>
 

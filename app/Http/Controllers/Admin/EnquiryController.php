@@ -10,13 +10,13 @@ class EnquiryController extends Controller
 {
     public function index()
     {
-        $enquiries = Enquiry::with(['product', 'brand'])->latest()->paginate(20);
+        $enquiries = Enquiry::with(['product', 'brand', 'subscriberProduct'])->latest()->paginate(20);
         return view('admin.enquiry.index', compact('enquiries'));
     }
 
     public function show($id)
     {
-        $enquiry = Enquiry::with(['product', 'brand'])->findOrFail($id);
+        $enquiry = Enquiry::with(['product', 'brand', 'subscriberProduct'])->findOrFail($id);
         
         // Mark as read
         if (!$enquiry->is_read) {

@@ -12,6 +12,7 @@ class Enquiry extends Model
 
     protected $fillable = [
         'product_id',
+        'subscriber_product_id',
         'brand_id',
         'name',
         'email',
@@ -23,6 +24,11 @@ class Enquiry extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function subscriberProduct()
+    {
+        return $this->belongsTo(SubscriberProduct::class, 'subscriber_product_id');
     }
 
     public function brand()

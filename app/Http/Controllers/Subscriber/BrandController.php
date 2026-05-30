@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Brand;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
 {
@@ -14,7 +15,7 @@ class BrandController extends Controller
      */
     public function index()
     {
-        $brands = Brand::latest()->get();
+        $brands = Brand::where('subscriber_id', auth()->id())->latest()->get();
 
         return view('subscriber-panel.brands.index', compact('brands'));
     }
@@ -33,9 +34,14 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'      => 'required|unique:brands,name',
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'status'    => 'required',
+            'name' => [
+                'required',
+                Rule::unique('brands', 'name')->where(function ($query) {
+                    return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                })
+            ],
+            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'status' => 'required',
         ]);
 
         $imageName = null;
@@ -47,10 +53,11 @@ class BrandController extends Controller
         }
 
         Brand::create([
-            'name'      => $request->name,
-            'slug'      => Str::slug($request->name),
-            'image'     => $imageName,
-            'status'    => $request->status,
+            'name'          => $request->name,
+            'slug'          => Str::slug($request->name),
+            'image'         => $imageName,
+            'status'        => $request->status,
+            'subscriber_id' => auth()->id(),
         ]);
 
         return redirect()
@@ -63,7 +70,7 @@ class BrandController extends Controller
      */
     public function show(string $id)
     {
-        $brand = Brand::findOrFail($id);
+        $brand = Brand::where('subscriber_id', auth()->id())->findOrFail($id);
 
         return view('subscriber-panel.brands.show', compact('brand'));
     }
@@ -73,7 +80,7 @@ class BrandController extends Controller
      */
     public function edit(string $id)
     {
-        $brand = Brand::findOrFail($id);
+        $brand = Brand::where('subscriber_id', auth()->id())->findOrFail($id);
 
         return view('subscriber-panel.brands.edit', compact('brand'));
     }
@@ -83,12 +90,19 @@ class BrandController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $brand = Brand::findOrFail($id);
+        $brand = Brand::where('subscriber_id', auth()->id())->findOrFail($id);
 
         $request->validate([
-            'name'      => 'required|unique:brands,name,'.$brand->id,
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'status'    => 'required',
+            'name' => [
+                'required',
+                Rule::unique('brands', 'name')
+                    ->ignore($brand->id)
+                    ->where(function ($query) {
+                        return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                    })
+            ],
+            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'status' => 'required',
         ]);
 
         $imageName = $brand->image;
@@ -120,7 +134,7 @@ class BrandController extends Controller
      */
     public function destroy(string $id)
     {
-        $brand = Brand::findOrFail($id);
+        $brand = Brand::where('subscriber_id', auth()->id())->findOrFail($id);
 
         if($brand->image && file_exists(public_path('uploads/brands/'.$brand->image))){
             unlink(public_path('uploads/brands/'.$brand->image));

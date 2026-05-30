@@ -12,102 +12,129 @@ use App\Models\SubscriberActivityLog;
 use App\Models\SubscriberProduct;
 use App\Models\SubscriberShareLink;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
+        $filter = $request->query('filter', 'all_time');
 
         if ($user->hasRole('Subscriber')) {
             $profile = $user->subscriberProfile;
 
-            // 1. Check if subscriber profile is suspended
             if ($profile && $profile->isSuspended()) {
                 auth()->logout();
                 return redirect()->route('subscriber.login')
                     ->with('error', 'Your subscriber account has been suspended. Reason: ' . ($profile->suspension_reason ?? 'Contact support.'));
             }
 
-            // 2. Check if subscriber has an active subscription
             if (!$user->hasActiveSubscription()) {
                 return redirect()->route('subscriber.subscription.plans')
                     ->with('warning', 'Please subscribe to an active plan to access the subscriber panel.');
             }
 
-            // 3. Check if subscriber profile is approved (status is active)
             if (!$profile || $profile->status === 'pending') {
                 return redirect()->route('subscriber.pending-approval');
             }
 
-            return $this->subscriberDashboard($user);
+            return $this->subscriberDashboard($user, $filter);
         }
 
         if (! $user->can('dashboard.view') && ! $user->can('view-dashboard')) {
             return view('admin.dashboard.limited', [
-                'user' => $user,
+                'user'        => $user,
                 'currentRole' => $this->currentRole($user),
             ]);
         }
 
-        $data = $this->buildAdminData($user);
+        $data = $this->buildAdminData($user, $filter);
+        $data['currentFilter'] = $filter;
 
         return view('admin.dashboard.admin', $data);
     }
 
-    protected function subscriberDashboard($user)
+    /* ─────────────────────────────────────────────────────────────
+     |  SUBSCRIBER DASHBOARD  — 100 % real data
+     * ──────────────────────────────────────────────────────────── */
+    protected function subscriberDashboard($user, $filter)
     {
         $subscription = $user->activeSubscription();
-        $profile = $user->subscriberProfile;
+        $profile      = $user->subscriberProfile;
+
+        // ── Core stats with filter ─────────────────────────
+        $totalViewsQuery = SubscriberShareLink::where('user_id', $user->id);
+        $totalViews = $this->applyDateFilter($totalViewsQuery, $filter)->sum('view_count') ?: 0;
+
+        $totalDownloadsQuery = SubscriberShareLink::where('user_id', $user->id);
+        $totalDownloads = $this->applyDateFilter($totalDownloadsQuery, $filter)->sum('download_count') ?: 0;
+
+        $conversionRate = $totalViews > 0 ? round(($totalDownloads / $totalViews) * 100, 1) : 0;
+
+        $monthlyViewsQuery = SubscriberShareLink::where('user_id', $user->id);
+        $monthlyViews = $this->applyDateFilter($monthlyViewsQuery, $filter)->sum('view_count') ?: 0;
 
         $stats = [
-            'total_products' => SubscriberProduct::where('user_id', $user->id)->count(),
-            'active_products' => SubscriberProduct::where('user_id', $user->id)->where('status', 'active')->count(),
-            'pending_products' => SubscriberProduct::where('user_id', $user->id)->where('approval_status', 'pending')->count(),
-            'categories_count' => SubscriberProduct::where('user_id', $user->id)->whereNotNull('category_id')->distinct('category_id')->count('category_id'),
-            'total_shares' => SubscriberShareLink::where('user_id', $user->id)->count(),
-            'total_views' => SubscriberShareLink::where('user_id', $user->id)->sum('view_count'),
-            'total_downloads' => SubscriberShareLink::where('user_id', $user->id)->sum('download_count'),
+            'total_products'           => $this->applyDateFilter(SubscriberProduct::where('user_id', $user->id), $filter)->count(),
+            'active_products'          => $this->applyDateFilter(SubscriberProduct::where('user_id', $user->id)->where('status', 'active'), $filter)->count(),
+            'pending_products'         => $this->applyDateFilter(SubscriberProduct::where('user_id', $user->id)->where('approval_status', 'pending'), $filter)->count(),
+            'categories_count'         => $this->applyDateFilter(SubscriberProduct::where('user_id', $user->id)->whereNotNull('category_id'), $filter)->distinct('category_id')->count('category_id'),
+            'total_shares'             => $this->applyDateFilter(SubscriberShareLink::where('user_id', $user->id), $filter)->count(),
+            'total_views'              => $totalViews,
+            'total_downloads'          => $totalDownloads,
             'unread_notifications_count' => $user->unreadNotifications()->count(),
-            'monthly_views' => 12480,
-            'conversion_rate' => 4.8,
+            'monthly_views'            => $monthlyViews,
+            'conversion_rate'          => $conversionRate,
         ];
 
+        // ── Recent products ─────────────────────────────────────
         $recentProducts = SubscriberProduct::where('user_id', $user->id)
             ->with('images')
             ->latest()
             ->take(6)
             ->get();
 
+        // ── Activity log ────────────────────────────────────────
         $recentActivity = SubscriberActivityLog::where('user_id', $user->id)
             ->latest('created_at')
             ->take(10)
             ->get();
 
+        // ── Top share links by views ─────────────────────────────
         $topShareLinks = SubscriberShareLink::where('user_id', $user->id)
             ->with('product')
             ->orderByDesc('view_count')
             ->take(5)
             ->get();
 
+        // ── Notifications ───────────────────────────────────────
         $recentNotifications = $user->notifications()->latest()->take(5)->get();
+
+        // ── Chart data based on filter (100% real) ──────────────
+        $chartData = $this->getChartDataForFilter($filter, $user->id);
+
+        $conversionRateData = [];
+        foreach ($chartData['visits'] as $idx => $v) {
+            $s = $chartData['shares'][$idx] ?? 0;
+            $conversionRateData[] = $v > 0 ? round(($s / $v) * 100, 1) : 0;
+        }
 
         $dashboardCharts = [
             'monthlyViews' => [
-                'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                'data' => [124, 168, 152, 192, 240, 224, 268],
+                'labels' => $chartData['labels'],
+                'data'   => $chartData['visits'],
             ],
             'conversionRate' => [
-                'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-                'data' => [3.2, 3.8, 4.1, 4.3, 4.6, 4.8, 5.1],
-            ],
-            'weeklyActivity' => [
-                'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                'data' => [12, 18, 15, 21, 26, 22, 28],
+                'labels' => $chartData['labels'],
+                'data'   => $conversionRateData,
             ],
         ];
+
+        $currentFilter = $filter;
 
         return view('subscriber-panel.dashboard.index', compact(
             'user',
@@ -118,107 +145,400 @@ class DashboardController extends Controller
             'recentActivity',
             'topShareLinks',
             'dashboardCharts',
-            'recentNotifications'
+            'recentNotifications',
+            'currentFilter'
         ));
     }
 
-    protected function buildAdminData($user): array
+    /* ─────────────────────────────────────────────────────────────
+     |  ADMIN DASHBOARD  — 100 % real data
+     * ──────────────────────────────────────────────────────────── */
+    protected function buildAdminData($user, $filter = 'all_time'): array
     {
-        $brandsCount = Brand::count();
-        $categoriesCount = Category::count();
+        // ── Core counts ──────────────────────────────────────────
+        $brandsCount       = Brand::count();
+        $categoriesCount   = Category::count();
         $subcategoriesCount = Subcategory::count();
-        $productsCount = Product::count();
-        $usersCount = User::count();
-        $rolesCount = Role::count();
-        $enquiriesCount = Enquiry::count();
+        $productsCount     = $this->applyDateFilter(Product::query(), $filter)->count();
+        $usersCount        = $this->applyDateFilter(User::query(), $filter)->count();
+        $rolesCount        = Role::count();
+        $enquiriesCount    = $this->applyDateFilter(Enquiry::query(), $filter)->count();
 
-        $recentProducts = Product::with('category')->latest()->take(5)->get();
-        $recentUsers = User::latest()->take(5)->get();
-        $recentEnquiries = Enquiry::latest()->take(5)->get();
+        $recentProducts  = Product::with('category')->latest()->take(5)->get();
+        $recentUsers     = User::latest()->take(5)->get();
+        $recentEnquiries = Enquiry::with(['product', 'brand', 'subscriberProduct'])->latest()->take(5)->get();
 
+        // ── Permission flags ─────────────────────────────────────
         $dashboardAccess = [
-            'dashboard' => $user->can('dashboard.view') || $user->can('view-dashboard'),
-            'analytics' => $user->can('dashboard.analytics') || $user->can('view-dashboard'),
-            'users' => $user->can('users.view') || $user->can('view-users'),
-            'products' => $user->can('products.view') || $user->can('view-products'),
-            'brands' => $user->can('brands.view') || $user->can('view-brands'),
-            'categories' => $user->can('categories.view') || $user->can('view-categories'),
-            'enquiries' => $user->can('enquiries.view') || $user->can('view-enquiries'),
-            'roles' => $user->can('roles.manage') || $user->can('view-roles'),
-            'permissions' => $user->can('permissions.manage') || $user->can('view-permissions'),
-            'settings' => $user->can('settings.manage') || $user->can('view-settings'),
-            'system' => $user->can('system.manage') || $user->can('manage-system'),
+            'dashboard'   => $user->can('dashboard.view')    || $user->can('view-dashboard'),
+            'analytics'   => $user->can('dashboard.analytics')|| $user->can('view-dashboard'),
+            'users'       => $user->can('users.view')        || $user->can('view-users'),
+            'products'    => $user->can('products.view')     || $user->can('view-products'),
+            'brands'      => $user->can('brands.view')       || $user->can('view-brands'),
+            'categories'  => $user->can('categories.view')   || $user->can('view-categories'),
+            'enquiries'   => $user->can('enquiries.view')    || $user->can('view-enquiries'),
+            'roles'       => $user->can('roles.manage')      || $user->can('view-roles'),
+            'permissions' => $user->can('permissions.manage')|| $user->can('view-permissions'),
+            'settings'    => $user->can('settings.manage')   || $user->can('view-settings'),
+            'system'      => $user->can('system.manage')     || $user->can('manage-system'),
         ];
 
+        // ── Subscriber & vendor counts (real) ────────────────────
+        $subscriberCount = User::role('Subscriber')->count();
+        $activeVendors   = \App\Models\SubscriberProfile::whereIn('status', ['approved', 'active'])->count();
+        $totalStores     = \App\Models\SubscriberProfile::count();
+        $pendingApprovals = \App\Models\SubscriberProfile::where('status', 'pending')->count();
+
+        // ── Revenue (real) ───────────────────────────────────────
+        $totalRevenue  = $this->applyDateFilter(\App\Models\Payment::where('status', 'success'), $filter, 'paid_at')->sum('amount') ?: 0.00;
+        $revenue       = '₹' . number_format($totalRevenue, 2);
+        $monthlyOrders = $this->applyDateFilter(\App\Models\Payment::where('status', 'success'), $filter, 'paid_at')->count();
+
+        // ── Conversion rate: enquiries vs total share-link views ─
+        $totalViews     = $this->applyDateFilter(SubscriberShareLink::query(), $filter)->sum('view_count') ?: 0;
+        $conversionRate = $totalViews > 0 ? round(($enquiriesCount / $totalViews) * 100, 1) : 0;
+
+        // ── Chart data dynamically loaded based on filter (100% real) ──
+        $chartData = $this->getChartDataForFilter($filter);
+
+        // ── Sharing breakdown (real) ─────────────────────────────
+        $whatsappShares = $this->applyDateFilter(SubscriberShareLink::where('type', 'whatsapp'), $filter)->count();
+        $pdfShares      = $this->applyDateFilter(SubscriberShareLink::where(function($q) {
+            $q->where('type', 'pdf')->orWhereNotNull('pdf_path');
+        }), $filter)->count();
+        $linkShares     = $this->applyDateFilter(SubscriberShareLink::where(function($q) {
+            $q->where('type', 'catalog')->orWhere('type', 'image');
+        }), $filter)->count();
+
+        // ── Top catalogue products by share-link views (real) ────
+        $topProductsQuery = SubscriberProduct::where('approval_status', 'approved')
+            ->withCount(['shareLinks as total_views' => function ($q) use ($filter) {
+                $q->select(DB::raw('COALESCE(SUM(view_count),0)'));
+                $this->applyDateFilter($q, $filter);
+            }])
+            ->orderByDesc('total_views')
+            ->take(5)
+            ->get();
+
+        $topProducts = $topProductsQuery->map(function ($tp) {
+            return [
+                'name'    => $tp->name,
+                'sales'   => $tp->total_views ?? 0,
+                'revenue' => $tp->offer_price
+                    ? '₹' . number_format($tp->offer_price, 2)
+                    : ($tp->mrp ? '₹' . number_format($tp->mrp, 2) : '—'),
+                'trend'   => ($tp->total_views ?? 0) > 0 ? 'up' : 'neutral',
+            ];
+        })->toArray();
+
+        // Fallback when there are no subscriber products yet
+        if (empty($topProducts)) {
+            // Use global admin products instead
+            $adminProducts = Product::orderByDesc('created_at')->take(5)->get();
+            $topProducts = $adminProducts->map(function ($p) {
+                return [
+                    'name'    => $p->name,
+                    'sales'   => 0,
+                    'revenue' => $p->price ? '₹' . number_format($p->price, 2) : '—',
+                    'trend'   => 'neutral',
+                ];
+            })->toArray();
+        }
+
+        // ── Recent transactions (real) ───────────────────────────
+        $payments = $this->applyDateFilter(\App\Models\Payment::with(['user', 'plan']), $filter)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $recentTransactions = $payments->map(function ($p) {
+            return [
+                'id'       => $p->transaction_id ?? ('TXN-' . str_pad($p->id, 5, '0', STR_PAD_LEFT)),
+                'customer' => $p->user?->name ?? 'Unknown',
+                'amount'   => '₹' . number_format($p->amount, 2),
+                'status'   => $p->status,
+                'date'     => $p->created_at->diffForHumans(),
+            ];
+        })->toArray();
+
+        // ── Support tickets from real enquiries ──────────────────
+        $ticketsQuery = $this->applyDateFilter(Enquiry::query(), $filter)->latest()->take(4)->get();
+        $supportTickets = $ticketsQuery->map(function ($t) {
+            return [
+                'id'       => 'TKT-' . str_pad($t->id, 3, '0', STR_PAD_LEFT),
+                'subject'  => $t->subject ?: ($t->name ? $t->name . "'s Enquiry" : 'B2B Product Enquiry'),
+                'priority' => $t->is_read ? 'low' : 'medium',
+                'status'   => $t->is_read ? 'resolved' : 'open',
+            ];
+        })->toArray();
+
+        // ── Active users (real — last 30 minutes) ─────────────────
+        $recentlyActiveUsers = User::with('roles')
+            ->where('updated_at', '>=', now()->subMinutes(30))
+            ->orderByDesc('updated_at')
+            ->take(4)
+            ->get()
+            ->map(function ($u) {
+                $minutesAgo = $u->updated_at->diffInMinutes(now());
+                return [
+                    'name'       => $u->name,
+                    'role'       => $u->roles->pluck('name')->first() ?? 'User',
+                    'lastActive' => $u->updated_at->diffForHumans(),
+                    'status'     => $minutesAgo < 5 ? 'online' : ($minutesAgo < 15 ? 'away' : 'offline'),
+                ];
+            })->toArray();
+
+        // Fallback: load last 4 users if none active recently
+        if (empty($recentlyActiveUsers)) {
+            $recentlyActiveUsers = User::with('roles')
+                ->orderByDesc('updated_at')
+                ->take(4)
+                ->get()
+                ->map(function ($u) {
+                    return [
+                        'name'       => $u->name,
+                        'role'       => $u->roles->pluck('name')->first() ?? 'User',
+                        'lastActive' => $u->updated_at->diffForHumans(),
+                        'status'     => 'offline',
+                    ];
+                })->toArray();
+        }
+
+        // ── Notifications from real DB notifications ──────────────
+        $notifList = $user->notifications()->latest()->take(4)->get()
+            ->map(function ($n) {
+                $data = $n->data;
+                return [
+                    'type'    => $data['type']    ?? 'system',
+                    'message' => $data['message'] ?? ($data['title'] ?? 'New notification'),
+                    'time'    => $n->created_at->diffForHumans(),
+                ];
+            })->toArray();
+
+        // ── Comparative growth % based on filter ──────────────────
+        $now = now();
+        if ($filter === 'today') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereDate('paid_at', $now->toDateString())->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereDate('paid_at', $now->copy()->subDay()->toDateString())->sum('amount') ?: 0;
+        } elseif ($filter === 'yesterday') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereDate('paid_at', $now->copy()->subDay()->toDateString())->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereDate('paid_at', $now->copy()->subDays(2)->toDateString())->sum('amount') ?: 0;
+        } elseif ($filter === 'this_week') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereBetween('paid_at', [$now->copy()->startOfWeek()->toDateTimeString(), $now->copy()->endOfWeek()->toDateTimeString()])->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereBetween('paid_at', [$now->copy()->subWeek()->startOfWeek()->toDateTimeString(), $now->copy()->subWeek()->endOfWeek()->toDateTimeString()])->sum('amount') ?: 0;
+        } elseif ($filter === 'last_30_days') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereBetween('paid_at', [$now->copy()->subDays(30)->toDateTimeString(), now()->toDateTimeString()])->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereBetween('paid_at', [$now->copy()->subDays(60)->toDateTimeString(), $now->copy()->subDays(30)->toDateTimeString()])->sum('amount') ?: 0;
+        } elseif ($filter === 'this_month') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereMonth('paid_at', $now->month)->whereYear('paid_at', $now->year)->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereMonth('paid_at', $now->copy()->subMonth()->month)->whereYear('paid_at', $now->copy()->subMonth()->year)->sum('amount') ?: 0;
+        } elseif ($filter === 'last_month') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereMonth('paid_at', $now->copy()->subMonth()->month)->whereYear('paid_at', $now->copy()->subMonth()->year)->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereMonth('paid_at', $now->copy()->subMonths(2)->month)->whereYear('paid_at', $now->copy()->subMonths(2)->year)->sum('amount') ?: 0;
+        } elseif ($filter === 'this_year') {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->whereYear('paid_at', $now->year)->sum('amount') ?: 0;
+            $previousPeriod = \App\Models\Payment::where('status', 'success')->whereYear('paid_at', $now->copy()->subYear()->year)->sum('amount') ?: 0;
+        } else {
+            $currentPeriod = \App\Models\Payment::where('status', 'success')->sum('amount') ?: 0;
+            $previousPeriod = 0;
+        }
+        $monthlyGrowth = $previousPeriod > 0 ? round((($currentPeriod - $previousPeriod) / $previousPeriod) * 100, 1) : 0;
+
         return [
-            'user' => $user,
-            'currentRole' => $this->currentRole($user),
-            'dashboardAccess' => $dashboardAccess,
-            'brandsCount' => $brandsCount,
-            'categoriesCount' => $categoriesCount,
+            'user'               => $user,
+            'currentRole'        => $this->currentRole($user),
+            'dashboardAccess'    => $dashboardAccess,
+
+            // Counts
+            'brandsCount'        => $brandsCount,
+            'categoriesCount'    => $categoriesCount,
             'subcategoriesCount' => $subcategoriesCount,
-            'productsCount' => $productsCount,
-            'usersCount' => $usersCount,
-            'rolesCount' => $rolesCount,
-            'enquiriesCount' => $enquiriesCount,
-            'subscriberCount' => User::role('Subscriber')->count() ?: 12540,
-            'revenue' => '₹12,45,320',
-            'monthlyOrders' => 1284,
-            'activeVendors' => 86,
-            'subscribersCount' => User::role('Subscriber')->count() ?: 12540,
-            'conversionRate' => 4.8,
-            'monthlyGrowth' => 12.5,
+            'productsCount'      => $productsCount,
+            'usersCount'         => $usersCount,
+            'rolesCount'         => $rolesCount,
+            'enquiriesCount'     => $enquiriesCount,
+            'subscriberCount'    => $subscriberCount,
+            'subscribersCount'   => $subscriberCount,
+            'activeVendors'      => $activeVendors,
+            'totalStores'        => $totalStores,
+            'pendingApprovals'   => $pendingApprovals,
+
+            // KPIs
+            'revenue'            => $revenue,
+            'monthlyOrders'      => $monthlyOrders,
+            'conversionRate'     => $conversionRate,
+            'totalViews'         => $totalViews,
+            'monthlyGrowth'      => $monthlyGrowth,
+
+            // Charts (100% real)
             'revenueChart' => [
-                'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                'revenue' => [845000, 920000, 780000, 1050000, 1120000, 980000, 1245320, 1180000, 1320000, 1150000, 1280000, 1390000],
-                'orders' => [820, 910, 756, 1020, 1090, 945, 1284, 1150, 1310, 1080, 1240, 1350],
-            ],
-            'topProducts' => [
-                ['name' => 'Cat6A UTP Cable', 'sales' => 342, 'revenue' => '₹2,56,800', 'trend' => 'up'],
-                ['name' => 'Panduit Patch Panel 24P', 'sales' => 285, 'revenue' => '₹1,98,450', 'trend' => 'up'],
-                ['name' => 'Legrand LCS3 Module', 'sales' => 224, 'revenue' => '₹1,45,600', 'trend' => 'down'],
-                ['name' => 'Fiber Optic Pigtail SC', 'sales' => 198, 'revenue' => '₹89,100', 'trend' => 'up'],
-                ['name' => 'Server Rack 42U', 'sales' => 156, 'revenue' => '₹4,68,000', 'trend' => 'neutral'],
-            ],
-            'recentTransactions' => [
-                ['id' => 'TXN-2024-001', 'customer' => 'Infosys Ltd', 'amount' => '₹1,25,000', 'status' => 'completed', 'date' => 'Today'],
-                ['id' => 'TXN-2024-002', 'customer' => 'TCS Mumbai', 'amount' => '₹89,500', 'status' => 'processing', 'date' => 'Yesterday'],
-                ['id' => 'TXN-2024-003', 'customer' => 'Wipro Bangalore', 'amount' => '₹2,45,000', 'status' => 'completed', 'date' => '2 days ago'],
-                ['id' => 'TXN-2024-004', 'customer' => 'HCL Technologies', 'amount' => '₹56,200', 'status' => 'pending', 'date' => '3 days ago'],
-                ['id' => 'TXN-2024-005', 'customer' => 'Tech Mahindra', 'amount' => '₹1,78,000', 'status' => 'completed', 'date' => '4 days ago'],
-            ],
-            'supportTickets' => [
-                ['id' => 'TKT-089', 'subject' => 'Bulk order discount query', 'priority' => 'high', 'status' => 'open'],
-                ['id' => 'TKT-088', 'subject' => 'Delivery delay for #ORD-1245', 'priority' => 'medium', 'status' => 'in-progress'],
-                ['id' => 'TKT-087', 'subject' => 'Product spec sheet request', 'priority' => 'low', 'status' => 'resolved'],
-                ['id' => 'TKT-086', 'subject' => 'Invoice correction needed', 'priority' => 'high', 'status' => 'open'],
-            ],
-            'activeUsers' => [
-                ['name' => 'Rajesh Kumar', 'role' => 'Admin', 'lastActive' => '2 mins ago', 'status' => 'online'],
-                ['name' => 'Priya Sharma', 'role' => 'Staff', 'lastActive' => '15 mins ago', 'status' => 'online'],
-                ['name' => 'Amit Patel', 'role' => 'Subscriber', 'lastActive' => '1 hr ago', 'status' => 'away'],
-                ['name' => 'Sneha Gupta', 'role' => 'Subscriber', 'lastActive' => '3 hrs ago', 'status' => 'offline'],
-            ],
-            'notifications' => [
-                ['type' => 'order', 'message' => 'New order #ORD-1285 from Infosys Ltd', 'time' => '5 mins ago'],
-                ['type' => 'subscriber', 'message' => 'New subscriber registration: Wipro Tech', 'time' => '1 hr ago'],
-                ['type' => 'system', 'message' => 'System backup completed successfully', 'time' => '3 hrs ago'],
-                ['type' => 'alert', 'message' => 'Low stock alert: Cat6A Cable (12 units)', 'time' => '5 hrs ago'],
+                'labels'  => $chartData['labels'],
+                'revenue' => $chartData['revenue'],
+                'orders'  => $chartData['orders'],
             ],
             'analytics' => [
-                'visits' => [1200, 1500, 1100, 1800, 2200, 2500, 2100],
-                'shares' => [45, 52, 38, 65, 82, 95, 88],
-                'enquiries' => [12, 15, 10, 18, 22, 25, 21],
-                'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                'visits'      => $chartData['visits'],
+                'shares'      => $chartData['shares'],
+                'enquiries'   => $chartData['enquiries'],
+                'labels'      => $chartData['labels'],
                 'sharing_breakdown' => [
-                    'whatsapp' => 1450,
-                    'pdf' => 820,
-                    'link' => 1221,
+                    'whatsapp' => $whatsappShares,
+                    'pdf'      => $pdfShares,
+                    'link'     => $linkShares,
                 ],
             ],
-            'recentProducts' => $recentProducts,
-            'recentUsers' => $recentUsers,
-            'recentEnquiries' => $recentEnquiries,
+
+            // Tables
+            'topProducts'        => $topProducts,
+            'recentTransactions' => $recentTransactions,
+            'supportTickets'     => $supportTickets,
+            'activeUsers'        => $recentlyActiveUsers,
+            'notifications'      => $notifList,
+            'recentProducts'     => $recentProducts,
+            'recentUsers'        => $recentUsers,
+            'recentEnquiries'    => $recentEnquiries,
+        ];
+    }
+
+    protected function applyDateFilter($query, $filter, $column = 'created_at')
+    {
+        $now = now();
+        switch ($filter) {
+            case 'today':
+                return $query->whereDate($column, $now->toDateString());
+            case 'yesterday':
+                return $query->whereDate($column, $now->copy()->subDay()->toDateString());
+            case 'this_week':
+                return $query->whereBetween($column, [$now->copy()->startOfWeek()->toDateTimeString(), $now->copy()->endOfWeek()->toDateTimeString()]);
+            case 'last_30_days':
+                return $query->whereBetween($column, [$now->copy()->subDays(30)->toDateTimeString(), now()->toDateTimeString()]);
+            case 'this_month':
+                return $query->whereMonth($column, $now->month)->whereYear($column, $now->year);
+            case 'last_month':
+                $lastMonth = $now->copy()->subMonth();
+                return $query->whereMonth($column, $lastMonth->month)->whereYear($column, $lastMonth->year);
+            case 'this_year':
+                return $query->whereYear($column, $now->year);
+            case 'all_time':
+            default:
+                return $query;
+        }
+    }
+
+    protected function getChartDataForFilter($filter, $userId = null)
+    {
+        $now = now();
+        $labels = [];
+        $revenue = [];
+        $orders = [];
+        $visits = [];
+        $shares = [];
+        $enquiries = [];
+
+        $paymentQuery = \App\Models\Payment::where('status', 'success');
+        $shareQuery = \App\Models\SubscriberShareLink::query();
+        $enquiryQuery = \App\Models\Enquiry::query();
+
+        if ($userId) {
+            $paymentQuery->where('user_id', $userId);
+            $shareQuery->where('user_id', $userId);
+        }
+
+        if ($filter === 'today' || $filter === 'yesterday') {
+            $targetDate = $filter === 'today' ? $now : $now->copy()->subDay();
+            $dateStr = $targetDate->toDateString();
+
+            for ($h = 0; $h < 24; $h++) {
+                $labels[] = sprintf('%02d:00', $h);
+
+                $revenue[] = (float) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->whereRaw('HOUR(paid_at) = ?', [$h])->sum('amount');
+                $orders[] = (int) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->whereRaw('HOUR(paid_at) = ?', [$h])->count();
+                $visits[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->whereRaw('HOUR(created_at) = ?', [$h])->sum('view_count');
+                $shares[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->whereRaw('HOUR(created_at) = ?', [$h])->sum('download_count');
+                if (!$userId) {
+                    $enquiries[] = (int) (clone $enquiryQuery)->whereDate('created_at', $dateStr)->whereRaw('HOUR(created_at) = ?', [$h])->count();
+                } else {
+                    $enquiries[] = 0;
+                }
+            }
+        } elseif ($filter === 'this_week') {
+            $start = $now->copy()->startOfWeek();
+            for ($i = 0; $i < 7; $i++) {
+                $day = $start->copy()->addDays($i);
+                $labels[] = $day->format('D');
+                $dateStr = $day->toDateString();
+
+                $revenue[] = (float) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->sum('amount');
+                $orders[] = (int) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->count();
+                $visits[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->sum('view_count');
+                $shares[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->sum('download_count');
+                if (!$userId) {
+                    $enquiries[] = (int) (clone $enquiryQuery)->whereDate('created_at', $dateStr)->count();
+                } else {
+                    $enquiries[] = 0;
+                }
+            }
+        } elseif ($filter === 'last_30_days') {
+            for ($i = 29; $i >= 0; $i--) {
+                $day = $now->copy()->subDays($i);
+                $labels[] = $day->format('M d');
+                $dateStr = $day->toDateString();
+
+                $revenue[] = (float) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->sum('amount');
+                $orders[] = (int) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->count();
+                $visits[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->sum('view_count');
+                $shares[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->sum('download_count');
+                if (!$userId) {
+                    $enquiries[] = (int) (clone $enquiryQuery)->whereDate('created_at', $dateStr)->count();
+                } else {
+                    $enquiries[] = 0;
+                }
+            }
+        } elseif ($filter === 'this_month' || $filter === 'last_month') {
+            $targetMonth = $filter === 'this_month' ? $now : $now->copy()->subMonth();
+            $daysInMonth = $targetMonth->daysInMonth;
+
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $day = $targetMonth->copy()->day($d);
+                $labels[] = $day->format('d');
+                $dateStr = $day->toDateString();
+
+                $revenue[] = (float) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->sum('amount');
+                $orders[] = (int) (clone $paymentQuery)->whereDate('paid_at', $dateStr)->count();
+                $visits[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->sum('view_count');
+                $shares[] = (int) (clone $shareQuery)->whereDate('created_at', $dateStr)->sum('download_count');
+                if (!$userId) {
+                    $enquiries[] = (int) (clone $enquiryQuery)->whereDate('created_at', $dateStr)->count();
+                } else {
+                    $enquiries[] = 0;
+                }
+            }
+        } else {
+            // this_year, all_time or default: monthly breakdown
+            $months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            $labels = $months;
+            $year = $filter === 'last_year' ? $now->year - 1 : $now->year;
+
+            for ($m = 1; $m <= 12; $m++) {
+                $revenue[] = (float) (clone $paymentQuery)->whereYear('paid_at', $year)->whereMonth('paid_at', $m)->sum('amount');
+                $orders[] = (int) (clone $paymentQuery)->whereYear('paid_at', $year)->whereMonth('paid_at', $m)->count();
+                $visits[] = (int) (clone $shareQuery)->whereYear('created_at', $year)->whereMonth('created_at', $m)->sum('view_count');
+                $shares[] = (int) (clone $shareQuery)->whereYear('created_at', $year)->whereMonth('created_at', $m)->sum('download_count');
+                if (!$userId) {
+                    $enquiries[] = (int) (clone $enquiryQuery)->whereYear('created_at', $year)->whereMonth('created_at', $m)->count();
+                } else {
+                    $enquiries[] = 0;
+                }
+            }
+        }
+
+        return [
+            'labels' => $labels,
+            'revenue' => $revenue,
+            'orders' => $orders,
+            'visits' => $visits,
+            'shares' => $shares,
+            'enquiries' => $enquiries,
         ];
     }
 

@@ -63,6 +63,8 @@ class SubscriberMiddleware
                 'subscriber.subscription.plans',
                 'subscriber.subscription.checkout',
                 'subscriber.subscription.pay',
+                'subscriber.subscription.razorpay.order',
+                'subscriber.subscription.razorpay.verify',
             ];
             if (in_array($currentRoute, $billingRoutes, true)) {
                 return $next($request);

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Attribute;
 use App\Models\AttributeGroup;
 use App\Models\AttributeOption;
+use App\Models\Subcategory;
+use App\Models\SubcategoryAttribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -16,7 +18,7 @@ class AttributeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Attribute::where('is_global', true)->with(['group', 'options']);
+        $query = Attribute::where('is_global', true)->with(['group', 'options', 'subscriber.subscriberProfile']);
 
         if ($request->search) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -32,6 +34,17 @@ class AttributeController extends Controller
     }
 
     /**
+     * Show the form for creating a new global attribute.
+     */
+    public function create()
+    {
+        $groups = AttributeGroup::orderBy('sort_order')->get();
+        $types = Attribute::TYPES;
+        $subcategories = Subcategory::with('category')->orderBy('name')->get();
+        return view('admin.attributes.create', compact('groups', 'types', 'subcategories'));
+    }
+
+    /**
      * Store a newly created global attribute.
      */
     public function store(Request $request)
@@ -43,7 +56,7 @@ class AttributeController extends Controller
             'unit'               => 'nullable|string|max:50',
             'placeholder'        => 'nullable|string|max:255',
             'default_value'      => 'nullable|string',
-            'options'            => 'nullable|string', // Comma-separated options for select type
+            'options'            => 'nullable', // supports structured array OR comma-separated string
         ]);
 
         $slug = Str::slug($request->name);
@@ -72,18 +85,49 @@ class AttributeController extends Controller
             'sort_order'         => Attribute::where('is_global', true)->max('sort_order') + 1,
         ]);
 
-        // Save options if select type
+        // Save options if select/list type
         if ($attribute->isSelectType() && $request->options) {
-            $options = array_map('trim', explode(',', $request->options));
-            foreach ($options as $index => $optText) {
-                if ($optText !== '') {
-                    AttributeOption::create([
-                        'attribute_id' => $attribute->id,
-                        'value'        => Str::slug($optText),
-                        'label'        => $optText,
-                        'sort_order'   => $index,
-                    ]);
+            if (is_array($request->options)) {
+                // Structured Options Builder format
+                foreach ($request->options as $index => $option) {
+                    if (!empty($option['label'])) {
+                        AttributeOption::create([
+                            'attribute_id' => $attribute->id,
+                            'label'        => $option['label'],
+                            'value'        => $option['value'] ?? Str::slug($option['label']),
+                            'color_code'   => $option['color_code'] ?? null,
+                            'sort_order'   => $index,
+                            'is_default'   => !empty($option['is_default']),
+                        ]);
+                    }
                 }
+            } else {
+                // Comma-separated string format
+                $options = array_map('trim', explode(',', $request->options));
+                foreach ($options as $index => $optText) {
+                    if ($optText !== '') {
+                        AttributeOption::create([
+                            'attribute_id' => $attribute->id,
+                            'value'        => Str::slug($optText),
+                            'label'        => $optText,
+                            'sort_order'   => $index,
+                            'is_default'   => false,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Sync Subcategory Mappings
+        if ($request->has('subcategories')) {
+            foreach ($request->input('subcategories') as $subcatId) {
+                SubcategoryAttribute::create([
+                    'subcategory_id'     => $subcatId,
+                    'attribute_id'       => $attribute->id,
+                    'attribute_group_id' => $request->attribute_group_id,
+                    'is_required'        => $request->boolean('is_required'),
+                    'sort_order'         => 0,
+                ]);
             }
         }
 
@@ -92,17 +136,40 @@ class AttributeController extends Controller
     }
 
     /**
+     * Show the edit form for a global attribute.
+     */
+    public function edit($id)
+    {
+        $attribute = Attribute::findOrFail($id);
+        $groups = AttributeGroup::orderBy('sort_order')->get();
+        $subcategories = Subcategory::with('category')->orderBy('name')->get();
+        
+        // Fetch currently mapped subcategories
+        $selectedSubcategoryIds = SubcategoryAttribute::where('attribute_id', $attribute->id)
+            ->pluck('subcategory_id')
+            ->toArray();
+            
+        $types = Attribute::TYPES;
+        
+        return view('admin.attributes.edit', compact('attribute', 'groups', 'subcategories', 'selectedSubcategoryIds', 'types'));
+    }
+
+    /**
      * Update an attribute.
      */
-    public function update(Request $request, Attribute $attribute)
+    public function update(Request $request, $attribute)
     {
+        if (!$attribute instanceof Attribute) {
+            $attribute = Attribute::findOrFail($attribute);
+        }
+
         $request->validate([
             'name'               => 'required|string|max:255',
             'attribute_group_id' => 'nullable|exists:attribute_groups,id',
             'unit'               => 'nullable|string|max:50',
             'placeholder'        => 'nullable|string|max:255',
             'default_value'      => 'nullable|string',
-            'options'            => 'nullable|string',
+            'options'            => 'nullable',
         ]);
 
         $attribute->update([
@@ -119,19 +186,53 @@ class AttributeController extends Controller
             'is_active'          => $request->boolean('is_active', true),
         ]);
 
-        // Recreate options if select type and options passed
-        if ($attribute->isSelectType() && $request->options) {
+        // Recreate options if select/list type
+        if ($attribute->isSelectType()) {
             $attribute->options()->delete();
-            $options = array_map('trim', explode(',', $request->options));
-            foreach ($options as $index => $optText) {
-                if ($optText !== '') {
-                    AttributeOption::create([
-                        'attribute_id' => $attribute->id,
-                        'value'        => Str::slug($optText),
-                        'label'        => $optText,
-                        'sort_order'   => $index,
-                    ]);
+            if ($request->options) {
+                if (is_array($request->options)) {
+                    // Structured Options Builder format
+                    foreach ($request->options as $index => $option) {
+                        if (!empty($option['label'])) {
+                            AttributeOption::create([
+                                'attribute_id' => $attribute->id,
+                                'label'        => $option['label'],
+                                'value'        => $option['value'] ?? Str::slug($option['label']),
+                                'color_code'   => $option['color_code'] ?? null,
+                                'sort_order'   => $index,
+                                'is_default'   => !empty($option['is_default']),
+                            ]);
+                        }
+                    }
+                } else {
+                    // Comma-separated string format
+                    $options = array_map('trim', explode(',', $request->options));
+                    foreach ($options as $index => $optText) {
+                        if ($optText !== '') {
+                            AttributeOption::create([
+                                'attribute_id' => $attribute->id,
+                                'value'        => Str::slug($optText),
+                                'label'        => $optText,
+                                'sort_order'   => $index,
+                                'is_default'   => false,
+                            ]);
+                        }
+                    }
                 }
+            }
+        }
+
+        // Sync Subcategory Mappings
+        SubcategoryAttribute::where('attribute_id', $attribute->id)->delete();
+        if ($request->has('subcategories')) {
+            foreach ($request->input('subcategories') as $subcatId) {
+                SubcategoryAttribute::create([
+                    'subcategory_id'     => $subcatId,
+                    'attribute_id'       => $attribute->id,
+                    'attribute_group_id' => $request->attribute_group_id,
+                    'is_required'        => $request->boolean('is_required'),
+                    'sort_order'         => 0,
+                ]);
             }
         }
 
@@ -142,9 +243,14 @@ class AttributeController extends Controller
     /**
      * Delete an attribute.
      */
-    public function destroy(Attribute $attribute)
+    public function destroy($attribute)
     {
+        if (!$attribute instanceof Attribute) {
+            $attribute = Attribute::findOrFail($attribute);
+        }
+
         $attribute->options()->delete();
+        SubcategoryAttribute::where('attribute_id', $attribute->id)->delete();
         $attribute->delete();
 
         return redirect()->route('admin.attributes.index')
@@ -171,34 +277,95 @@ class AttributeController extends Controller
      */
     public function forSubcategory($subcategoryId)
     {
-        $attributes = Attribute::where('is_global', true)
-            ->whereJsonContains('subcategories', (int) $subcategoryId)
-            ->with(['options', 'group'])
-            ->orderBy('sort_order')
+        $subcatAttrs = SubcategoryAttribute::where('subcategory_id', $subcategoryId)
+            ->with(['attribute.options', 'attribute.group'])
             ->get();
 
-        // Normalize for frontend consumption
-        $payload = $attributes->map(function ($a) {
-            return [
-                'id' => $a->id,
-                'name' => $a->name,
-                'slug' => $a->slug,
-                'type' => $a->type,
-                'placeholder' => $a->placeholder,
-                'unit' => $a->unit,
-                'is_required' => (bool) $a->is_required,
-                'is_searchable' => (bool) $a->is_searchable,
-                'is_filterable' => (bool) $a->is_filterable,
-                'is_comparable' => (bool) $a->is_comparable,
-                'is_variant_enabled' => (bool) $a->is_variant_enabled,
-                'options' => $a->options->map(function($o){
-                    return ['id' => $o->id, 'label' => $o->label, 'value' => $o->value, 'color_code' => $o->color_code];
-                })->toArray(),
-                'group' => $a->group?->name ?? null,
-            ];
+        // Group attributes using mapGroupSection
+        $grouped = $subcatAttrs->groupBy(function($subcatAttr) {
+            return $this->mapGroupSection($subcatAttr->attribute?->group?->name);
         });
 
-        return response()->json($payload);
+        // Ensure we order them strictly: Basic, Technical, Packaging, Compliance, Commercial
+        $orderedGroups = [
+            'Basic Details',
+            'Technical Specifications',
+            'Packaging Details',
+            'Compliance & Safety',
+            'Commercial Details'
+        ];
+
+        $result = [];
+        foreach ($orderedGroups as $groupName) {
+            if (!$grouped->has($groupName)) {
+                continue;
+            }
+            $subcatAttrsInGroup = $grouped[$groupName];
+            $mappedAttrs = [];
+            foreach ($subcatAttrsInGroup as $subcatAttr) {
+                $attr = $subcatAttr->attribute;
+                if (!$attr || !$attr->is_active) {
+                    continue;
+                }
+                $mappedAttrs[] = [
+                    'id' => $attr->id,
+                    'name' => $attr->name,
+                    'type' => $attr->type,
+                    'unit' => $attr->unit,
+                    'placeholder' => $attr->placeholder,
+                    'default_value' => $attr->default_value,
+                    'is_required' => (bool)$subcatAttr->is_required,
+                    'approval_status' => $attr->approval_status,
+                    'options' => $attr->options->map(function($opt) {
+                        return [
+                            'value' => $opt->value,
+                            'label' => $opt->label,
+                            'is_default' => (bool)$opt->is_default
+                        ];
+                    })
+                ];
+            }
+            if (!empty($mappedAttrs)) {
+                $result[] = [
+                    'group_name' => $groupName,
+                    'attributes' => $mappedAttrs
+                ];
+            }
+        }
+
+        return response()->json($result);
+    }
+
+
+
+    /**
+     * Map any group name into one of the 5 standard sections strictly.
+     */
+    private function mapGroupSection(?string $groupName): string
+    {
+        if (!$groupName) {
+            return 'Basic Details';
+        }
+        
+        $name = strtolower(trim($groupName));
+        
+        if (str_contains($name, 'basic') || str_contains($name, 'general') || str_contains($name, 'overview') || str_contains($name, 'primary')) {
+            return 'Basic Details';
+        }
+        if (str_contains($name, 'tech') || str_contains($name, 'spec') || str_contains($name, 'feature') || str_contains($name, 'detail') || str_contains($name, 'performance')) {
+            return 'Technical Specifications';
+        }
+        if (str_contains($name, 'pack') || str_contains($name, 'box') || str_contains($name, 'shipping') || str_contains($name, 'dimension')) {
+            return 'Packaging Details';
+        }
+        if (str_contains($name, 'compliance') || str_contains($name, 'safety') || str_contains($name, 'cert') || str_contains($name, 'standard') || str_contains($name, 'legal')) {
+            return 'Compliance & Safety';
+        }
+        if (str_contains($name, 'commercial') || str_contains($name, 'price') || str_contains($name, 'cost') || str_contains($name, 'sale') || str_contains($name, 'sell') || str_contains($name, 'trade') || str_contains($name, 'vendor')) {
+            return 'Commercial Details';
+        }
+        
+        return 'Technical Specifications';
     }
 
     /**

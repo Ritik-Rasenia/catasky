@@ -14,7 +14,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::latest()->get(); // For DataTables, we can get all or paginate, DataTables client-side can handle all. Let's stick to get() or paginate(100). Let's do get() since it's client-side DT.
+        $categories = Category::with('subscriber.subscriberProfile')->latest()->get();
 
         return view('admin.categories.index', compact('categories'));
     }

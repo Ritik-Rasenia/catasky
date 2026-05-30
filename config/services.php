@@ -50,4 +50,9 @@ return [
         'base_url'      => env('DOUBLETICK_BASE_URL', 'https://public.doubletick.io'),
     ],
 
+    'razorpay' => [
+        'key'    => env('RAZORPAY_KEY', 'rzp_test_change_me'),
+        'secret' => env('RAZORPAY_SECRET', 'change_me_secret'),
+    ],
+
 ];

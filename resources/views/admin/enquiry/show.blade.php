@@ -88,6 +88,22 @@
                     </a>
                 </div>
             </div>
+            @elseif($enquiry->subscriberProduct)
+            <div class="card  border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+                    <h5 class="fw-bold mb-0">Inquired Subscriber Product</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    @if($enquiry->subscriberProduct->thumbnail_url)
+                    <img src="{{ $enquiry->subscriberProduct->thumbnail_url }}" alt="Product" class="img-fluid rounded mb-3" style="max-height: 150px;">
+                    @endif
+                    <h6 class="fw-bold mb-2">{{ $enquiry->subscriberProduct->name }}</h6>
+                    <div class="mb-3"><span class="badge rounded-pill bg-purple text-purple px-3 py-1 small" style="background: rgba(147, 51, 234, 0.08); color: rgb(147, 51, 234);">Subscriber Product</span></div>
+                    <a href="{{ route('product.details', $enquiry->subscriberProduct->slug) }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                        View on Website
+                    </a>
+                </div>
+            </div>
             @elseif($enquiry->brand)
             <div class="card  border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4">

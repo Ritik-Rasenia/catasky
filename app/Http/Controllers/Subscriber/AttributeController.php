@@ -66,7 +66,7 @@ class AttributeController extends Controller
             'show_in_share'      => $request->boolean('show_in_share', true),
             'is_active'          => $request->boolean('is_active', true),
             'is_global'          => false,
-            'approval_status'    => 'pending', // Awaiting Super Admin check
+            'approval_status'    => 'approved', // Auto-approved directly
             'sort_order'         => $request->sort_order ?? 0,
             'validation_rules'   => $request->validation_rules ? json_decode($request->validation_rules, true) : null,
         ]);
@@ -97,18 +97,6 @@ class AttributeController extends Controller
         }
 
         SubscriberActivityLog::log('created', 'Created attribute: ' . $attribute->name, $attribute);
-
-        // Notify Super Admins of new custom attribute request
-        try {
-            $superAdmins = \App\Models\User::role('Super Admin')->get();
-            if ($superAdmins->isNotEmpty()) {
-                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\AttributeRequestNotification([
-                    'title' => 'New Attribute Request',
-                    'message' => 'Subscriber ' . $user->name . ' has requested approval for a new custom attribute: "' . $attribute->name . '".',
-                    'action_url' => url('/dashboard/saas/approvals'),
-                ]));
-            }
-        } catch (\Exception $e) {}
 
         return redirect()->route('subscriber.attributes.index')
             ->with('success', 'Attribute created successfully!');
@@ -230,7 +218,7 @@ class AttributeController extends Controller
             'show_in_share'      => true,
             'is_active'          => true,
             'is_global'          => false,
-            'approval_status'    => 'pending',
+            'approval_status'    => 'approved', // Auto-approved directly
             'sort_order'         => 0,
         ]);
 
@@ -262,19 +250,6 @@ class AttributeController extends Controller
         // Activity Log
         SubscriberActivityLog::log('created', 'Requested custom specification attribute: ' . $attribute->name, $attribute);
 
-        // Notify Super Admins
-        try {
-            $superAdmins = \App\Models\User::role('Super Admin')->get();
-            if ($superAdmins->isNotEmpty()) {
-                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\AttributeRequestNotification([
-                    'title' => 'New Attribute Request',
-                    'message' => 'Subscriber ' . $user->name . ' has requested approval for a new B2B custom attribute: "' . $attribute->name . '".',
-                    'icon' => 'bi-sliders',
-                    'action_url' => url('/dashboard/saas/approvals'),
-                ]));
-            }
-        } catch (\Exception $e) {}
-
         // Fetch options if select
         $options = $attribute->options->map(function($opt) {
             return [
@@ -293,7 +268,7 @@ class AttributeController extends Controller
                 'placeholder'     => $attribute->placeholder,
                 'default_value'   => $attribute->default_value,
                 'is_required'     => false,
-                'approval_status' => 'pending',
+                'approval_status' => 'approved',
                 'options'         => $options
             ],
             'group_name'      => $request->group_section

@@ -15,11 +15,17 @@ class Category extends Model
         'slug',
         'image',
         'status',
+        'subscriber_id',
     ];
 
     public function subcategories()
     {
         return $this->hasMany(Subcategory::class);
+    }
+
+    public function subscriber()
+    {
+        return $this->belongsTo(User::class, 'subscriber_id');
     }
 
     public function products()

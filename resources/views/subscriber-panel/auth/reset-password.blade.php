@@ -9,7 +9,7 @@
         $faviconUrl = ($globalSetting && $globalSetting->favicon) ? asset('uploads/settings/' . $globalSetting->favicon) : asset('uploads/fav.png');
         $logoUrl = ($globalSetting && $globalSetting->logo) ? asset('uploads/settings/' . $globalSetting->logo) : null;
     @endphp
-    <title>Reset Password | {{ $siteTitle }}</title>
+    <title>Set New Password | {{ $siteTitle }}</title>
     <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
 
@@ -53,7 +53,6 @@
             flex-shrink: 0;
         }
 
-        /* Ambient Glowing Orbs */
         .brand-panel::before {
             content: '';
             position: absolute;
@@ -73,7 +72,6 @@
             pointer-events: none;
         }
 
-        /* Grid dots decoration */
         .grid-dots {
             position: absolute;
             inset: 0;
@@ -140,7 +138,6 @@
         .feature-item p { font-size: 0.875rem; color: rgba(255,255,255,0.8); font-weight: 500; margin: 0; }
         .feature-item span { font-size: 0.72rem; color: rgba(255,255,255,0.4); }
 
-        /* Mockup card on brand panel */
         .mini-mockup {
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
@@ -172,7 +169,6 @@
             overflow-y: auto;
         }
 
-        /* Prevent vertical scroll on standard screens, center elements beautifully */
         @media (min-height: 620px) and (min-width: 992px) {
             body {
                 height: 100vh;
@@ -183,7 +179,7 @@
             }
             .form-panel {
                 height: 100vh;
-                overflow-y: auto; /* allows scroll internally inside the pane if overflow occurs */
+                overflow-y: auto;
             }
         }
 
@@ -198,8 +194,6 @@
             font-size: 1.55rem; font-weight: 800; color: white; letter-spacing: -0.03em; margin-bottom: 4px;
         }
         .form-header p { font-size: 0.85rem; color: rgba(255,255,255,0.45); }
-        .form-header a { color: #818CF8; text-decoration: none; font-weight: 600; }
-        .form-header a:hover { color: #A5B4FC; }
 
         .form-floating-label {
             font-size: 0.72rem; font-weight: 600; letter-spacing: 0.3px;
@@ -219,7 +213,6 @@
             transition: all 0.3s ease;
             outline: none;
         }
-        .form-input::placeholder { color: rgba(255,255,255,0.2); }
         .form-input:focus {
             border-color: rgba(79,70,229,0.6);
             background: rgba(79,70,229,0.06);
@@ -253,22 +246,6 @@
             transform: translateY(-2px);
             box-shadow: 0 12px 28px rgba(79,70,229,0.45);
         }
-        .btn-signin:active { transform: translateY(0); }
-
-        .form-divider {
-            display: flex; align-items: center; gap: 12px; margin: 16px 0;
-        }
-        .form-divider::before, .form-divider::after {
-            content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.07);
-        }
-        .form-divider span { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-
-        .form-footer {
-            text-align: center; margin-top: 16px;
-            font-size: 0.8rem; color: rgba(255,255,255,0.35);
-        }
-        .form-footer a { color: #818CF8; text-decoration: none; font-weight: 600; }
-        .form-footer a:hover { color: #A5B4FC; }
 
         .forgot-link {
             color: #818CF8; text-decoration: none; font-size: 0.8rem; font-weight: 600;
@@ -283,14 +260,10 @@
             display: flex; align-items: center; gap: 10px;
         }
 
-        /* Responsive */
         @media (max-width: 991px) {
             .brand-panel { display: none; }
             .form-panel { padding: 32px 24px; }
             body { background: #0F172A; }
-        }
-        @media (max-width: 480px) {
-            .form-panel { padding: 24px 20px; }
         }
     </style>
 </head>
@@ -313,45 +286,22 @@
         <!-- Main Content -->
         <div class="brand-content">
             <h1 class="brand-headline">
-                The World's Most<br>Premium <span style="background:linear-gradient(135deg,#818CF8,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Catalogue Platform</span>
+                Secure Password<br><span style="background:linear-gradient(135deg,#818CF8,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Reset Window</span>
             </h1>
             <p class="brand-sub">
-                Manage B2B products. Create stunning PDF catalogues. Share them instantly via WhatsApp. All in one place.
+                Re-establish your corporate CataSky identity with highly-encrypted compliance credentials.
             </p>
-
-            <div class="feature-list">
-                @foreach([
-                    ['icon'=>'bi-file-earmark-pdf-fill','color'=>'rgba(79,70,229,0.15)','icolor'=>'#818CF8','title'=>'PDF Catalogue Generation','sub'=>'Multi-page branded PDF in seconds'],
-                    ['icon'=>'bi-whatsapp','color'=>'rgba(37,211,102,0.12)','icolor'=>'#4ADE80','title'=>'WhatsApp Sharing','sub'=>'Direct product cards to buyers'],
-                    ['icon'=>'bi-bar-chart-line-fill','color'=>'rgba(6,182,212,0.12)','icolor'=>'#22D3EE','title'=>'Analytics Dashboard','sub'=>'Track views, engagement & more'],
-                ] as $f)
-                <div class="feature-item">
-                    <div class="feature-dot" style="background:{{ $f['color'] }};">
-                        <i class="bi {{ $f['icon'] }}" style="color:{{ $f['icolor'] }};"></i>
-                    </div>
-                    <div>
-                        <p>{{ $f['title'] }}</p>
-                        <span>{{ $f['sub'] }}</span>
-                    </div>
-                </div>
-                @endforeach
-            </div>
         </div>
 
-        <!-- Mini Stats Mockup -->
         <div class="mini-mockup">
-            <div class="mini-mockup-label">Live Platform Stats</div>
+            <div class="mini-mockup-label">Live Platform Security</div>
             <div class="mini-stat">
-                <span class="mini-stat-label">Catalogues Created</span>
-                <span class="mini-stat-val">85,421</span>
+                <span class="mini-stat-label">SSL Encryption</span>
+                <span class="mini-stat-val text-success">Active 256-bit</span>
             </div>
             <div class="mini-stat">
-                <span class="mini-stat-label">PDFs Generated Today</span>
-                <span class="mini-stat-val">1,248</span>
-            </div>
-            <div class="mini-stat">
-                <span class="mini-stat-label">Active B2B Teams</span>
-                <span class="mini-stat-val">2,400+</span>
+                <span class="mini-stat-label">Password Storage</span>
+                <span class="mini-stat-val text-success">Argon2id/Bcrypt</span>
             </div>
         </div>
     </div>
@@ -374,8 +324,8 @@
 
             <!-- Header -->
             <div class="form-header">
-                <h2>Forgot Password? 🔑</h2>
-                <p>Enter your email to receive a secure link to reset your password</p>
+                <h2>Set New Password 🔑</h2>
+                <p>Please enter your secure, new B2B compliance credentials below</p>
             </div>
 
             <!-- Error Alert -->
@@ -386,47 +336,53 @@
             </div>
             @endif
 
-            @if (session('status'))
-            <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:12px 16px;color:#4ADE80;font-size:0.85rem;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
-                <i class="bi bi-check-circle-fill"></i>
-                <span>{{ session('status') }}</span>
-            </div>
-            @endif
-
             <!-- Form -->
-            <form action="{{ route('subscriber.forgot.submit') }}" method="POST" id="reset-form">
+            <form action="{{ route('subscriber.reset-password.submit') }}" method="POST" id="reset-form">
                 @csrf
+
+                <input type="hidden" name="token" value="{{ $token }}">
 
                 <div class="mb-3">
                     <label class="form-floating-label" for="email">Email Address</label>
                     <div class="input-wrap">
                         <i class="bi bi-envelope-fill input-icon"></i>
                         <input type="email" name="email" id="email"
-                            class="form-input @error('email') is-invalid @enderror"
-                            placeholder="you@company.com"
-                            value="{{ old('email') }}" required autocomplete="email">
+                            class="form-input"
+                            value="{{ $email }}" readonly required>
                     </div>
-                    @error('email')
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-floating-label" for="password">New Password</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-lock-fill input-icon"></i>
+                        <input type="password" name="password" id="password"
+                            class="form-input @error('password') is-invalid @enderror"
+                            placeholder="Enter new password (min. 8 chars)" required autofocus>
+                    </div>
+                    @error('password')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-floating-label" for="password_confirmation">Confirm Password</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-shield-lock-fill input-icon"></i>
+                        <input type="password" name="password_confirmation" id="password_confirmation"
+                            class="form-input"
+                            placeholder="Repeat new password" required>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-signin" id="reset-btn">
-                    <i class="bi bi-send-fill"></i>
-                    Send Reset Password Link
+                    <i class="bi bi-patch-check-fill"></i>
+                    Reset &amp; Save Password
                 </button>
             </form>
 
-            <div class="form-divider"><span>or</span></div>
-
-            <div class="text-center mb-3">
-                <span style="font-size:0.85rem;color:rgba(255,255,255,0.45);">Remembered your password?</span> 
-                <a href="{{ route('subscriber.login') }}" class="forgot-link ms-1">Sign in →</a>
-            </div>
-
-            <a href="{{ url('/') }}" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;color:rgba(255,255,255,0.6);font-size:0.9rem;font-weight:600;text-decoration:none;transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                <i class="bi bi-arrow-left-circle-fill" style="color:#818CF8;"></i>
-                Back to Homepage
+            <a href="{{ route('subscriber.login') }}" class="back-link d-block text-center mt-4 text-decoration-none" style="font-size:0.88rem;color:rgba(255,255,255,0.45);font-weight:600;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">
+                <i class="bi bi-arrow-left me-1"></i> Back to Login Page
             </a>
 
         </div>
@@ -436,7 +392,7 @@
 // Loading state on submit
 document.getElementById('reset-form').addEventListener('submit', function() {
     const btn = document.getElementById('reset-btn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Sending Link...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Saving New Password...';
     btn.disabled = true;
 });
 </script>

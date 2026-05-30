@@ -36,7 +36,7 @@
     <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="row g-4 align-items-start">
-            <div class="col-xl-8">
+            <div class="col-xl-12">
                 <div class="settings-card">
                     <div class="settings-card-head">
                         <div>
@@ -155,97 +155,17 @@
                                 <input type="url" name="{{ $field }}" class="form-control settings-input" value="{{ old($field, $setting->{$field}) }}" placeholder="https://">
                             </div>
                         @endforeach
-                    </div>
-                </div>
-            </div>
 
-            <div class="col-xl-4">
-                <div class="settings-card sticky-xl-top" style="top: 92px;">
-                    <div class="settings-card-head">
-                        <div>
-                            <h5>Theme & PDF</h5>
-                            <p>Brand colors and PDF watermark assets.</p>
-                        </div>
-                    </div>
-
-                    <label class="form-label">Brand Color</label>
-                    <div class="color-control mb-3">
-                        <input type="color" name="primary_color" value="{{ old('primary_color', $primary) }}">
-                        <div>
-                            <div class="fw-bold">{{ old('primary_color', $primary) }}</div>
-                            <div class="text-muted small">Primary buttons and accents</div>
-                        </div>
-                    </div>
-
-                    <label class="form-label">Secondary Color</label>
-                    <div class="color-control mb-3">
-                        <input type="color" name="secondary_color" value="{{ old('secondary_color', $setting->secondary_color ?? '#7C3AED') }}">
-                        <div>
-                            <div class="fw-bold">{{ old('secondary_color', $setting->secondary_color ?? '#7C3AED') }}</div>
-                            <div class="text-muted small">Gradients and secondary accents</div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Typography</label>
-                        <select name="font_family" class="form-select settings-input">
-                            @foreach(['Poppins' => 'Poppins (Modern)', 'Inter' => 'Inter (Corporate)', 'Outfit' => 'Outfit (Premium)'] as $value => $label)
-                                <option value="{{ $value }}" @selected(old('font_family', $setting->font_family) === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Watermark Logo</label>
-                        <div class="asset-box">
-                            <div class="asset-preview">
-                                @if($setting->watermark)
-                                    <img src="{{ asset('uploads/settings/'.$setting->watermark) }}" alt="Watermark">
-                                @else
-                                    <i class="bi bi-droplet-half"></i>
-                                @endif
-                            </div>
-                            <input type="file" name="watermark" class="form-control form-control-sm" accept="image/*">
-                        </div>
-                    </div>
-
-                    <label class="form-label">PDF Cover Style</label>
-                    <div class="cover-style-grid mb-4">
-                        @foreach([
-                            'minimal' => ['Minimal', 'Clean white'],
-                            'professional' => ['Professional', 'Classic blue'],
-                            'modern' => ['Modern', 'Gradients'],
-                        ] as $value => [$label, $sub])
-                            <label class="cover-style-option">
-                                <input type="radio" name="pdf_cover_style" value="{{ $value }}" @checked(old('pdf_cover_style', $setting->pdf_cover_style ?? 'modern') === $value)>
-                                <span>
-                                    <strong>{{ $label }}</strong>
-                                    <small>{{ $sub }}</small>
-                                </span>
-                            </label>
-                        @endforeach
-                    </div>
-
-                    <div class="preview-card mb-4">
-                        <div class="preview-top">
-                            @if($logoUrl)
-                                <img src="{{ $logoUrl }}" alt="Logo">
-                            @else
-                                <span>{{ Str::substr($siteTitle ?? 'C', 0, 1) }}</span>
-                            @endif
-                            <strong>{{ $setting->site_title ?? 'Catasky' }}</strong>
-                        </div>
-                        <div class="preview-cover" style="background: linear-gradient(135deg, {{ $primary }}, {{ $setting->secondary_color ?? '#7C3AED' }});">
-                            PDF Cover Preview
-                        </div>
-                        <p>{{ Str::limit($setting->site_description ?? 'Premium catalogue preview', 78) }}</p>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold">
+                         <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold">
                         <i class="bi bi-check2-circle me-2"></i> Save Settings
                     </button>
+                    </div>
+                   
                 </div>
+                 
             </div>
+
+          
         </div>
     </form>
 </div>

@@ -38,7 +38,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminProductController::class)->show($id);
         }
-        $product = \App\Models\SubscriberProduct::findOrFail($id);
+        $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberProductController::class)->show($product);
     }
     
@@ -46,7 +46,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminProductController::class)->edit($id);
         }
-        $product = \App\Models\SubscriberProduct::findOrFail($id);
+        $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberProductController::class)->edit($product);
     }
     
@@ -54,7 +54,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminProductController::class)->update($request, $id);
         }
-        $product = \App\Models\SubscriberProduct::findOrFail($id);
+        $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberProductController::class)->update($request, $product);
     }
     
@@ -62,7 +62,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminProductController::class)->destroy($id);
         }
-        $product = \App\Models\SubscriberProduct::findOrFail($id);
+        $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberProductController::class)->destroy($product);
     }
 
@@ -92,7 +92,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminAttributeController::class)->show($id);
         }
-        $attribute = \App\Models\Attribute::findOrFail($id);
+        $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberAttributeController::class)->show($attribute);
     }
     
@@ -100,7 +100,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminAttributeController::class)->edit($id);
         }
-        $attribute = \App\Models\Attribute::findOrFail($id);
+        $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberAttributeController::class)->edit($attribute);
     }
     
@@ -108,7 +108,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminAttributeController::class)->update($request, $id);
         }
-        $attribute = \App\Models\Attribute::findOrFail($id);
+        $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberAttributeController::class)->update($request, $attribute);
     }
     
@@ -116,7 +116,7 @@ class DashboardDispatcherController extends Controller
         if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
             return app(AdminAttributeController::class)->destroy($id);
         }
-        $attribute = \App\Models\Attribute::findOrFail($id);
+        $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
         return app(SubscriberAttributeController::class)->destroy($attribute);
     }
 

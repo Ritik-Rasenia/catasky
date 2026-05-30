@@ -136,6 +136,21 @@ class ProductController extends Controller
             }
         }
 
+        // Dynamic Attributes Saving in specifications
+        if ($request->has('attributes')) {
+            $attributeData = $request->input('attributes', []);
+            $specs = [];
+            foreach ($attributeData as $attrId => $val) {
+                if ($val !== null && $val !== '') {
+                    $attr = \App\Models\Attribute::find($attrId);
+                    if ($attr) {
+                        $specs[$attr->name] = is_array($val) ? json_encode($val) : $val;
+                    }
+                }
+            }
+            $product->update(['specifications' => json_encode($specs)]);
+        }
+
         return redirect()
             ->route('admin.products.index')
             ->with('success', 'Product Created Successfully');
@@ -162,7 +177,18 @@ class ProductController extends Controller
             $categoryId = old('category_id', $product->category_id);
             $subcategories = Subcategory::where('category_id', $categoryId)->where('status', 1)->get();
 
-            return view('admin.products.edit', compact('product', 'brands', 'categories', 'subcategories'));
+            // Decode specifications for dynamic attributes mapping
+            $specifications = json_decode($product->specifications, true) ?: [];
+            $existingValues = [];
+            foreach ($specifications as $name => $value) {
+                $attr = \App\Models\Attribute::where('name', $name)->first();
+                if ($attr) {
+                    $existingValues[$attr->id] = (object)['attribute_id' => $attr->id, 'value' => $value];
+                }
+            }
+            $existingValues = collect($existingValues);
+
+            return view('admin.products.edit', compact('product', 'brands', 'categories', 'subcategories', 'existingValues'));
         }
 
     /**
@@ -255,6 +281,21 @@ class ProductController extends Controller
                     'image'      => $multiImageName,
                 ]);
             }
+        }
+
+        // Dynamic Attributes Saving in specifications
+        if ($request->has('attributes')) {
+            $attributeData = $request->input('attributes', []);
+            $specs = [];
+            foreach ($attributeData as $attrId => $val) {
+                if ($val !== null && $val !== '') {
+                    $attr = \App\Models\Attribute::find($attrId);
+                    if ($attr) {
+                        $specs[$attr->name] = is_array($val) ? json_encode($val) : $val;
+                    }
+                }
+            }
+            $product->update(['specifications' => json_encode($specs)]);
         }
 
         return redirect()

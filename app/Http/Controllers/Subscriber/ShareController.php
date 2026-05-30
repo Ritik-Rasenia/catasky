@@ -97,7 +97,7 @@ class ShareController extends Controller
             'settings'          => $settings,
             'expires_at'        => $request->expires_at,
             'is_active'         => true,
-            'approval_status'   => 'pending',
+            'approval_status'   => 'approved',
         ]);
 
         SubscriberActivityLog::log('created', 'Created share link: ' . $link->title, $link);

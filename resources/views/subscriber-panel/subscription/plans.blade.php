@@ -3,19 +3,7 @@
 @section('title', 'Subscription Plans')
 
 @section('content')
-<div class="vp-page-header">
-    <div>
-        <h1 class="vp-page-title">Subscription Pricing Plans</h1>
-        <div class="vp-breadcrumb">
-            <a href="{{ route('subscriber.dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('subscriber.subscription.index') }}">Subscription</a> &nbsp;/&nbsp; <span>Plans</span>
-        </div>
-    </div>
-</div>
 
-<div class="text-center py-4">
-    <h2 style="font-family:'Outfit',sans-serif; font-weight:800; color:var(--text-primary);">Supercharge Your CataSky Catalog sharing</h2>
-    <p class="text-muted mx-auto" style="max-width:550px; font-size:0.95rem;">Unlock custom specs grids, white-label pdf templates, image assets grids, WhatsApp doubletick integrations, and detailed visual catalog analytics.</p>
-</div>
 
 <div class="row g-4 justify-content-center mt-2">
     @foreach($plans as $plan)
@@ -25,10 +13,10 @@
         @endphp
         
         <div class="col-md-6 col-lg-4">
-            <div class="vp-card h-100 position-relative" style="{{ $isPopular ? 'border-color:var(--subscriber-primary); box-shadow:var(--shadow-lg); transform: translateY(-4px);' : '' }}">
+            <div class="vp-card h-100 position-relative" style="{{ $isPopular ? 'border-color:var(--subscriber-primary); box-shadow:var(--shadow-lg); transform: translateY(-2px);' : '' }}">
                 
                 @if($isPopular)
-                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill text-white" style="background: linear-gradient(135deg, var(--subscriber-primary), var(--subscriber-secondary)); padding: 6px 16px; font-weight:700; font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase;">
+                    <span class="position-absolute top-0 start-50  badge rounded-pill text-white" style="background: linear-gradient(135deg, var(--subscriber-primary), var(--subscriber-secondary)); padding: 6px 16px; font-weight:700; font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase;">
                         RECOMMENDED
                     </span>
                 @endif

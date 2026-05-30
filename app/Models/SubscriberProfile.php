@@ -12,8 +12,8 @@ class SubscriberProfile extends Model
     protected $fillable = [
         'user_id', 'company_name', 'company_slug', 'phone', 'website',
         'address', 'city', 'state', 'country', 'pincode', 'gst_number',
-        'logo', 'bio', 'whatsapp_number', 'email_for_inquiries',
-        'primary_color', 'secondary_color', 'status', 'is_verified',
+        'logo', 'banner', 'bio', 'whatsapp_number', 'email_for_inquiries',
+        'primary_color', 'secondary_color', 'status', 'store_status', 'is_verified',
         'suspended_at', 'suspension_reason',
     ];
 
@@ -40,6 +40,16 @@ class SubscriberProfile extends Model
         return $this->logo
             ? asset('uploads/subscriber-logos/' . $this->logo)
             : asset('uploads/subscriber-logos/default-logo.png');
+    }
+
+    public function getBannerUrlAttribute(): string
+    {
+        if ($this->banner && filter_var($this->banner, FILTER_VALIDATE_URL)) {
+            return $this->banner;
+        }
+        return $this->banner
+            ? asset('uploads/subscriber-banners/' . $this->banner)
+            : asset('uploads/subscriber-banners/default-banner.png');
     }
 
     public function isActive(): bool

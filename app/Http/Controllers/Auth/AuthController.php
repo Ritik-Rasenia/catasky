@@ -55,8 +55,8 @@ class AuthController extends Controller
                 ->withInput();
         }
 
-        // Restrict login strictly to Super Admin role
-        if (!$user->hasRole('Super Admin')) {
+        // Restrict login strictly to Super Admin or Admin role
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin')) {
             return back()
                 ->withErrors([
                     'email' => 'Access denied. This page is only for administrators.',

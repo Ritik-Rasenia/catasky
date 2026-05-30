@@ -112,7 +112,7 @@ class SubscriberProductsImport implements OnEachRow, WithChunkReading, SkipsEmpt
                     'short_description' => trim($data['short_description'] ?? $data['description'] ?? ''),
                     'full_description'  => trim($data['full_description'] ?? ''),
                     'status'            => 'active',
-                    'approval_status'   => 'pending', // Requires admin review
+                    'approval_status'   => 'approved', // Auto-approved for B2B subscriber
                 ]);
 
                 // 2. Initialize default Variant (for stock/inventory)

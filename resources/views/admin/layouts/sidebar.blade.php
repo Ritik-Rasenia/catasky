@@ -6,8 +6,7 @@
             // Pending approvals across SaaS (accounts, store configs) and attribute approvals
             $pendingAccountsCount = \App\Models\SubscriberProfile::where('status', 'pending')->count();
             $pendingStoreConfigsCount = \App\Models\SubscriberProfile::where('status', 'approved')->where('store_status', 'pending')->count();
-            $pendingAttributeApprovals = \App\Models\Attribute::where('approval_status', 'pending')->count();
-            $pendingApprovalsCount = $pendingAccountsCount + $pendingStoreConfigsCount + $pendingAttributeApprovals;
+            $pendingApprovalsCount = $pendingAccountsCount + $pendingStoreConfigsCount;
 
         $isActive = function (array $patterns): bool {
             foreach ($patterns as $pattern) {
@@ -68,19 +67,20 @@
                         'active' => ['admin.subcategories.*'],
                     ],
                     [
-                        'label' => 'Products',
-                        'icon' => 'bi-box-seam-fill',
-                        'route' => 'admin.products.index',
-                        'permission' => 'products.view',
-                        'active' => ['admin.products.*'],
-                    ],
-                    [
                         'label' => 'Attributes',
                         'icon' => 'bi-sliders',
                         'route' => 'admin.attributes.index',
                         'permission' => 'products.view',
                         'active' => ['admin.attributes.*'],
                     ],
+                    [
+                        'label' => 'Products',
+                        'icon' => 'bi-box-seam-fill',
+                        'route' => 'admin.products.index',
+                        'permission' => 'products.view',
+                        'active' => ['admin.products.*'],
+                    ],
+                    
                 ],
             ],
             [
@@ -114,20 +114,7 @@
             [
                 'label' => 'SaaS Management',
                 'items' => [
-                    [
-                        'label' => 'Subscribers',
-                        'icon' => 'bi-people-fill',
-                        'route' => 'admin.subscribers.index',
-                        'permission' => 'subscribers.manage',
-                        'active' => ['admin.subscribers.*'],
-                    ],
-                    [
-                        'label' => 'Subscription Plans',
-                        'icon' => 'bi-credit-card-2-front-fill',
-                        'route' => 'admin.subscription-plans.index',
-                        'permission' => 'subscribers.manage',
-                        'active' => ['admin.subscription-plans.*'],
-                    ],
+                    
                     [
                         'label' => 'Pending Approvals',
                         'icon' => 'bi-check2-square',
@@ -136,6 +123,15 @@
                         'active' => ['admin.saas.approvals.*'],
                             'badge' => $pendingApprovalsCount > 0 ? $pendingApprovalsCount : null,
                     ],
+                    [
+                        'label' => 'Subscribers',
+                        'icon' => 'bi-people-fill',
+                        'route' => 'admin.subscribers.index',
+                        'permission' => 'subscribers.manage',
+                        'active' => ['admin.subscribers.*'],
+                    ],
+                    
+                    
                     [
                         'label' => 'Payments',
                         'icon' => 'bi-cash-stack',
@@ -149,6 +145,13 @@
                         'route' => 'admin.saas.invoices.index',
                         'permission' => 'system.manage',
                         'active' => ['admin.saas.invoices.*'],
+                    ],
+                    [
+                        'label' => 'Subscription Plans',
+                        'icon' => 'bi-credit-card-2-front-fill',
+                        'route' => 'admin.subscription-plans.index',
+                        'permission' => 'subscribers.manage',
+                        'active' => ['admin.subscription-plans.*'],
                     ],
                 ],
             ],

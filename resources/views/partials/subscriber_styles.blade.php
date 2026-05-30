@@ -6,10 +6,10 @@
     // Dynamically detect role and load primary/secondary color preferences
     $isAdmin = $user && ($user->hasRole('Super Admin') || $user->hasRole('admin') || !$user->hasRole('Subscriber'));
     $primaryColor = $isAdmin 
-        ? ($globalSetting->primary_color ?? '#4F46E5') 
+        ? '#4F46E5' 
         : ($profile?->primary_color ?? $globalSetting->primary_color ?? '#4F46E5');
     $secondaryColor = $isAdmin 
-        ? ($globalSetting->secondary_color ?? '#7C3AED') 
+        ? '#6366F1' 
         : ($profile?->secondary_color ?? $globalSetting->secondary_color ?? '#7C3AED');
 @endphp
 <style>
