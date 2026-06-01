@@ -60,7 +60,6 @@
                 </select>
             </form>
             <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Product</a>
-            <a href="{{ route('subscriber.share.create') }}" class="btn btn-light"><i class="bi bi-share"></i> Create Share</a>
         </div>
     </section>
 
@@ -244,7 +243,6 @@
                 </div>
                 <div class="shortcut-stack">
                     <a href="{{ route('subscriber.products.create') }}"><i class="bi bi-plus-circle"></i><span>Add New Product</span><i class="bi bi-chevron-right"></i></a>
-                    <a href="{{ route('subscriber.share.create') }}"><i class="bi bi-share"></i><span>Share Catalog Link</span><i class="bi bi-chevron-right"></i></a>
                     <a href="{{ route('subscriber.attributes.index') }}"><i class="bi bi-sliders2"></i><span>Manage Specifications</span><i class="bi bi-chevron-right"></i></a>
                 </div>
             </div>

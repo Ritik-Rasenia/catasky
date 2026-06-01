@@ -13,7 +13,7 @@ class SubscriberProductsExport implements FromQuery, WithHeadings, WithMapping
     {
         return SubscriberProduct::query()
             ->where('user_id', auth()->id())
-            ->with(['category', 'subcategory', 'images'])
+            ->with(['images'])
             ->orderBy('id');
     }
  

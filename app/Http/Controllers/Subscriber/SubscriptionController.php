@@ -133,8 +133,11 @@ class SubscriptionController extends Controller
         } catch (\Exception $e) {}
 
         if ($profile && $profile->status === 'pending') {
-            return redirect()->route('subscriber.pending-approval')
-                ->with('success', '🎉 Payment successful! Your store is now pending Super Admin approval.');
+            $profile->update([
+                'status' => 'approved',
+                'store_status' => 'live',
+                'is_verified' => true,
+            ]);
         }
 
         return redirect()->route('subscriber.subscription.index')
@@ -317,8 +320,11 @@ class SubscriptionController extends Controller
         }
 
         if ($profile && $profile->status === 'pending') {
-            return redirect()->route('subscriber.pending-approval')
-                ->with('success', '🎉 Payment successful! Your store is now pending Super Admin approval.');
+            $profile->update([
+                'status' => 'approved',
+                'store_status' => 'live',
+                'is_verified' => true,
+            ]);
         }
 
         return redirect()->route('subscriber.subscription.index')

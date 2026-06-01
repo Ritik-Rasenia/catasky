@@ -35,10 +35,10 @@
  
     <div class="row">
         <div class="col-12">
-            <div class="card border-0  rounded-4">
+            <div class="card border-0 rounded-4 shadow-sm">
                 <div class="card-body p-4">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle table-nowrap" id="productTable">
+                        <table class="table table-hover align-middle table-nowrap" id="productTable" style="width:100%;">
                             <thead class="bg-light">
                                 <tr>
                                     <th class="ps-4 border-0 text-uppercase small fw-bold text-muted">Product</th>
@@ -101,9 +101,6 @@
                                         <div class="d-inline-flex gap-2 justify-content-end align-items-center">
                                             <a href="{{ route('subscriber.products.edit', $product->id) }}" class="btn-ap-action" title="Edit Product">
                                                 <i class="fa-solid fa-pen-to-square text-primary" style="font-size: 13px !important;"></i>
-                                            </a>
-                                            <a href="{{ route('subscriber.share.create', ['product_id' => $product->id]) }}" class="btn-ap-action" title="Share Product">
-                                                <i class="fa-solid fa-share-nodes text-success" style="font-size: 13px !important;"></i>
                                             </a>
                                             <form action="{{ route('subscriber.products.destroy', $product->id) }}" method="POST" class="d-inline form-delete">
                                                 @csrf

@@ -141,9 +141,33 @@ class BrandController extends Controller
         }
 
         $brand->delete();
-
+ 
         return redirect()
             ->route('subscriber.brands.index')
             ->with('success', 'Brand Deleted Successfully');
+    }
+ 
+    public function quickStore( \Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'name' => [
+                'required',
+                \Illuminate\Validation\Rule::unique('brands', 'name')->where(function ($query) {
+                    return $query->where('subscriber_id', auth()->id())->whereNull('deleted_at');
+                })
+            ],
+        ]);
+ 
+        $brand = Brand::create([
+            'name'          => $request->name,
+            'slug'          => \Illuminate\Support\Str::slug($request->name),
+            'status'        => 1,
+            'subscriber_id' => auth()->id(),
+        ]);
+ 
+        return response()->json([
+            'success' => true,
+            'brand'   => $brand,
+        ]);
     }
 }

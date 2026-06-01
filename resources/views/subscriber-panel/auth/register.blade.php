@@ -363,7 +363,7 @@
         <!-- Main Content -->
         <div class="brand-content">
             <h1 class="brand-headline">
-                The World's Most<br>Premium <span style="background:linear-gradient(135deg,#818CF8,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Catalogue Platform</span>
+                The World's Most<br>Premium <span style="background:linear-gradient(135deg,#818CF8,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Catalogue</span>
             </h1>
             <p class="brand-sub">
                 Manage B2B products. Create stunning PDF catalogues. Share them instantly via WhatsApp. All in one place.
@@ -411,17 +411,11 @@
             <!-- Header -->
             <div class="form-header">
                 <h2>Create Your Account 🚀</h2>
-                <p>Start sharing premium catalogs — 14-day trial included</p>
+                <p>Start sharing premium catalogs</p>
             </div>
 
             <!-- 14-Day Free Trial Badge -->
-            <div class="trial-badge">
-                <div class="trial-icon">🎁</div>
-                <div>
-                    <div class="trial-title">14-Day Free Trial</div>
-                    <div class="trial-text">Full access to all catalogue features. No credit card required.</div>
-                </div>
-            </div>
+            
 
             <!-- Error Alert -->
             @if ($errors->any())
@@ -483,7 +477,7 @@
                                 <i class="bi bi-lock-fill input-icon"></i>
                                 <input type="password" name="password" id="reg-password"
                                     class="form-input @error('password') is-invalid @enderror"
-                                    placeholder="Min. 8 chars" required autocomplete="new-password">
+                                    placeholder="Alphanumeric (8-20 chars)" required autocomplete="new-password">
                                 <i class="bi bi-eye-slash-fill password-toggle" id="toggle-password"></i>
                             </div>
                             <div id="password-strength-container" class="mt-2 d-none">
@@ -492,10 +486,9 @@
                                 </div>
                                 <div id="strength-text" class="small fw-semibold text-muted mb-2" style="font-size: 0.72rem;">Password Strength: <span id="strength-label" class="text-danger">Too Weak</span></div>
                                 <div class="d-flex flex-wrap gap-2" style="font-size: 0.7rem;">
-                                    <span id="rule-length" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> At least 8 chars</span>
-                                    <span id="rule-upper" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 1 uppercase letter</span>
-                                    <span id="rule-number" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 1 number</span>
-                                    <span id="rule-special" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 1 special char</span>
+                                    <span id="rule-length" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> At least 8 chars (max 20)</span>
+                                    <span id="rule-alphanumeric" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> Letters and numbers only</span>
+                                    <span id="rule-no-special" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> No spaces or special symbols</span>
                                 </div>
                             </div>
                             @error('password') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
@@ -562,7 +555,7 @@
 
                 <button type="submit" class="btn-signin" id="register-btn">
                     <i class="bi bi-rocket-takeoff-fill"></i>
-                    Create Account &amp; Start Trial
+                    Create Account
                 </button>
             </form>
 
@@ -590,9 +583,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const strengthLabel = document.getElementById('strength-label');
     
     const ruleLength = document.getElementById('rule-length');
-    const ruleUpper = document.getElementById('rule-upper');
-    const ruleNumber = document.getElementById('rule-number');
-    const ruleSpecial = document.getElementById('rule-special');
+    const ruleAlphanumeric = document.getElementById('rule-alphanumeric');
+    const ruleNoSpecial = document.getElementById('rule-no-special');
     
     const matchContainer = document.getElementById('password-match-container');
     const matchStatus = document.getElementById('match-status');
@@ -626,40 +618,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Rules
-        const isLengthValid = val.length >= 8;
-        const isUpperValid = /[A-Z]/.test(val);
-        const isNumberValid = /[0-9]/.test(val);
-        const isSpecialValid = /[^A-Za-z0-9]/.test(val);
+        const isLengthValid = val.length >= 8 && val.length <= 20;
+        const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(val);
+        const isNoSpecial = !/[^a-zA-Z0-9]/.test(val) && val.length > 0;
         
         updateRuleIndicator(ruleLength, isLengthValid);
-        updateRuleIndicator(ruleUpper, isUpperValid);
-        updateRuleIndicator(ruleNumber, isNumberValid);
-        updateRuleIndicator(ruleSpecial, isSpecialValid);
+        updateRuleIndicator(ruleAlphanumeric, isAlphanumeric);
+        updateRuleIndicator(ruleNoSpecial, isNoSpecial);
         
         // Calculate score
         let score = 0;
-        if (isLengthValid) score += 25;
-        if (isUpperValid) score += 25;
-        if (isNumberValid) score += 25;
-        if (isSpecialValid) score += 25;
+        if (isLengthValid) score += 34;
+        if (isAlphanumeric) score += 33;
+        if (isNoSpecial) score += 33;
         
         strengthBar.style.width = score + '%';
         
-        if (score <= 25) {
+        if (score <= 34) {
             strengthBar.style.backgroundColor = '#EF4444'; // Red
             strengthLabel.textContent = 'Too Weak';
             strengthLabel.className = 'text-danger';
-        } else if (score <= 50) {
+        } else if (score <= 67) {
             strengthBar.style.backgroundColor = '#F59E0B'; // Orange
             strengthLabel.textContent = 'Weak';
             strengthLabel.className = 'text-warning';
-        } else if (score <= 75) {
-            strengthBar.style.backgroundColor = '#10B981'; // Green
-            strengthLabel.textContent = 'Medium';
-            strengthLabel.className = 'text-success';
         } else {
-            strengthBar.style.backgroundColor = '#10B981'; // Strong Green
-            strengthLabel.textContent = 'Perfect (Strong)';
+            strengthBar.style.backgroundColor = '#10B981'; // Green
+            strengthLabel.textContent = 'Strong Alphanumeric';
             strengthLabel.className = 'text-success fw-bold';
         }
         
@@ -707,16 +692,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const pVal = passwordInput.value;
         const cVal = confirmInput.value;
         
-        const isLengthValid = val.length >= 8;
-        const isUpperValid = /[A-Z]/.test(val);
-        const isNumberValid = /[0-9]/.test(val);
-        const isSpecialValid = /[^A-Za-z0-9]/.test(val);
+        const isLengthValid = val.length >= 8 && val.length <= 20;
+        const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(val);
         
-        const isStrong = isLengthValid && isUpperValid && isNumberValid && isSpecialValid;
-        
-        if (!isStrong) {
+        if (!isLengthValid) {
             e.preventDefault();
-            alert('Please choose a strong password that meets all the security requirements.');
+            alert('Please choose a password between 8 and 20 characters.');
+            return false;
+        }
+        
+        if (!isAlphanumeric) {
+            e.preventDefault();
+            alert('Password must contain letters and numbers only (no special characters or spaces).');
             return false;
         }
         

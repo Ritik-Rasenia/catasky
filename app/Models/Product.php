@@ -18,10 +18,13 @@ class Product extends Model
         'slug',
         'part_code',
         'part_number',
+        'sku',
         'thumbnail',
         'short_description',
         'variant',
         'price',
+        'mrp',
+        'offer_price',
         'specifications',
         'tags',
         'packaging',
@@ -32,12 +35,18 @@ class Product extends Model
         'meta_title',
         'meta_description',
         'meta_keywords',
-        'sku',
         'sale_price',
         'tax',
         'stock',
         'description',
         'featured_image',
+        'moq',
+    ];
+
+    protected $casts = [
+        'brand_id' => 'array',
+        'category_id' => 'array',
+        'subcategory_id' => 'array',
     ];
 
     protected $appends = ['thumbnail_url', 'average_rating', 'reviews_count'];
@@ -56,19 +65,79 @@ class Product extends Model
         return asset('uploads/products/' . ($this->thumbnail ?: 'default.png'));
     }
 
-    public function brand()
+    public function getBrandsAttribute()
     {
-        return $this->belongsTo(Brand::class);
+        $ids = $this->brand_id;
+        if (empty($ids)) {
+            return collect();
+        }
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+        
+        static $cachedBrands = null;
+        if ($cachedBrands === null) {
+            $cachedBrands = \App\Models\Brand::all()->keyBy('id');
+        }
+        
+        return collect($ids)->map(function($id) use ($cachedBrands) {
+            return $cachedBrands->get($id);
+        })->filter();
     }
 
-    public function category()
+    public function getBrandAttribute()
     {
-        return $this->belongsTo(Category::class);
+        return $this->brands->first();
     }
 
-    public function subcategory()
+    public function getCategoriesAttribute()
     {
-        return $this->belongsTo(Subcategory::class);
+        $ids = $this->category_id;
+        if (empty($ids)) {
+            return collect();
+        }
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+        
+        static $cachedCategories = null;
+        if ($cachedCategories === null) {
+            $cachedCategories = \App\Models\Category::all()->keyBy('id');
+        }
+        
+        return collect($ids)->map(function($id) use ($cachedCategories) {
+            return $cachedCategories->get($id);
+        })->filter();
+    }
+
+    public function getCategoryAttribute()
+    {
+        return $this->categories->first();
+    }
+
+    public function getSubcategoriesAttribute()
+    {
+        $ids = $this->subcategory_id;
+        if (empty($ids)) {
+            return collect();
+        }
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+        
+        static $cachedSubcategories = null;
+        if ($cachedSubcategories === null) {
+            $cachedSubcategories = \App\Models\Subcategory::all()->keyBy('id');
+        }
+        
+        return collect($ids)->map(function($id) use ($cachedSubcategories) {
+            return $cachedSubcategories->get($id);
+        })->filter();
+    }
+
+    public function getSubcategoryAttribute()
+    {
+        return $this->subcategories->first();
     }
 
     public function images()

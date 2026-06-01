@@ -28,9 +28,10 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['brand', 'category', 'subcategory'])->latest()->get();
+        $products = Product::latest()->get();
+        $subscriberProducts = \App\Models\SubscriberProduct::with(['user.subscriberProfile'])->latest()->get();
 
-        return view('admin.products.index', compact('products'));
+        return view('admin.products.index', compact('products', 'subscriberProducts'));
     }
 
     /**
@@ -57,70 +58,68 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-
-            'brand_id'       => 'nullable|exists:brands,id',
-            'category_id'    => 'required|exists:categories,id',
-            'subcategory_id' => 'required|exists:subcategories,id',
-
-            'name'           => 'required|string|max:255|unique:products,name',
-            'part_code'      => 'required|string|max:255|unique:products,part_code',
-            'part_number'    => 'nullable|string|unique:products,part_number',
-
-            'image'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'images.*'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-
+            'name'              => 'required|string|max:255',
+            'sku'               => 'required|string|max:255',
+            'part_code'         => 'nullable|string|max:255',
+            'part_number'       => 'nullable|string|max:255',
+            'brand_id'          => 'nullable|array',
+            'brand_id.*'        => 'exists:brands,id',
+            'category_id'       => 'nullable|array',
+            'category_id.*'     => 'exists:categories,id',
+            'subcategory_id'    => 'nullable|array',
+            'subcategory_id.*'  => 'exists:subcategories,id',
+            'image'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images.*'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'short_description' => 'nullable|string',
-            'price'          => 'nullable|numeric',
-
-            'tags'           => 'nullable|string',
-            'additional_info'=> 'nullable|string',
-
-            'status'         => 'required|in:0,1',
-            'featured'       => 'nullable|in:0,1',
-
-            'meta_title'     => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'meta_keywords'  => 'nullable|string',
-
+            'additional_info'   => 'nullable|string',
+            'mrp'               => 'nullable|numeric|min:0',
+            'offer_price'       => 'nullable|numeric|min:0',
+            'price'             => 'nullable|numeric|min:0',
+            'moq'               => 'nullable|integer|min:1',
+            'tags'              => 'nullable|string',
+            'status'            => 'nullable|in:0,1',
+            'featured'          => 'nullable|in:0,1',
+            'meta_title'        => 'nullable|string|max:255',
+            'meta_description'  => 'nullable|string',
+            'meta_keywords'     => 'nullable|string',
         ]);
 
         // IMAGE UPLOAD
         $imageName = null;
-
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time().'_'.$image->getClientOriginalName();
             $image->move(public_path('uploads/products'), $imageName);
         }
 
+        // Handle mrp/offer_price
+        $mrp        = $request->filled('mrp') ? $request->mrp : ($request->filled('price') ? $request->price : null);
+        $offerPrice = $request->filled('offer_price') ? $request->offer_price : ($request->filled('price') ? $request->price : null);
+
         // CREATE PRODUCT
         $product = Product::create([
-
-            'brand_id'           => $request->brand_id,
-            'category_id'        => $request->category_id,
-            'subcategory_id'     => $request->subcategory_id,
-            'child_category_id'  => null,
-
-            'name'               => $request->name,
-            'slug'               => Str::slug($request->name),
-            'part_code'          => $request->part_code,
-            'part_number'        => $request->part_number,
-
-            'thumbnail'          => $imageName,
-
-            'short_description'  => $request->short_description,
-            'price'              => $request->price,
-
-            'tags'               => $request->tags,
-            'additional_info'    => $request->additional_info,
-
-            'featured'           => $request->featured ?? 0,
-            'status'             => $request->status,
-
-            'meta_title'         => $request->meta_title,
-            'meta_description'   => $request->meta_description,
-            'meta_keywords'      => $request->meta_keywords,
-
+            'brand_id'          => $request->brand_id,
+            'category_id'       => $request->category_id,
+            'subcategory_id'    => $request->subcategory_id,
+            'child_category_id' => null,
+            'name'              => $request->name,
+            'slug'              => Str::slug($request->name).'-'.Str::random(4),
+            'sku'               => $request->sku,
+            'part_code'         => $request->part_code,
+            'part_number'       => $request->part_number,
+            'thumbnail'         => $imageName,
+            'short_description' => $request->short_description,
+            'additional_info'   => $request->additional_info,
+            'mrp'               => $mrp,
+            'offer_price'       => $offerPrice,
+            'price'             => $offerPrice ?? $mrp,
+            'moq'               => $request->moq,
+            'tags'              => $request->tags,
+            'featured'          => $request->featured ?? 0,
+            'status'            => $request->status ?? 1,
+            'meta_title'        => $request->meta_title,
+            'meta_description'  => $request->meta_description,
+            'meta_keywords'     => $request->meta_keywords,
         ]);
 
         // MULTIPLE IMAGES UPLOAD
@@ -128,19 +127,14 @@ class ProductController extends Controller
             foreach ($request->file('images') as $file) {
                 $multiImageName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                 $file->move(public_path('uploads/products/gallery'), $multiImageName);
-
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image'      => $multiImageName,
-                ]);
+                ProductImage::create(['product_id' => $product->id, 'image' => $multiImageName]);
             }
         }
 
-        // Dynamic Attributes Saving in specifications
+        // Dynamic Attributes
         if ($request->has('attributes')) {
-            $attributeData = $request->input('attributes', []);
             $specs = [];
-            foreach ($attributeData as $attrId => $val) {
+            foreach ($request->input('attributes', []) as $attrId => $val) {
                 if ($val !== null && $val !== '') {
                     $attr = \App\Models\Attribute::find($attrId);
                     if ($attr) {
@@ -151,9 +145,7 @@ class ProductController extends Controller
             $product->update(['specifications' => json_encode($specs)]);
         }
 
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', 'Product Created Successfully');
+        return redirect()->route('admin.products.index')->with('success', 'Product Created Successfully');
     }
 
         /**
@@ -173,9 +165,13 @@ class ProductController extends Controller
             $product = Product::findOrFail($id);
             $brands = Brand::where('status', 1)->get();
             $categories = Category::where('status', 1)->get();
-            
-            $categoryId = old('category_id', $product->category_id);
-            $subcategories = Subcategory::where('category_id', $categoryId)->where('status', 1)->get();
+
+            // Load subcategories based on current product's category_id (array)
+            $categoryIds = is_array($product->category_id) ? $product->category_id : [$product->category_id];
+            $firstCatId  = old('category_id', $categoryIds[0] ?? null);
+            $subcategories = $firstCatId
+                ? Subcategory::where('category_id', $firstCatId)->where('status', 1)->get()
+                : collect();
 
             // Decode specifications for dynamic attributes mapping
             $specifications = json_decode($product->specifications, true) ?: [];
@@ -199,75 +195,69 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
 
         $request->validate([
-
-            'brand_id'       => 'nullable|exists:brands,id',
-            'category_id'    => 'required|exists:categories,id',
-            'subcategory_id' => 'required|exists:subcategories,id',
-
-            'name'           => 'required|unique:products,name,'.$product->id,
-            'part_code'      => 'required|unique:products,part_code,'.$product->id,
-            'part_number'    => 'nullable|string|unique:products,part_number,'.$product->id,
-
-            'image'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'images.*'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-
+            'name'              => 'required|string|max:255',
+            'sku'               => 'required|string|max:255',
+            'part_code'         => 'nullable|string|max:255',
+            'part_number'       => 'nullable|string|max:255',
+            'brand_id'          => 'nullable|array',
+            'brand_id.*'        => 'exists:brands,id',
+            'category_id'       => 'nullable|array',
+            'category_id.*'     => 'exists:categories,id',
+            'subcategory_id'    => 'nullable|array',
+            'subcategory_id.*'  => 'exists:subcategories,id',
+            'image'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images.*'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'short_description' => 'nullable|string',
-            'price'          => 'nullable|numeric',
-
-            'tags'           => 'nullable|string',
-            'additional_info'=> 'nullable|string',
-
-            'status'         => 'required|in:0,1',
-            'featured'       => 'nullable|in:0,1',
-
-            'meta_title'     => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'meta_keywords'  => 'nullable|string',
-
+            'additional_info'   => 'nullable|string',
+            'mrp'               => 'nullable|numeric|min:0',
+            'offer_price'       => 'nullable|numeric|min:0',
+            'price'             => 'nullable|numeric|min:0',
+            'moq'               => 'nullable|integer|min:1',
+            'tags'              => 'nullable|string',
+            'status'            => 'nullable|in:0,1',
+            'featured'          => 'nullable|in:0,1',
+            'meta_title'        => 'nullable|string|max:255',
+            'meta_description'  => 'nullable|string',
+            'meta_keywords'     => 'nullable|string',
         ]);
 
         $imageName = $product->thumbnail;
-
-        // IMAGE UPDATE
         if ($request->hasFile('image')) {
-
             if ($product->thumbnail && file_exists(public_path('uploads/products/'.$product->thumbnail))) {
                 unlink(public_path('uploads/products/'.$product->thumbnail));
             }
-
             $image = $request->file('image');
             $imageName = time().'_'.$image->getClientOriginalName();
             $image->move(public_path('uploads/products'), $imageName);
         }
 
+        $mrp        = $request->filled('mrp') ? $request->mrp : ($request->filled('price') ? $request->price : $product->mrp);
+        $offerPrice = $request->filled('offer_price') ? $request->offer_price : ($request->filled('price') ? $request->price : $product->offer_price);
+
         // UPDATE PRODUCT
         $product->update([
-
-            'brand_id'           => $request->brand_id,
-            'category_id'        => $request->category_id,
-            'subcategory_id'     => $request->subcategory_id,
-            'child_category_id'  => null,
-
-            'name'               => $request->name,
-            'slug'               => Str::slug($request->name),
-            'part_code'          => $request->part_code,
-
-            'thumbnail'          => $imageName,
-
-            'short_description'  => $request->short_description,
-            'price'              => $request->price,
-
-            'tags'               => $request->tags,
-
-            'additional_info'    => $request->additional_info,
-
-            'featured'           => $request->featured ?? 0,
-            'status'             => $request->status,
-
-            'meta_title'         => $request->meta_title,
-            'meta_description'   => $request->meta_description,
-            'meta_keywords'      => $request->meta_keywords,
-
+            'brand_id'          => $request->brand_id,
+            'category_id'       => $request->category_id,
+            'subcategory_id'    => $request->subcategory_id,
+            'child_category_id' => null,
+            'name'              => $request->name,
+            'slug'              => Str::slug($request->name),
+            'sku'               => $request->sku,
+            'part_code'         => $request->part_code,
+            'part_number'       => $request->part_number,
+            'thumbnail'         => $imageName,
+            'short_description' => $request->short_description,
+            'additional_info'   => $request->additional_info,
+            'mrp'               => $mrp,
+            'offer_price'       => $offerPrice,
+            'price'             => $offerPrice ?? $mrp,
+            'moq'               => $request->moq,
+            'tags'              => $request->tags,
+            'featured'          => $request->featured ?? 0,
+            'status'            => $request->status ?? $product->status,
+            'meta_title'        => $request->meta_title,
+            'meta_description'  => $request->meta_description,
+            'meta_keywords'     => $request->meta_keywords,
         ]);
 
         // MULTIPLE IMAGES UPLOAD
@@ -275,19 +265,14 @@ class ProductController extends Controller
             foreach ($request->file('images') as $file) {
                 $multiImageName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                 $file->move(public_path('uploads/products/gallery'), $multiImageName);
-
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image'      => $multiImageName,
-                ]);
+                ProductImage::create(['product_id' => $product->id, 'image' => $multiImageName]);
             }
         }
 
-        // Dynamic Attributes Saving in specifications
+        // Dynamic Attributes
         if ($request->has('attributes')) {
-            $attributeData = $request->input('attributes', []);
             $specs = [];
-            foreach ($attributeData as $attrId => $val) {
+            foreach ($request->input('attributes', []) as $attrId => $val) {
                 if ($val !== null && $val !== '') {
                     $attr = \App\Models\Attribute::find($attrId);
                     if ($attr) {
@@ -298,9 +283,7 @@ class ProductController extends Controller
             $product->update(['specifications' => json_encode($specs)]);
         }
 
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', 'Product Updated Successfully');
+        return redirect()->route('admin.products.index')->with('success', 'Product Updated Successfully');
     }
 
     /**
@@ -750,5 +733,27 @@ class ProductController extends Controller
         $filename = 'products-export-'.date('Y-m-d-His').'.xlsx';
 
         return Excel::download(new ProductsExport, $filename);
+    }
+
+    public function destroySubscriberProduct(string $id)
+    {
+        $product = \App\Models\SubscriberProduct::findOrFail($id);
+
+        if ($product->thumbnail && file_exists(public_path('uploads/subscriber-products/' . $product->thumbnail))) {
+            unlink(public_path('uploads/subscriber-products/' . $product->thumbnail));
+        }
+
+        foreach ($product->images as $image) {
+            if (file_exists(public_path('uploads/subscriber-products/' . $image->image_path))) {
+                unlink(public_path('uploads/subscriber-products/' . $image->image_path));
+            }
+            $image->delete();
+        }
+
+        $product->delete();
+
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Subscriber Product Deleted Successfully');
     }
 }

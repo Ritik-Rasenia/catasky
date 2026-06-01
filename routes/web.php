@@ -186,6 +186,9 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
     Route::middleware('superadmin')->name('admin.')->group(function () {
         Route::get('/tracking-analytics', [App\Http\Controllers\DoubleTickController::class, 'analyticsDashboard'])->name('tracking.analytics');
 
+        Route::post('/brands/quick-store', [BrandController::class, 'quickStore'])->name('brands.quick-store');
+        Route::post('/categories/quick-store', [CategoryController::class, 'quickStore'])->name('categories.quick-store');
+        Route::post('/subcategories/quick-store', [SubcategoryController::class, 'quickStore'])->name('subcategories.quick-store');
         Route::resource('brands', BrandController::class)->middleware('permission:view-brands');
         Route::resource('categories', CategoryController::class)->middleware('permission:view-categories');
         Route::resource('subcategories', SubcategoryController::class)->middleware('permission:view-subcategories');
@@ -202,6 +205,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/admin/products-ops/import-logs/{id}', [AdminProductController::class, 'importLogShow'])->name('products.import-logs.show')->middleware('permission:import-products');
         Route::get('/admin/products-ops/export', [AdminProductController::class, 'export'])->name('products.export')->middleware('permission:export-products');
         Route::delete('/product-images/{id}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy')->middleware('permission:edit-products');
+        Route::delete('/subscriber-products/{product}', [AdminProductController::class, 'destroySubscriberProduct'])->name('subscriber-products.destroy')->middleware('permission:delete-products');
 
         Route::resource('users', UserController::class)->middleware('permission:view-users');
         Route::resource('roles', RoleController::class)->middleware('permission:roles.manage');
@@ -290,6 +294,9 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
     */
     Route::middleware(['subscriber'])->name('subscriber.')->group(function () {
         // Brands, Categories, Subcategories for Subscriber Panel (mirroring admin functionality)
+        Route::post('/subscriber-brands/quick-store', [\App\Http\Controllers\Subscriber\BrandController::class, 'quickStore'])->name('brands.quick-store');
+        Route::post('/subscriber-categories/quick-store', [\App\Http\Controllers\Subscriber\CategoryController::class, 'quickStore'])->name('categories.quick-store');
+        Route::post('/subscriber-subcategories/quick-store', [\App\Http\Controllers\Subscriber\SubcategoryController::class, 'quickStore'])->name('subcategories.quick-store');
         Route::resource('subscriber-brands', \App\Http\Controllers\Subscriber\BrandController::class)->names([
             'index' => 'brands.index',
             'create' => 'brands.create',

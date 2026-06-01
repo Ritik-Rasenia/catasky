@@ -744,7 +744,7 @@
 
                                 <div class="mb-3">
                                     <label class="form-label text-secondary fw-semibold small text-uppercase">New Account Password</label>
-                                    <input type="password" name="password" class="form-control form-control-premium" placeholder="Minimum 8 characters" required>
+                                    <input type="password" name="password" class="form-control form-control-premium" placeholder="Alphanumeric (8-20 characters)" required>
                                 </div>
 
                                 <div class="mb-3">

@@ -144,9 +144,27 @@ class BrandController extends Controller
         }
 
         $brand->delete();
-
+ 
         return redirect()
             ->route('admin.brands.index')
             ->with('success', 'Brand Deleted Successfully');
+    }
+ 
+    public function quickStore(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|unique:brands,name',
+        ]);
+ 
+        $brand = Brand::create([
+            'name'   => $request->name,
+            'slug'   => Str::slug($request->name),
+            'status' => 1,
+        ]);
+ 
+        return response()->json([
+            'success' => true,
+            'brand'   => $brand,
+        ]);
     }
 }

@@ -412,10 +412,10 @@
                         @endif
                     @else
                         <li class="nav-item d-lg-none px-3 pt-2">
-                            <a href="{{ route('subscriber.login') }}" class="btn btn-outline-primary w-100 py-2 fw-semibold" style="border-radius:12px; font-size:0.9rem;">Subscriber Login</a>
+                            <a href="{{ route('subscriber.login') }}" class="btn btn-outline-primary w-100 py-2 fw-semibold" style="border-radius:12px; font-size:0.9rem;">Login</a>
                         </li>
                         <li class="nav-item d-lg-none px-3 pb-2">
-                            <a href="{{ route('subscriber.register') }}" class="btn btn-hero-primary w-100 py-2" style="border-radius:12px; font-size:0.9rem;"><i class="bi bi-rocket-takeoff-fill"></i> Start Free</a>
+                            <a href="{{ route('subscriber.register') }}" class="btn btn-hero-primary w-100 py-2" style="border-radius:12px; font-size:0.9rem;"><i class="bi bi-rocket-takeoff-fill"></i>Register</a>
                         </li>
                     @endauth
                 </ul>
@@ -466,10 +466,10 @@
                         </div>
                     @else
                         <a href="{{ route('subscriber.login') }}" class="btn btn-premium btn-premium-outline py-2 px-3 fw-semibold" style="border-radius:12px; font-size:0.85rem;">
-                            Subscriber Login
+                            Login
                         </a>
                         <a href="{{ route('subscriber.register') }}" class="btn-hero-primary py-2 px-4" style="border-radius:12px; font-size:0.9rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-                            <i class="bi bi-rocket-takeoff-fill"></i> Start Free
+                            <i class="bi bi-rocket-takeoff-fill"></i> Register
                         </a>
                     @endauth
                 </div>

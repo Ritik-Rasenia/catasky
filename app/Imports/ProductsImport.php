@@ -66,25 +66,58 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
             $sku = 'SKU-' . strtoupper(Str::random(10));
         }
 
-        // Resolve category
-        $categoryName = trim($this->getCell($data, 'category'));
-        if ($categoryName === '') {
-            $categoryName = 'General';
+        // Resolve categories
+        $categoryCell = trim($this->getCell($data, 'category'));
+        if ($categoryCell === '') {
+            $categoryCell = 'General';
         }
-        $category = $this->resolveCategory($categoryName);
-
-        // Resolve subcategory
-        $subcategoryName = trim($this->getCell($data, 'subcategory', 'sub_category'));
-        if ($subcategoryName === '') {
-            $subcategoryName = 'General';
+        $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
+        $categoryIds = [];
+        $firstCategoryId = null;
+        foreach ($categoryNames as $cName) {
+            $cat = $this->resolveCategory($cName);
+            if ($cat) {
+                $categoryIds[] = $cat->id;
+                if ($firstCategoryId === null) {
+                    $firstCategoryId = $cat->id;
+                }
+            }
         }
-        $subcategory = $this->resolveSubcategory($category->id, $subcategoryName);
+        if (empty($categoryIds)) {
+            $cat = $this->resolveCategory('General');
+            $categoryIds[] = $cat->id;
+            $firstCategoryId = $cat->id;
+        }
 
-        // Resolve Brand
-        $brandId = null;
+        // Resolve subcategories (scoped to the first category found, or general)
+        $subcategoryCell = trim($this->getCell($data, 'subcategory', 'sub_category'));
+        if ($subcategoryCell === '') {
+            $subcategoryCell = 'General';
+        }
+        $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
+        $subcategoryIds = [];
+        foreach ($subcategoryNames as $sName) {
+            $sub = $this->resolveSubcategory($firstCategoryId, $sName);
+            if ($sub) {
+                $subcategoryIds[] = $sub->id;
+            }
+        }
+        if (empty($subcategoryIds)) {
+            $sub = $this->resolveSubcategory($firstCategoryId, 'General');
+            $subcategoryIds[] = $sub->id;
+        }
+
+        // Resolve Brands
         $brandCell = trim($this->getCell($data, 'brand'));
+        $brandIds = [];
         if ($brandCell !== '') {
-            $brandId = $this->resolveBrandId($brandCell);
+            $brandNames = array_filter(array_map('trim', explode(',', $brandCell)));
+            foreach ($brandNames as $bName) {
+                $bId = $this->resolveBrandId($bName);
+                if ($bId) {
+                    $brandIds[] = $bId;
+                }
+            }
         }
 
         // Generate Slug
@@ -145,16 +178,16 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         if (trim($this->getCell($data, 'tax_type')) !== '') $specifications['Tax Type'] = trim($this->getCell($data, 'tax_type'));
 
         try {
-            DB::transaction(function () use ($name, $slug, $sku, $brandId, $category, $subcategory, $price, $salePrice, $tax, $stock, $shortDesc, $fullDesc, $featuredImage, $status, $featured, $specifications, $tags, $rowIndex) {
+            DB::transaction(function () use ($name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $price, $salePrice, $tax, $stock, $shortDesc, $fullDesc, $featuredImage, $status, $featured, $specifications, $tags, $rowIndex) {
                 // Find existing product by SKU or name
                 $product = Product::where('sku', $sku)
                     ->orWhere('name', $name)
                     ->first();
 
                 $attributes = [
-                    'brand_id' => $brandId,
-                    'category_id' => $category->id,
-                    'subcategory_id' => $subcategory->id,
+                    'brand_id' => $brandIds,
+                    'category_id' => $categoryIds,
+                    'subcategory_id' => $subcategoryIds,
                     'name' => $name,
                     'slug' => $product ? $product->slug : $slug,
                     'sku' => $sku,

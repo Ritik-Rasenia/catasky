@@ -340,7 +340,7 @@
                         <i class="bi bi-lock-fill input-icon"></i>
                         <input type="password" name="password" id="password"
                             class="form-input @error('password') is-invalid @enderror"
-                            placeholder="Min. 8 characters"
+                            placeholder="Alphanumeric (8-20 characters)"
                             required autocomplete="new-password"
                             oninput="checkStrength(this.value)">
                     </div>
@@ -398,13 +398,13 @@ function checkStrength(pw) {
     const label = document.getElementById('strength-label');
 
     let score = 0;
-    if (pw.length >= 8) score++;
-    if (/[A-Z]/.test(pw)) score++;
+    if (pw.length >= 8 && pw.length <= 20) score++;
+    if (/[a-zA-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (!/[^a-zA-Z0-9]/.test(pw) && pw.length > 0) score++;
 
     const colors = ['#EF4444','#F59E0B','#10B981','#4F46E5'];
-    const labels = ['Weak','Fair','Good','Strong'];
+    const labels = ['Weak','Fair','Good','Perfect (Alphanumeric)'];
 
     segs.forEach((seg, i) => {
         seg.style.background = i < score ? colors[score - 1] : 'rgba(255,255,255,0.08)';
@@ -414,8 +414,29 @@ function checkStrength(pw) {
     label.style.color = score > 0 ? colors[score - 1] : 'rgba(255,255,255,0.25)';
 }
 
-// Submit state
-document.getElementById('reg-form').addEventListener('submit', function() {
+// Submit state and validation
+document.getElementById('reg-form').addEventListener('submit', function(e) {
+    const pw = document.getElementById('password').value;
+    const pwConf = document.getElementById('password_confirmation').value;
+
+    if (pw.length < 8 || pw.length > 20) {
+        e.preventDefault();
+        alert('Please choose a password between 8 and 20 characters.');
+        return false;
+    }
+
+    if (/[^a-zA-Z0-9]/.test(pw)) {
+        e.preventDefault();
+        alert('Password must contain letters and numbers only (no special characters or spaces).');
+        return false;
+    }
+
+    if (pw !== pwConf) {
+        e.preventDefault();
+        alert('Passwords do not match.');
+        return false;
+    }
+
     const btn = document.getElementById('reg-btn');
     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Creating Account...';
     btn.disabled = true;

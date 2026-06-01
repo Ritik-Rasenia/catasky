@@ -164,7 +164,7 @@ class DashboardController extends Controller
         $rolesCount        = Role::count();
         $enquiriesCount    = $this->applyDateFilter(Enquiry::query(), $filter)->count();
 
-        $recentProducts  = Product::with('category')->latest()->take(5)->get();
+        $recentProducts  = Product::latest()->take(5)->get();
         $recentUsers     = User::latest()->take(5)->get();
         $recentEnquiries = Enquiry::with(['product', 'brand', 'subscriberProduct'])->latest()->take(5)->get();
 

@@ -134,11 +134,36 @@ class CategoryController extends Controller
     /**
      * AJAX endpoint to get subcategories for a category
      */
-    public function getSubcategories($categoryId)
+    public function getSubcategories(Request $request, $categoryId = null)
     {
-        $subcategories = \App\Models\Subcategory::where('category_id', $categoryId)
-                                                ->where('status', 1)
-                                                ->get();
+        $catIds = $categoryId ?: $request->category_id;
+        $query = \App\Models\Subcategory::where('status', 1);
+        
+        if (is_array($catIds)) {
+            $query->whereIn('category_id', $catIds);
+        } else {
+            $query->where('category_id', $catIds);
+        }
+        
+        $subcategories = $query->orderBy('name')->get();
         return response()->json($subcategories);
+    }
+
+    public function quickStore(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|unique:categories,name',
+        ]);
+
+        $category = Category::create([
+            'name'   => $request->name,
+            'slug'   => \Illuminate\Support\Str::slug($request->name),
+            'status' => 1,
+        ]);
+
+        return response()->json([
+            'success'  => true,
+            'category' => $category,
+        ]);
     }
 }

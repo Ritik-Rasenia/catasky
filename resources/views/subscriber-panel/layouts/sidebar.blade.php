@@ -99,13 +99,7 @@
                         'permission' => null,
                         'active'     => ['subscriber.subcategories.*'],
                     ],
-                    [
-                        'label'      => 'Attributes',
-                        'icon'       => 'bi-sliders',
-                        'route'      => 'subscriber.attributes.index',
-                        'permission' => 'products.view',
-                        'active'     => ['subscriber.attributes.*'],
-                    ],
+                 
                     [
                         'label'      => 'Products',
                         'icon'       => 'bi-box-seam-fill',

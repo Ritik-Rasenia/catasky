@@ -82,7 +82,7 @@ class SubscriberAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email',
-            'password'     => 'required|min:8|confirmed',
+            'password'     => 'required|string|min:8|max:20|alpha_num|confirmed',
             'company_name' => 'required|string|max:255',
             'phone'        => 'nullable|string|max:20',
             'whatsapp_number' => 'nullable|string|max:20',
@@ -199,9 +199,9 @@ class SubscriberAuthController extends Controller
             'company_slug'     => $companySlug,
             'phone'            => $regData['phone'],
             'whatsapp_number'  => $regData['whatsapp_number'],
-            'status'           => 'pending', // Pending B2B compliance review
-            'store_status'     => 'draft',   // Needs store branding setup
-            'is_verified'      => true,      // Verification completed
+            'status'           => 'approved', // Auto-approved
+            'store_status'     => 'live',     // Auto-approved
+            'is_verified'      => true,       // Verification completed
         ]);
 
         // Create default PDF template
@@ -228,8 +228,8 @@ class SubscriberAuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard')
-            ->with('success', '🎉 Verification successful! Your account is now pending B2B compliance approval by the Super Admin.');
+        return redirect()->route('subscriber.dashboard')
+            ->with('success', '🎉 Verification successful! Your account and B2B storefront have been automatically approved and are now live.');
     }
 
     public function showForgotForm()
@@ -297,7 +297,7 @@ class SubscriberAuthController extends Controller
         $request->validate([
             'token'                 => 'required',
             'email'                 => 'required|email|exists:users,email',
-            'password'              => 'required|min:8|confirmed',
+            'password'              => 'required|string|min:8|max:20|alpha_num|confirmed',
         ], [
             'password.confirmed' => 'Password confirmation does not match.',
         ]);

@@ -19,7 +19,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = SubscriberProduct::where('user_id', $user->id)->with(['images', 'category']);
+        $query = SubscriberProduct::where('user_id', $user->id)->with(['images']);
 
         if ($request->search) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -55,13 +55,20 @@ class ProductController extends Controller
     {
         $request->validate([
             'name'              => 'required|string|max:255',
-            'category_id'       => 'required|exists:categories,id',
-            'subcategory_id'    => 'required|exists:subcategories,id',
+            'sku'               => 'required|string|max:255',
+            'category_id'       => 'nullable|array',
+            'category_id.*'     => 'exists:categories,id',
+            'subcategory_id'    => 'nullable|array',
+            'subcategory_id.*'  => 'exists:subcategories,id',
             'child_category_id' => 'nullable|exists:child_categories,id',
-            'brand_id'          => 'nullable|exists:brands,id',
-            'status'            => 'required|in:active,inactive,draft',
+            'brand_id'          => 'nullable|array',
+            'brand_id.*'        => 'exists:brands,id',
+            'status'            => 'nullable|in:active,inactive,draft',
+            'mrp'               => 'nullable|numeric|min:0',
+            'offer_price'       => 'nullable|numeric|min:0',
             'price'             => 'nullable|numeric|min:0',
             'stock'             => 'nullable|integer|min:0',
+            'moq'               => 'nullable|integer|min:1',
             'stock_status'      => 'nullable|string|in:in_stock,out_of_stock',
             'short_description' => 'nullable|string|max:1000',
             'full_description'  => 'nullable|string',
@@ -77,8 +84,15 @@ class ProductController extends Controller
         $data['slug'] = Str::slug($request->name) . '-' . Str::random(6);
         $data['tags'] = $request->tags ? array_map('trim', explode(',', $request->tags)) : null;
 
-        // If price is passed, populate mrp and offer_price for backward compatibility
-        if ($request->has('price')) {
+        // Handle mrp and offer_price - support both direct fields and legacy 'price' field
+        if ($request->filled('mrp')) {
+            $data['mrp'] = $request->mrp;
+        }
+        if ($request->filled('offer_price')) {
+            $data['offer_price'] = $request->offer_price;
+        }
+        // Legacy price field fallback
+        if ($request->filled('price') && !$request->filled('mrp') && !$request->filled('offer_price')) {
             $data['offer_price'] = $request->price;
             $data['mrp'] = $request->price;
         }
@@ -128,7 +142,7 @@ class ProductController extends Controller
     public function show(SubscriberProduct $product)
     {
         $this->authorizeSubscriberProduct($product);
-        $product->load(['images', 'category', 'attributeValues.attribute']);
+        $product->load(['images', 'attributeValues.attribute']);
         return view('subscriber-panel.products.show', compact('product'));
     }
 
@@ -140,7 +154,8 @@ class ProductController extends Controller
         $categories = Category::where('subscriber_id', $user->id)->orderBy('name')->get();
         $brands = \App\Models\Brand::where('subscriber_id', $user->id)->orderBy('name')->get();
         $subcategories = $product->category_id ? Subcategory::where('subscriber_id', $user->id)->where('category_id', $product->category_id)->get() : collect();
-        $productTypes = $product->subcategory_id ? \App\Models\ChildCategory::where('subcategory_id', $product->subcategory_id)->get() : collect();
+        $subIds = is_array($product->subcategory_id) ? $product->subcategory_id : ($product->subcategory_id ? [$product->subcategory_id] : []);
+        $productTypes = !empty($subIds) ? \App\Models\ChildCategory::whereIn('subcategory_id', $subIds)->get() : collect();
         $attributes = Attribute::where('user_id', $user->id)
             ->where('is_active', true)
             ->with(['group', 'options'])
@@ -155,16 +170,23 @@ class ProductController extends Controller
     public function update(Request $request, SubscriberProduct $product)
     {
         $this->authorizeSubscriberProduct($product);
-
+ 
         $request->validate([
             'name'              => 'required|string|max:255',
-            'category_id'       => 'required|exists:categories,id',
-            'subcategory_id'    => 'required|exists:subcategories,id',
+            'sku'               => 'required|string|max:255',
+            'category_id'       => 'nullable|array',
+            'category_id.*'     => 'exists:categories,id',
+            'subcategory_id'    => 'nullable|array',
+            'subcategory_id.*'  => 'exists:subcategories,id',
             'child_category_id' => 'nullable|exists:child_categories,id',
-            'brand_id'          => 'nullable|exists:brands,id',
-            'status'            => 'required|in:active,inactive,draft',
+            'brand_id'          => 'nullable|array',
+            'brand_id.*'        => 'exists:brands,id',
+            'status'            => 'nullable|in:active,inactive,draft',
+            'mrp'               => 'nullable|numeric|min:0',
+            'offer_price'       => 'nullable|numeric|min:0',
             'price'             => 'nullable|numeric|min:0',
             'stock'             => 'nullable|integer|min:0',
+            'moq'               => 'nullable|integer|min:1',
             'stock_status'      => 'nullable|string|in:in_stock,out_of_stock',
             'short_description' => 'nullable|string|max:1000',
             'full_description'  => 'nullable|string',
@@ -177,8 +199,15 @@ class ProductController extends Controller
         $data = $request->except(['_token', '_method', 'thumbnail', 'images', 'attributes']);
         $data['tags'] = $request->tags ? array_map('trim', explode(',', $request->tags)) : null;
 
-        // If price is passed, populate mrp and offer_price for backward compatibility
-        if ($request->has('price')) {
+        // Handle mrp and offer_price - support both direct fields and legacy 'price' field
+        if ($request->filled('mrp')) {
+            $data['mrp'] = $request->mrp;
+        }
+        if ($request->filled('offer_price')) {
+            $data['offer_price'] = $request->offer_price;
+        }
+        // Legacy price field fallback
+        if ($request->filled('price') && !$request->filled('mrp') && !$request->filled('offer_price')) {
             $data['offer_price'] = $request->price;
             $data['mrp'] = $request->price;
         }
@@ -431,10 +460,16 @@ class ProductController extends Controller
     // AJAX: get subcategories
     public function getSubcategories(Request $request)
     {
-        $subcategories = Subcategory::where('subscriber_id', auth()->id())
-            ->where('category_id', $request->category_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $catIds = $request->category_id;
+        $query = Subcategory::where('subscriber_id', auth()->id());
+        
+        if (is_array($catIds)) {
+            $query->whereIn('category_id', $catIds);
+        } else {
+            $query->where('category_id', $catIds);
+        }
+        
+        $subcategories = $query->orderBy('name')->get(['id', 'name']);
         return response()->json($subcategories);
     }
 

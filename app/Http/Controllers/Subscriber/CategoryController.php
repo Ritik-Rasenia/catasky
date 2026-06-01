@@ -144,4 +144,34 @@ class CategoryController extends Controller
             ->route('subscriber.categories.index')
             ->with('success', 'Category Deleted Successfully');
     }
+
+    public function quickStore(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+        ]);
+
+        $exists = Category::where('subscriber_id', auth()->id())
+            ->where('name', $request->name)
+            ->first();
+            
+        if ($exists) {
+            return response()->json([
+                'success' => true,
+                'category' => $exists,
+            ]);
+        }
+
+        $category = Category::create([
+            'name'          => $request->name,
+            'slug'          => Str::slug($request->name),
+            'status'        => 1,
+            'subscriber_id' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'success'  => true,
+            'category' => $category,
+        ]);
+    }
 }

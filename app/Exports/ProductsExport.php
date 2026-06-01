@@ -12,7 +12,7 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
     public function query()
     {
         return Product::query()
-            ->with(['brand', 'category', 'subcategory', 'images'])
+            ->with(['images'])
             ->orderBy('id');
     }
 

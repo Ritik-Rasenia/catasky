@@ -66,13 +66,7 @@
                         'permission' => 'categories.view',
                         'active' => ['admin.subcategories.*'],
                     ],
-                    [
-                        'label' => 'Attributes',
-                        'icon' => 'bi-sliders',
-                        'route' => 'admin.attributes.index',
-                        'permission' => 'products.view',
-                        'active' => ['admin.attributes.*'],
-                    ],
+                   
                     [
                         'label' => 'Products',
                         'icon' => 'bi-box-seam-fill',

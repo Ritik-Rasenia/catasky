@@ -24,6 +24,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
  
     private array $categoryCache = [];
     private array $subcategoryCache = [];
+    private array $brandCache = [];
  
     public function __construct(
         private int $importLogId,
@@ -79,31 +80,71 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             $sku = 'SKU-' . strtoupper(Str::random(10));
         }
  
-        // Resolve category
-        $categoryName = trim($this->getCell($data, 'category'));
-        if ($categoryName === '') {
-            $categoryName = 'General';
+        // Resolve categories
+        $categoryCell = trim($this->getCell($data, 'category'));
+        if ($categoryCell === '') {
+            $categoryCell = 'General';
         }
-        $category = $this->resolveCategory($categoryName);
- 
-        // Resolve subcategory
-        $subcategoryName = trim($this->getCell($data, 'subcategory', 'sub_category'));
-        if ($subcategoryName === '') {
-            $subcategoryName = 'General';
+        $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
+        $categoryIds = [];
+        $firstCategoryId = null;
+        foreach ($categoryNames as $cName) {
+            $cat = $this->resolveCategory($cName);
+            if ($cat) {
+                $categoryIds[] = $cat->id;
+                if ($firstCategoryId === null) {
+                    $firstCategoryId = $cat->id;
+                }
+            }
         }
-        $subcategory = $this->resolveSubcategory($category->id, $subcategoryName);
- 
+        if (empty($categoryIds)) {
+            $cat = $this->resolveCategory('General');
+            $categoryIds[] = $cat->id;
+            $firstCategoryId = $cat->id;
+        }
+
+        // Resolve subcategories (scoped to the first category found, or general)
+        $subcategoryCell = trim($this->getCell($data, 'subcategory', 'sub_category'));
+        if ($subcategoryCell === '') {
+            $subcategoryCell = 'General';
+        }
+        $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
+        $subcategoryIds = [];
+        foreach ($subcategoryNames as $sName) {
+            $sub = $this->resolveSubcategory($firstCategoryId, $sName);
+            if ($sub) {
+                $subcategoryIds[] = $sub->id;
+            }
+        }
+        if (empty($subcategoryIds)) {
+            $sub = $this->resolveSubcategory($firstCategoryId, 'General');
+            $subcategoryIds[] = $sub->id;
+        }
+
+        // Resolve Brands
+        $brandCell = trim($this->getCell($data, 'brand'));
+        $brandIds = [];
+        if ($brandCell !== '') {
+            $brandNames = array_filter(array_map('trim', explode(',', $brandCell)));
+            foreach ($brandNames as $bName) {
+                $bId = $this->resolveBrandId($bName);
+                if ($bId) {
+                    $brandIds[] = $bId;
+                }
+            }
+        }
+
         // Generate Slug
         $slug = $slugInput !== '' ? Str::slug($slugInput) : Str::slug($name);
         if ($slug === '') {
             $slug = Str::slug($name) . '-' . Str::lower(Str::random(6));
         }
         $slug = $this->uniqueSlug($slug, $sku);
- 
+
         // Handle Thumbnail: Column L (Featured Image)
         $thumbnail = null;
         $thumbWarning = null;
- 
+
         // Try pre-extracted cell drawing first
         $extractedDrawingPath = $this->getExtractedDrawing($rowIndex, 'L');
         if ($extractedDrawingPath) {
@@ -128,26 +169,27 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                 }
             }
         }
- 
+
         // Parse fields
         $mrp = $this->parseNumeric($this->getCell($data, 'mrp'));
         $offerPrice = $this->parseNumeric($this->getCell($data, 'offer_price', 'price'));
         $stock = (int)$this->parseNumeric($this->getCell($data, 'stock_quantity', 'stock'), 0);
         $status = $this->parseStatus($this->getCell($data, 'status'));
         $featured = $this->parseBool($this->getCell($data, 'featured'));
- 
+
         $shortDesc = trim($this->getCell($data, 'short_description'));
         $fullDesc = trim($this->getCell($data, 'full_description', 'description'));
         $tagsStr = trim($this->getCell($data, 'tags'));
         $tagsArray = $tagsStr !== '' ? array_map('trim', explode(',', $tagsStr)) : null;
- 
+
         try {
-            DB::transaction(function () use ($name, $slug, $sku, $category, $subcategory, $mrp, $offerPrice, $stock, $shortDesc, $fullDesc, $thumbnail, $status, $featured, $tagsArray, $rowIndex, $data) {
+            DB::transaction(function () use ($name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $mrp, $offerPrice, $stock, $shortDesc, $fullDesc, $thumbnail, $status, $featured, $tagsArray, $rowIndex, $data) {
                 // Create Subscriber Product
                 $product = SubscriberProduct::create([
                     'user_id'           => $this->subscriberId,
-                    'category_id'       => $category->id,
-                    'subcategory_id'    => $subcategory->id,
+                    'category_id'       => $categoryIds,
+                    'subcategory_id'    => $subcategoryIds,
+                    'brand_id'          => $brandIds,
                     'name'              => $name,
                     'slug'              => $slug,
                     'sku'               => $sku,
@@ -161,7 +203,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                     'status'            => $status,
                     'approval_status'   => 'approved', // Auto-approved for B2B subscriber
                 ]);
- 
+
                 // Initialize default Variant (for stock/inventory)
                 SubscriberProductVariant::create([
                     'subscriber_product_id' => $product->id,
@@ -484,5 +526,25 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             }
         }
         return null;
+    }
+
+    private function resolveBrandId(string $name): ?int
+    {
+        $key = Str::lower($name);
+        if (array_key_exists($key, $this->brandCache)) {
+            return $this->brandCache[$key];
+        }
+        $brand = \App\Models\Brand::whereRaw('LOWER(name) = ?', [$key])->first();
+        if (!$brand) {
+            $brand = \App\Models\Brand::create([
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'status' => 1
+            ]);
+        }
+        $id = $brand?->id;
+        $this->brandCache[$key] = $id;
+ 
+        return $id;
     }
 }

@@ -332,7 +332,7 @@
         <!-- Main Content -->
         <div class="brand-content">
             <h1 class="brand-headline">
-                The World's Most<br>Premium <span style="background:linear-gradient(135deg,#818CF8,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Catalogue Platform</span>
+                The World's Most<br>Premium <span style="background:linear-gradient(135deg,#818CF8,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Catalogue</span>
             </h1>
             <p class="brand-sub">
                 Manage B2B products. Create stunning PDF catalogues. Share them instantly via WhatsApp. All in one place.

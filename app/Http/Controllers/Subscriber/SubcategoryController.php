@@ -157,4 +157,37 @@ class SubcategoryController extends Controller
             ->route('subscriber.subcategories.index')
             ->with('success', 'Subcategory Deleted Successfully');
     }
+
+    public function quickStore(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required',
+            'name' => 'required',
+        ]);
+
+        $exists = Subcategory::where('subscriber_id', auth()->id())
+            ->where('category_id', $request->category_id)
+            ->where('name', $request->name)
+            ->first();
+            
+        if ($exists) {
+            return response()->json([
+                'success' => true,
+                'subcategory' => $exists,
+            ]);
+        }
+
+        $subcategory = Subcategory::create([
+            'category_id'   => $request->category_id,
+            'name'          => $request->name,
+            'slug'          => Str::slug($request->name),
+            'status'        => 1,
+            'subscriber_id' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'success'     => true,
+            'subcategory' => $subcategory,
+        ]);
+    }
 }

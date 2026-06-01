@@ -23,7 +23,7 @@ class FrontendController extends Controller
         $categories = Category::where('status', 1)->withCount('products')->get();
         $featuredProducts = Product::where('status', 1)
             ->where('featured', 1)
-            ->with(['category', 'brand'])
+            ->with([])
             ->latest()
             ->take(8)
             ->get();
@@ -38,7 +38,7 @@ class FrontendController extends Controller
     {
         $category = (object)['name' => 'All Products', 'id' => 0];
 
-        $query = Product::where('status', 1)->with(['category', 'brand']);
+        $query = Product::where('status', 1)->with([]);
 
         // Filter by selected product IDs (for catalogue sharing)
         $productIds = $request->input('products');
@@ -52,7 +52,7 @@ class FrontendController extends Controller
         if ($request->filled('subcategory')) {
             $sub = Subcategory::where('slug', $request->input('subcategory'))->first();
             if ($sub) {
-                $query->where('subcategory_id', $sub->id);
+                $query->whereJsonContains('subcategory_id', $sub->id);
             }
         }
 
@@ -114,15 +114,15 @@ class FrontendController extends Controller
     {
         $category = Category::where('slug', $slug)->firstOrFail();
 
-        $query = Product::where('category_id', $category->id)
+        $query = Product::whereJsonContains('category_id', $category->id)
             ->where('status', 1)
-            ->with(['category', 'brand']);
+            ->with([]);
 
         // Filter by subcategory
         if ($request->filled('subcategory')) {
             $sub = Subcategory::where('slug', $request->input('subcategory'))->first();
             if ($sub) {
-                $query->where('subcategory_id', $sub->id);
+                $query->whereJsonContains('subcategory_id', $sub->id);
             }
         }
 
@@ -153,7 +153,7 @@ class FrontendController extends Controller
         $request = request();
         // 1. Resolve product from either Product (admin) or SubscriberProduct table
         $product = Product::where('slug', $slug)
-            ->with(['category', 'brand', 'images'])
+            ->with(['images'])
             ->first();
 
         $isSubscriberStore = false;
@@ -163,7 +163,7 @@ class FrontendController extends Controller
         if (!$product) {
             // Check if it exists in SubscriberProduct
             $product = \App\Models\SubscriberProduct::where('slug', $slug)
-                ->with(['category', 'brand', 'images'])
+                ->with(['images'])
                 ->first();
 
             if (!$product) {
@@ -422,7 +422,7 @@ class FrontendController extends Controller
         if ($isSubscriber && $companySlug) {
             $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
             if ($profile) {
-                $subProducts = \App\Models\SubscriberProduct::with(['category', 'brand', 'images'])
+                $subProducts = \App\Models\SubscriberProduct::with(['images'])
                     ->where('user_id', $profile->user_id)
                     ->whereIn('id', $ids)
                     ->get();
@@ -447,7 +447,7 @@ class FrontendController extends Controller
             }
         } else {
             // Strictly query standard admin Product table (never return subscriber products here)
-            $products = Product::with(['category', 'brand', 'images'])
+            $products = Product::with(['images'])
                 ->whereIn('id', $ids)
                 ->get();
 
@@ -488,10 +488,10 @@ class FrontendController extends Controller
         if ($isSubscriber && $companySlug) {
             $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
             if ($profile) {
-                $product = \App\Models\SubscriberProduct::with(['category', 'brand', 'images'])->where('user_id', $profile->user_id)->find($id);
+                $product = \App\Models\SubscriberProduct::with(['images'])->where('user_id', $profile->user_id)->find($id);
             }
         } else {
-            $product = Product::with(['category', 'brand', 'images'])->find($id);
+            $product = Product::with(['images'])->find($id);
         }
 
         if (!$product) {
@@ -530,7 +530,7 @@ class FrontendController extends Controller
         if ($isSubscriber && $companySlug) {
             $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
             if ($profile) {
-                $product = \App\Models\SubscriberProduct::with(['category', 'brand', 'images', 'attributeValues.attribute'])
+                $product = \App\Models\SubscriberProduct::with(['images', 'attributeValues.attribute'])
                     ->where('user_id', $profile->user_id)
                     ->find($id);
                 if ($product) {
@@ -538,7 +538,7 @@ class FrontendController extends Controller
                 }
             }
         } else {
-            $product = Product::with(['category', 'brand', 'images'])->find($id);
+            $product = Product::with(['images'])->find($id);
             if ($product) {
                 return view('partials.product-drawer-content', compact('product'));
             }
@@ -615,17 +615,19 @@ class FrontendController extends Controller
         // Category filter
         if ($request->filled('category')) {
             $catSlug = $request->input('category');
-            $query->whereHas('category', function($q) use ($catSlug) {
-                $q->where('slug', $catSlug);
-            });
+            $cat = Category::where('slug', $catSlug)->first();
+            if ($cat) {
+                $query->whereJsonContains('category_id', $cat->id);
+            }
         }
 
         // Subcategory filter
         if ($request->filled('subcategory')) {
             $subSlug = $request->input('subcategory');
-            $query->whereHas('subcategory', function($q) use ($subSlug) {
-                $q->where('slug', $subSlug);
-            });
+            $sub = \App\Models\Subcategory::where('slug', $subSlug)->first();
+            if ($sub) {
+                $query->whereJsonContains('subcategory_id', $sub->id);
+            }
         }
 
         // Price filter
@@ -662,7 +664,9 @@ class FrontendController extends Controller
             ->where('status', 'active')
             ->where('approval_status', 'approved')
             ->whereNotNull('subcategory_id')
+            ->get()
             ->pluck('subcategory_id')
+            ->flatten()
             ->unique();
         $subcategories = \App\Models\Subcategory::whereIn('id', $subcategoryIds)->get();
 
@@ -772,7 +776,7 @@ class FrontendController extends Controller
      */
     public function downloadProductPdf($slug)
     {
-        $product = Product::where('slug', $slug)->with(['category', 'brand'])->firstOrFail();
+        $product = Product::where('slug', $slug)->with([])->firstOrFail();
 
         $qrUrl = route('product.details', $product->slug);
         
@@ -808,7 +812,7 @@ class FrontendController extends Controller
      */
     public function apiFilterProducts(Request $request)
     {
-        $query = Product::where('status', 1)->with(['category', 'brand', 'reviews']);
+        $query = Product::where('status', 1)->with(['reviews']);
 
         if ($request->filled('query')) {
             $q = $request->input('query');
@@ -823,17 +827,19 @@ class FrontendController extends Controller
         if ($request->filled('category')) {
             $catSlug = $request->input('category');
             if ($catSlug !== 'all') {
-                $query->whereHas('category', function($sub) use ($catSlug) {
-                    $sub->where('slug', $catSlug);
-                });
+                $cat = Category::where('slug', $catSlug)->first();
+                if ($cat) {
+                    $query->whereJsonContains('category_id', $cat->id);
+                }
             }
         }
 
         if ($request->filled('subcategory')) {
             $subSlug = $request->input('subcategory');
-            $query->whereHas('subcategory', function($sub) use ($subSlug) {
-                $sub->where('slug', $subSlug);
-            });
+            $sub = Subcategory::where('slug', $subSlug)->first();
+            if ($sub) {
+                $query->whereJsonContains('subcategory_id', $sub->id);
+            }
         }
 
         if ($request->filled('min_price')) {

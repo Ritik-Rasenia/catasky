@@ -71,16 +71,13 @@ class ProfileController extends Controller
             $profileData['banner'] = $bannerFilename;
         }
 
-        $currentStoreStatus = $user->subscriberProfile?->store_status ?? 'draft';
-        if ($request->input('submit_store') == 1 || $currentStoreStatus === 'draft' || $currentStoreStatus === 'rejected') {
-            $currentStoreStatus = 'pending';
-        }
+        $currentStoreStatus = 'live';
 
         $profile = SubscriberProfile::updateOrCreate(
             ['user_id' => $user->id],
             array_merge($profileData, [
-                'status' => $user->subscriberProfile?->status ?? 'pending',
-                'store_status' => $currentStoreStatus,
+                'status' => 'approved',
+                'store_status' => 'live',
             ])
         );
 
@@ -93,7 +90,7 @@ class ProfileController extends Controller
     {
         $request->validate([
             'current_password' => 'required',
-            'password'         => 'required|min:8|confirmed',
+            'password'         => 'required|string|min:8|max:20|alpha_num|confirmed',
         ]);
 
         $user = auth()->user();
