@@ -14,6 +14,7 @@ class BrandController extends Controller
      */
     public function index()
     {
+        abort_if(!auth()->user()->can('view-brands'), 403, 'Unauthorized.');
         $brands = Brand::with('subscriber.subscriberProfile')->latest()->get();
 
         return view('admin.brands.index', compact('brands'));
@@ -24,6 +25,7 @@ class BrandController extends Controller
      */
     public function create()
     {
+        abort_if(!auth()->user()->can('create-brands'), 403, 'Unauthorized.');
         return view('admin.brands.create');
     }
 
@@ -32,9 +34,12 @@ class BrandController extends Controller
      */
     public function store(Request $request)
     {
-
+        abort_if(!auth()->user()->can('create-brands'), 403, 'Unauthorized.');
         $request->validate([
-            'name'      => 'required|unique:brands,name',
+            'name'      => [
+                'required',
+                \Illuminate\Validation\Rule::unique('brands', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+            ],
             'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'    => 'required',
         ]);
@@ -70,6 +75,7 @@ class BrandController extends Controller
      */
     public function show(string $id)
     {
+        abort_if(!auth()->user()->can('view-brands'), 403, 'Unauthorized.');
         $brand = Brand::findOrFail($id);
 
         return view('admin.brands.show', compact('brand'));
@@ -80,6 +86,7 @@ class BrandController extends Controller
      */
     public function edit(string $id)
     {
+        abort_if(!auth()->user()->can('edit-brands'), 403, 'Unauthorized.');
         $brand = Brand::findOrFail($id);
 
         return view('admin.brands.edit', compact('brand'));
@@ -90,11 +97,17 @@ class BrandController extends Controller
      */
     public function update(Request $request, string $id)
     {
-
+        abort_if(!auth()->user()->can('edit-brands'), 403, 'Unauthorized.');
         $brand = Brand::findOrFail($id);
 
         $request->validate([
-            'name'      => 'required|unique:brands,name,'.$brand->id,
+            'name'      => [
+                'required',
+                \Illuminate\Validation\Rule::unique('brands', 'name')
+                    ->ignore($brand->id)
+                    ->whereNull('subscriber_id')
+                    ->whereNull('deleted_at')
+            ],
             'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'    => 'required',
         ]);
@@ -135,7 +148,7 @@ class BrandController extends Controller
      */
     public function destroy(string $id)
     {
-
+        abort_if(!auth()->user()->can('delete-brands'), 403, 'Unauthorized.');
         $brand = Brand::findOrFail($id);
 
         if($brand->image && file_exists(public_path('uploads/brands/'.$brand->image))){
@@ -152,8 +165,12 @@ class BrandController extends Controller
  
     public function quickStore(Request $request)
     {
+        abort_if(!auth()->user()->can('create-brands'), 403, 'Unauthorized.');
         $request->validate([
-            'name' => 'required|unique:brands,name',
+            'name' => [
+                'required',
+                \Illuminate\Validation\Rule::unique('brands', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+            ],
         ]);
  
         $brand = Brand::create([

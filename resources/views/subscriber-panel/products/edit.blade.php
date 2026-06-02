@@ -236,6 +236,7 @@
                                 <label class="form-label">Subcategory</label>
                                 <select name="subcategory_id[]" id="subcategory-select" class="form-select search-select"
                                         data-attributes-url="{{ route('subscriber.api.subcategory-attributes', '') }}" multiple>
+                                    <option value="new_subcategory">＋ Add New Subcategory...</option>
                                     @foreach($subcategories as $s)
                                         <option value="{{ $s->id }}" {{ is_array(old('subcategory_id', $product->subcategory_id)) && in_array($s->id, old('subcategory_id', $product->subcategory_id ?? [])) ? 'selected' : '' }}>{{ $s->name }}</option>
                                     @endforeach

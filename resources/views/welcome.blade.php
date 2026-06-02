@@ -87,7 +87,7 @@ $demoProducts = [
                         <i class="bi bi-rocket-takeoff-fill"></i>
                         Start Free Trial
                     </a>
-                    <a href="{{ route('catalogue') }}" class="btn-hero-outline" id="watch-demo-btn">
+                    <a href="{{ route('demo') }}" class="btn-hero-outline" id="watch-demo-btn">
                         <i class="bi bi-search text-primary"></i>
                         Explore Catalogue
                     </a>
@@ -727,7 +727,7 @@ $demoProducts = [
                             <a href="{{ route('subscriber.register') }}" class="btn-hero-primary" style="justify-content:center;">
                                 <i class="bi bi-rocket-takeoff-fill"></i> Start Free Trial
                             </a>
-                            <a href="{{ route('catalogue') }}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:transparent;color:rgba(255,255,255,0.8);border-radius:14px;font-weight:600;border:1.5px solid rgba(255,255,255,0.2);text-decoration:none;transition:all 0.3s ease;font-size:0.95rem;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
+                            <a href="{{ route('demo') }}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:transparent;color:rgba(255,255,255,0.8);border-radius:14px;font-weight:600;border:1.5px solid rgba(255,255,255,0.2);text-decoration:none;transition:all 0.3s ease;font-size:0.95rem;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
                                 <i class="bi bi-search"></i> Explore Catalogue
                             </a>
                         </div>

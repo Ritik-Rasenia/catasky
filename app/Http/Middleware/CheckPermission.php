@@ -28,8 +28,16 @@ class CheckPermission
         // Convert string permissions to array
         $perms = is_array($permissions[0]) ? $permissions[0] : $permissions;
 
-        // Check if user has any of the required permissions
-        if (!auth()->user()->hasAnyPermission($perms)) {
+        // Check if user has any of the required permissions using Laravel Gate/can()
+        $hasAccess = false;
+        foreach ($perms as $perm) {
+            if (auth()->user()->can($perm)) {
+                $hasAccess = true;
+                break;
+            }
+        }
+
+        if (!$hasAccess) {
             $role = auth()->user()->roles->pluck('name')->first() ?? 'User';
             Log::warning('Unauthorized access attempt', [
                 'user_id' => auth()->id(),

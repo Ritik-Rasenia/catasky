@@ -32,6 +32,14 @@ class FrontendController extends Controller
     }
 
     /**
+     * Display the public demo catalogue page without login.
+     */
+    public function demoCatalogue(Request $request)
+    {
+        return $this->catalogue($request);
+    }
+
+    /**
      * Display the full catalogue.
      */
     public function catalogue(Request $request)
@@ -52,7 +60,10 @@ class FrontendController extends Controller
         if ($request->filled('subcategory')) {
             $sub = Subcategory::where('slug', $request->input('subcategory'))->first();
             if ($sub) {
-                $query->whereJsonContains('subcategory_id', $sub->id);
+                $query->where(function($q) use ($sub) {
+                    $q->whereJsonContains('subcategory_id', $sub->id)
+                      ->orWhereJsonContains('subcategory_id', (string)$sub->id);
+                });
             }
         }
 
@@ -114,7 +125,10 @@ class FrontendController extends Controller
     {
         $category = Category::where('slug', $slug)->firstOrFail();
 
-        $query = Product::whereJsonContains('category_id', $category->id)
+        $query = Product::where(function($q) use ($category) {
+                $q->whereJsonContains('category_id', $category->id)
+                  ->orWhereJsonContains('category_id', (string)$category->id);
+            })
             ->where('status', 1)
             ->with([]);
 
@@ -122,7 +136,10 @@ class FrontendController extends Controller
         if ($request->filled('subcategory')) {
             $sub = Subcategory::where('slug', $request->input('subcategory'))->first();
             if ($sub) {
-                $query->whereJsonContains('subcategory_id', $sub->id);
+                $query->where(function($q) use ($sub) {
+                    $q->whereJsonContains('subcategory_id', $sub->id)
+                      ->orWhereJsonContains('subcategory_id', (string)$sub->id);
+                });
             }
         }
 
@@ -151,45 +168,68 @@ class FrontendController extends Controller
     public function productDetails($slug)
     {
         $request = request();
-        // 1. Resolve product from either Product (admin) or SubscriberProduct table
-        $product = Product::where('slug', $slug)
-            ->with(['images'])
-            ->first();
-
         $isSubscriberStore = false;
         $profile = null;
         $settings = \App\Models\Setting::first();
 
-        if (!$product) {
-            // Check if it exists in SubscriberProduct
+        if ($subscriberId = $request->attributes->get('custom_domain_subscriber_id')) {
+            $isSubscriberStore = true;
+            $profile = \App\Models\SubscriberProfile::where('user_id', $subscriberId)->first();
+            if (!$profile) {
+                abort(404, 'Subscriber profile not found.');
+            }
+            if ($profile->status !== 'approved' && $profile->status !== 'active') {
+                abort(403, 'This storefront account is not active.');
+            }
+            if ($profile->store_status !== 'live') {
+                abort(403, 'This storefront is pending review.');
+            }
+
             $product = \App\Models\SubscriberProduct::where('slug', $slug)
+                ->where('user_id', $subscriberId)
                 ->with(['images'])
                 ->first();
 
             if (!$product) {
                 abort(404, 'Product not found.');
             }
+        } else {
+            // 1. Resolve product from either Product (admin) or SubscriberProduct table
+            $product = Product::where('slug', $slug)
+                ->with(['images'])
+                ->first();
 
-            // It's a subscriber product!
-            $isSubscriberStore = true;
-            $profile = \App\Models\SubscriberProfile::where('user_id', $product->user_id)->first();
-            if ($profile) {
-                // Ensure double-approval status is checked
-                if ($profile->status !== 'approved' && $profile->status !== 'active') {
-                    abort(403, 'This storefront account is not active.');
+            if (!$product) {
+                // Check if it exists in SubscriberProduct
+                $product = \App\Models\SubscriberProduct::where('slug', $slug)
+                    ->with(['images'])
+                    ->first();
+
+                if (!$product) {
+                    abort(404, 'Product not found.');
                 }
-                if ($profile->store_status !== 'live') {
-                    abort(403, 'This storefront is pending review.');
+
+                // It's a subscriber product!
+                $isSubscriberStore = true;
+                $profile = \App\Models\SubscriberProfile::where('user_id', $product->user_id)->first();
+                if ($profile) {
+                    // Ensure double-approval status is checked
+                    if ($profile->status !== 'approved' && $profile->status !== 'active') {
+                        abort(403, 'This storefront account is not active.');
+                    }
+                    if ($profile->store_status !== 'live') {
+                        abort(403, 'This storefront is pending review.');
+                    }
+                } else {
+                    abort(404, 'Subscriber profile not found.');
                 }
             } else {
-                abort(404, 'Subscriber profile not found.');
-            }
-        } else {
-            // It's an admin product. Check if the request explicitly asks for subscriber context
-            if ($request->has('company_slug')) {
-                $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
-                if ($profile) {
-                    $isSubscriberStore = true;
+                // It's an admin product. Check if the request explicitly asks for subscriber context
+                if ($request->has('company_slug')) {
+                    $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
+                    if ($profile) {
+                        $isSubscriberStore = true;
+                    }
                 }
             }
         }
@@ -297,12 +337,12 @@ class FrontendController extends Controller
                 $productId = null;
                 if (!$brandId) {
                     $subProd = \App\Models\SubscriberProduct::find($subscriberProductId);
-                    $brandId = $subProd ? $subProd->brand_id : null;
+                    $brandId = $subProd ? (is_array($subProd->brand_id) ? (collect($subProd->brand_id)->first() ?? null) : $subProd->brand_id) : null;
                 }
             } else {
                 if (!$brandId) {
                     $prod = \App\Models\Product::find($productId);
-                    $brandId = $prod ? $prod->brand_id : null;
+                    $brandId = $prod ? (is_array($prod->brand_id) ? (collect($prod->brand_id)->first() ?? null) : $prod->brand_id) : null;
                 }
             }
         }
@@ -416,23 +456,73 @@ class FrontendController extends Controller
         }
 
         $results = [];
-        $isSubscriber = $request->input('is_subscriber') == 1;
-        $companySlug = $request->input('company_slug');
+        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
 
-        if ($isSubscriber && $companySlug) {
-            $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
-            if ($profile) {
-                $subProducts = \App\Models\SubscriberProduct::with(['images'])
-                    ->where('user_id', $profile->user_id)
+        if ($subscriberId) {
+            $subProducts = \App\Models\SubscriberProduct::with(['images'])
+                ->where('user_id', $subscriberId)
+                ->whereIn('id', $ids)
+                ->get();
+
+            foreach ($subProducts as $product) {
+                $thumbnail_url = $product->thumbnail_url;
+                $gallery_urls = $product->images->map(function($img) {
+                    $image_url = $img->image;
+                    if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
+                        return asset('uploads/subscriber-products/gallery/' . $img->image);
+                    }
+                    return $image_url;
+                });
+
+                $results[$product->id] = [
+                    'success' => true,
+                    'product' => $product,
+                    'thumbnail_url' => $thumbnail_url,
+                    'gallery_urls' => $gallery_urls
+                ];
+            }
+        } else {
+            $isSubscriber = $request->input('is_subscriber') == 1;
+            $companySlug = $request->input('company_slug');
+
+            if ($isSubscriber && $companySlug) {
+                $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
+                if ($profile) {
+                    $subProducts = \App\Models\SubscriberProduct::with(['images'])
+                        ->where('user_id', $profile->user_id)
+                        ->whereIn('id', $ids)
+                        ->get();
+
+                    foreach ($subProducts as $product) {
+                        $thumbnail_url = $product->thumbnail_url;
+                        $gallery_urls = $product->images->map(function($img) {
+                            $image_url = $img->image;
+                            if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
+                                return asset('uploads/subscriber-products/gallery/' . $img->image);
+                            }
+                            return $image_url;
+                        });
+
+                        $results[$product->id] = [
+                            'success' => true,
+                            'product' => $product,
+                            'thumbnail_url' => $thumbnail_url,
+                            'gallery_urls' => $gallery_urls
+                        ];
+                    }
+                }
+            } else {
+                // Strictly query standard admin Product table (never return subscriber products here)
+                $products = Product::with(['images'])
                     ->whereIn('id', $ids)
                     ->get();
 
-                foreach ($subProducts as $product) {
+                foreach ($products as $product) {
                     $thumbnail_url = $product->thumbnail_url;
                     $gallery_urls = $product->images->map(function($img) {
                         $image_url = $img->image;
                         if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
-                            return asset('uploads/subscriber-products/gallery/' . $img->image);
+                            return asset('uploads/products/gallery/' . $img->image);
                         }
                         return $image_url;
                     });
@@ -444,29 +534,6 @@ class FrontendController extends Controller
                         'gallery_urls' => $gallery_urls
                     ];
                 }
-            }
-        } else {
-            // Strictly query standard admin Product table (never return subscriber products here)
-            $products = Product::with(['images'])
-                ->whereIn('id', $ids)
-                ->get();
-
-            foreach ($products as $product) {
-                $thumbnail_url = $product->thumbnail_url;
-                $gallery_urls = $product->images->map(function($img) {
-                    $image_url = $img->image;
-                    if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
-                        return asset('uploads/products/gallery/' . $img->image);
-                    }
-                    return $image_url;
-                });
-
-                $results[$product->id] = [
-                    'success' => true,
-                    'product' => $product,
-                    'thumbnail_url' => $thumbnail_url,
-                    'gallery_urls' => $gallery_urls
-                ];
             }
         }
 
@@ -481,17 +548,23 @@ class FrontendController extends Controller
      */
     public function apiProductDetails(Request $request, $id)
     {
-        $isSubscriber = $request->input('is_subscriber') == 1;
-        $companySlug = $request->input('company_slug');
+        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
         $product = null;
 
-        if ($isSubscriber && $companySlug) {
-            $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
-            if ($profile) {
-                $product = \App\Models\SubscriberProduct::with(['images'])->where('user_id', $profile->user_id)->find($id);
-            }
+        if ($subscriberId) {
+            $product = \App\Models\SubscriberProduct::with(['images'])->where('user_id', $subscriberId)->find($id);
         } else {
-            $product = Product::with(['images'])->find($id);
+            $isSubscriber = $request->input('is_subscriber') == 1;
+            $companySlug = $request->input('company_slug');
+
+            if ($isSubscriber && $companySlug) {
+                $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
+                if ($profile) {
+                    $product = \App\Models\SubscriberProduct::with(['images'])->where('user_id', $profile->user_id)->find($id);
+                }
+            } else {
+                $product = Product::with(['images'])->find($id);
+            }
         }
 
         if (!$product) {
@@ -523,24 +596,35 @@ class FrontendController extends Controller
      */
     public function productQuickView(Request $request, $id)
     {
-        $isSubscriber = $request->input('is_subscriber') == 1;
-        $companySlug = $request->input('company_slug');
+        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
         $product = null;
 
-        if ($isSubscriber && $companySlug) {
-            $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
-            if ($profile) {
-                $product = \App\Models\SubscriberProduct::with(['images', 'attributeValues.attribute'])
-                    ->where('user_id', $profile->user_id)
-                    ->find($id);
-                if ($product) {
-                    return view('partials.subscriber-product-drawer-content', compact('product'));
-                }
+        if ($subscriberId) {
+            $product = \App\Models\SubscriberProduct::with(['images', 'attributeValues.attribute'])
+                ->where('user_id', $subscriberId)
+                ->find($id);
+            if ($product) {
+                return view('partials.subscriber-product-drawer-content', compact('product'));
             }
         } else {
-            $product = Product::with(['images'])->find($id);
-            if ($product) {
-                return view('partials.product-drawer-content', compact('product'));
+            $isSubscriber = $request->input('is_subscriber') == 1;
+            $companySlug = $request->input('company_slug');
+
+            if ($isSubscriber && $companySlug) {
+                $profile = \App\Models\SubscriberProfile::where('company_slug', $companySlug)->first();
+                if ($profile) {
+                    $product = \App\Models\SubscriberProduct::with(['images', 'attributeValues.attribute'])
+                        ->where('user_id', $profile->user_id)
+                        ->find($id);
+                    if ($product) {
+                        return view('partials.subscriber-product-drawer-content', compact('product'));
+                    }
+                }
+            } else {
+                $product = Product::with(['images'])->find($id);
+                if ($product) {
+                    return view('partials.product-drawer-content', compact('product'));
+                }
             }
         }
 
@@ -553,7 +637,6 @@ class FrontendController extends Controller
     public function pricing()
     {
         $plans = \App\Models\SubscriptionPlan::where('is_active', true)
-            ->where('is_trial', false)
             ->orderBy('sort_order')
             ->get();
         return view('pricing', compact('plans'));
@@ -565,6 +648,23 @@ class FrontendController extends Controller
     public function storeCatalog($slug, Request $request)
     {
         $profile = \App\Models\SubscriberProfile::where('company_slug', $slug)->firstOrFail();
+
+        // Strictly block other stores when loaded on a custom domain!
+        $customDomainSubscriberId = $request->attributes->get('custom_domain_subscriber_id');
+        if ($customDomainSubscriberId && $profile->user_id !== $customDomainSubscriberId) {
+            return redirect()->to('/');
+        }
+
+        // Redirect Enterprise stores with verified custom domains to their own domain
+        if ($profile->custom_domain && $profile->domain_verified) {
+            $requestHost = strtolower(trim($request->getHost()));
+            $customDomain = strtolower(trim($profile->custom_domain));
+            $customDomainClean = preg_replace('/^www\./i', '', $customDomain);
+
+            if ($requestHost !== $customDomain && $requestHost !== $customDomainClean && $requestHost !== 'www.' . $customDomainClean) {
+                return redirect()->away('https://' . $customDomain, 301);
+            }
+        }
         
         // Double-approval check: Account status must be approved/active AND Store status must be live
         if ($profile->status !== 'approved' && $profile->status !== 'active') {
@@ -591,7 +691,7 @@ class FrontendController extends Controller
         $query = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
             ->where('status', 'active')
             ->where('approval_status', 'approved')
-            ->with(['images', 'attributeValues.attribute', 'category']);
+            ->with(['images', 'attributeValues.attribute']);
 
         // Filter by selected product IDs (for catalogue sharing)
         $productIds = $request->input('products');
@@ -615,18 +715,24 @@ class FrontendController extends Controller
         // Category filter
         if ($request->filled('category')) {
             $catSlug = $request->input('category');
-            $cat = Category::where('slug', $catSlug)->first();
+            $cat = Category::withoutGlobalScope('tenant')->where('slug', $catSlug)->first();
             if ($cat) {
-                $query->whereJsonContains('category_id', $cat->id);
+                $query->where(function($q) use ($cat) {
+                    $q->whereJsonContains('category_id', $cat->id)
+                      ->orWhereJsonContains('category_id', (string)$cat->id);
+                });
             }
         }
 
         // Subcategory filter
         if ($request->filled('subcategory')) {
             $subSlug = $request->input('subcategory');
-            $sub = \App\Models\Subcategory::where('slug', $subSlug)->first();
+            $sub = \App\Models\Subcategory::withoutGlobalScope('tenant')->where('slug', $subSlug)->first();
             if ($sub) {
-                $query->whereJsonContains('subcategory_id', $sub->id);
+                $query->where(function($q) use ($sub) {
+                    $q->whereJsonContains('subcategory_id', $sub->id)
+                      ->orWhereJsonContains('subcategory_id', (string)$sub->id);
+                });
             }
         }
 
@@ -656,23 +762,37 @@ class FrontendController extends Controller
             ->where('approval_status', 'approved')
             ->whereNotNull('category_id')
             ->pluck('category_id')
+            ->flatten()
+            ->filter()
             ->unique();
-        $allCategories = \App\Models\Category::whereIn('id', $categoryIds)->get();
+        $allCategories = \App\Models\Category::withoutGlobalScope('tenant')->whereIn('id', $categoryIds)->get();
 
-        // Get all subcategories represented in this subscriber's active approved products
-        $subcategoryIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
+        // Get all subcategories represented in this subscriber's active approved products (optionally filtered by category)
+        $subQuery = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
             ->where('status', 'active')
-            ->where('approval_status', 'approved')
-            ->whereNotNull('subcategory_id')
-            ->get()
+            ->where('approval_status', 'approved');
+
+        if ($request->filled('category')) {
+            $catSlug = $request->input('category');
+            $cat = \App\Models\Category::withoutGlobalScope('tenant')->where('slug', $catSlug)->first();
+            if ($cat) {
+                $subQuery->where(function($q) use ($cat) {
+                    $q->whereJsonContains('category_id', $cat->id)
+                      ->orWhereJsonContains('category_id', (string)$cat->id);
+                });
+            }
+        }
+
+        $subcategoryIds = $subQuery->whereNotNull('subcategory_id')
             ->pluck('subcategory_id')
             ->flatten()
+            ->filter()
             ->unique();
-        $subcategories = \App\Models\Subcategory::whereIn('id', $subcategoryIds)->get();
+        $subcategories = \App\Models\Subcategory::withoutGlobalScope('tenant')->whereIn('id', $subcategoryIds)->get();
 
         // Category object for header/title context
         if ($request->filled('category')) {
-            $cat = \App\Models\Category::where('slug', $request->input('category'))->first();
+            $cat = \App\Models\Category::withoutGlobalScope('tenant')->where('slug', $request->input('category'))->first();
             if ($cat) {
                 $category = $cat;
             }
@@ -829,7 +949,10 @@ class FrontendController extends Controller
             if ($catSlug !== 'all') {
                 $cat = Category::where('slug', $catSlug)->first();
                 if ($cat) {
-                    $query->whereJsonContains('category_id', $cat->id);
+                    $query->where(function($q) use ($cat) {
+                        $q->whereJsonContains('category_id', $cat->id)
+                          ->orWhereJsonContains('category_id', (string)$cat->id);
+                    });
                 }
             }
         }
@@ -838,7 +961,10 @@ class FrontendController extends Controller
             $subSlug = $request->input('subcategory');
             $sub = Subcategory::where('slug', $subSlug)->first();
             if ($sub) {
-                $query->whereJsonContains('subcategory_id', $sub->id);
+                $query->where(function($q) use ($sub) {
+                    $q->whereJsonContains('subcategory_id', $sub->id)
+                      ->orWhereJsonContains('subcategory_id', (string)$sub->id);
+                });
             }
         }
 

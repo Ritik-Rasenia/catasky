@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\Multitenantable;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Multitenantable;
 
     protected $fillable = [
         'brand_id',
@@ -77,7 +78,7 @@ class Product extends Model
         
         static $cachedBrands = null;
         if ($cachedBrands === null) {
-            $cachedBrands = \App\Models\Brand::all()->keyBy('id');
+            $cachedBrands = \App\Models\Brand::withoutGlobalScope('tenant')->get()->keyBy('id');
         }
         
         return collect($ids)->map(function($id) use ($cachedBrands) {
@@ -102,7 +103,7 @@ class Product extends Model
         
         static $cachedCategories = null;
         if ($cachedCategories === null) {
-            $cachedCategories = \App\Models\Category::all()->keyBy('id');
+            $cachedCategories = \App\Models\Category::withoutGlobalScope('tenant')->get()->keyBy('id');
         }
         
         return collect($ids)->map(function($id) use ($cachedCategories) {
@@ -127,7 +128,7 @@ class Product extends Model
         
         static $cachedSubcategories = null;
         if ($cachedSubcategories === null) {
-            $cachedSubcategories = \App\Models\Subcategory::all()->keyBy('id');
+            $cachedSubcategories = \App\Models\Subcategory::withoutGlobalScope('tenant')->get()->keyBy('id');
         }
         
         return collect($ids)->map(function($id) use ($cachedSubcategories) {

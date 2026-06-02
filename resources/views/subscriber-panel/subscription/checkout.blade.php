@@ -61,6 +61,18 @@
             
             <div class="vp-card-body p-4">
                 
+                @if($plan->is_trial)
+                {{-- Trial Intro Hero --}}
+                <div class="p-4 rounded-4 mb-4 text-center" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(16, 185, 129, 0.07) 100%); border: 1px dashed rgba(16, 185, 129, 0.2);">
+                    <div class="mx-auto mb-3" style="width: 56px; height: 56px; background: #ffffff; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.1);">
+                        <i class="bi bi-gift-fill text-success" style="font-size:1.6rem;"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1 text-dark" style="font-size:1rem; font-family:'Outfit', sans-serif;">Complimentary Trial Plan</h6>
+                    <p class="text-muted small mx-auto mb-0" style="max-width: 440px; line-height: 1.5;">
+                        You have selected the free trial option. Absolutely no payment or credit cards are required to begin. Activate below to launch your catalog instantly!
+                    </p>
+                </div>
+                @else
                 {{-- Razorpay Intro Hero --}}
                 <div class="p-4 rounded-4 mb-4 text-center" style="background: linear-gradient(135deg, rgba(29, 111, 235, 0.03) 0%, rgba(29, 111, 235, 0.07) 100%); border: 1px dashed rgba(29, 111, 235, 0.2);">
                     <div class="mx-auto mb-3" style="width: 56px; height: 56px; background: #ffffff; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(29, 111, 235, 0.1);">
@@ -71,6 +83,7 @@
                         Complete your purchase seamlessly using UPI (GPay, PhonePe), Cards (Visa, Mastercard, RuPay), Netbanking, or digital Wallets via 100% secure PCI-DSS compliant processing.
                     </p>
                 </div>
+                @endif
 
                 {{-- Billing Prefilled Form Info --}}
                 <h6 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2" style="font-size:0.9rem; font-family:'Outfit',sans-serif;">
@@ -139,6 +152,16 @@
 
                 {{-- Action Trigger Button --}}
                 <div class="mt-4">
+                    @if($plan->is_trial)
+                    <form action="{{ route('subscriber.subscription.pay', $plan->id) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="gateway" value="free_trial">
+                        <button type="submit" class="btn btn-success w-100 py-3.5 fw-bold text-white shadow-sm d-flex align-items-center justify-content-center gap-2" style="background:#10B981; border:none; border-radius:12px; font-size:1.05rem; font-family:'Outfit', sans-serif; transition:all 0.3s;">
+                            <i class="bi bi-gift-fill"></i>
+                            Activate Free Trial • {{ $plan->trial_days }} Days
+                        </button>
+                    </form>
+                    @else
                     <button type="button" class="btn btn-primary w-100 py-3.5 fw-bold text-white shadow-sm d-flex align-items-center justify-content-center gap-2" id="btn-razorpay-trigger" style="background:#1D6FEB; border:none; border-radius:12px; font-size:1.05rem; font-family:'Outfit', sans-serif; transition:all 0.3s; transform:translateY(0);" {{ $isNotConfigured ? 'disabled' : '' }}>
                         <i class="bi bi-shield-lock-fill"></i>
                         <span id="btn-text">Proceed to Secure Payment • ₹{{ number_format($plan->price, 2) }}</span>
@@ -163,6 +186,7 @@
                             </small>
                         @endif
                     </div>
+                    @endif
                     @endif
                 </div>
 

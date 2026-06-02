@@ -33,155 +33,110 @@
 
     <!-- Pricing Cards Grid -->
     <div class="row g-4 justify-content-center align-items-stretch animate-fade-in">
-        <!-- Starter Plan -->
-        <div class="col-lg-4 col-md-6 d-flex">
-            <div class="premium-card p-4 p-md-5 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between" style="box-shadow: var(--); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
+
+        @foreach($plans as $plan)
+        @php
+            $isTrial = $plan->is_trial;
+            $isPopular = $plan->slug === 'business';
+            $btnClass = $isTrial
+                ? 'btn btn-success py-3 rounded-3 w-100 fw-bold mt-auto'
+                : ($isPopular
+                    ? 'btn btn-primary py-3 rounded-3 w-100 fw-bold mt-auto text-white'
+                    : 'btn btn-outline-primary py-3 rounded-3 w-100 fw-bold mt-auto');
+            $btnStyle = $isPopular && !$isTrial ? 'background:#1D6FEB; border:none;' : '';
+            if ($isTrial) { $btnStyle = 'background:#10B981; border:none; color:white;'; }
+            if ($plan->slug === 'enterprise') { $btnClass = 'btn btn-dark py-3 rounded-3 w-100 fw-bold mt-auto'; $btnStyle = ''; }
+        @endphp
+
+        <div class="col-lg-3 col-md-6 d-flex">
+            <div class="premium-card p-4 p-md-4 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between position-relative
+                {{ $isPopular ? 'border-primary border-2' : '' }}"
+                style="box-shadow: {{ $isPopular ? 'var(--shadow-md)' : '' }}; transition: transform 0.3s; border-radius: 20px;"
+                onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
+
+                @if($isTrial)
+                    <div class="position-absolute top-0 end-0 text-white px-3 py-1 rounded-bottom-start fw-bold small-text"
+                        style="background:#10B981; border-top-right-radius:10px; border-bottom-left-radius:12px; font-size:0.75rem;">
+                        🎁 FREE TRIAL
+                    </div>
+                @elseif($isPopular)
+                    <div class="position-absolute top-0 end-0 bg-primary text-white px-3 py-1 rounded-bottom-start fw-bold small-text"
+                        style="border-top-right-radius:10px; border-bottom-left-radius:12px; font-size:0.75rem;">
+                        ★ RECOMMENDED
+                    </div>
+                @endif
+
                 <div>
-                    <h3 class="fw-bold text-dark mb-2" style="font-family:'Outfit',sans-serif;">Starter Plan</h3>
-                    <p class="text-secondary small mb-4">Perfect for small teams and freelancers getting started with digital catalogs.</p>
-                    
+                    <h3 class="fw-bold mb-2 {{ $isPopular ? 'text-primary' : 'text-dark' }}" style="font-family:'Outfit',sans-serif;">
+                        {{ $plan->name }}
+                    </h3>
+                    <p class="text-secondary small mb-4">{{ $plan->description }}</p>
+
                     <div class="mb-4">
-                        <span class="fs-2 fw-bold text-dark" id="starter-price-val">₹499</span>
-                        <span class="text-secondary" id="starter-period">/ month</span>
+                        @if($isTrial)
+                            <span class="fs-2 fw-bold text-success">Free</span>
+                            <span class="text-secondary"> / {{ $plan->duration_days }} Days</span>
+                        @elseif($plan->price > 0)
+                            <span class="fs-2 fw-bold text-dark plan-price" data-monthly="₹{{ number_format($plan->price, 0) }}" data-annual="₹{{ number_format($plan->price * 0.7, 0) }}">₹{{ number_format($plan->price, 0) }}</span>
+                            <span class="text-secondary plan-period"> / month</span>
+                        @else
+                            <span class="fs-2 fw-bold text-dark">Free</span>
+                        @endif
                     </div>
 
                     <hr class="my-4" style="border-color:#E2E8F0;">
 
-                    <ul class="list-unstyled d-flex flex-column gap-3 mb-4">
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">50 Products</span>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-4 text-start" style="font-size:0.875rem; color:#475569;">
+                        <li class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-success mt-0.5"></i>
+                            <span>Product Limit: <strong>{{ $plan->product_limit == -1 ? 'Unlimited' : $plan->product_limit }} Products</strong></span>
                         </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Subdomain or path-based store</span>
+                        <li class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-success mt-0.5"></i>
+                            <span>Attributes Limit: <strong>{{ $plan->attribute_limit == -1 ? 'Unlimited' : $plan->attribute_limit }} Fields</strong></span>
                         </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Basic sharing options</span>
+                        <li class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-success mt-0.5"></i>
+                            <span>Share Links: <strong>{{ $plan->share_link_limit == -1 ? 'Unlimited' : $plan->share_link_limit }} Links</strong></span>
                         </li>
-                        <li class="d-flex align-items-center gap-2 text-muted">
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                            <span class="small">Custom domain mapping</span>
+                        
+                        <li class="d-flex align-items-start gap-2 {{ $plan->pdf_sharing ? '' : 'text-muted text-decoration-line-through' }}">
+                            <i class="bi {{ $plan->pdf_sharing ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} mt-0.5"></i>
+                            <span>Premium PDF Catalog Generation</span>
                         </li>
-                        <li class="d-flex align-items-center gap-2 text-muted">
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                            <span class="small">White-label support</span>
+                        <li class="d-flex align-items-start gap-2 {{ $plan->image_sharing ? '' : 'text-muted text-decoration-line-through' }}">
+                            <i class="bi {{ $plan->image_sharing ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} mt-0.5"></i>
+                            <span>Visual Assets Showcase Gallery</span>
                         </li>
-                    </ul>
-                </div>
-                
-                <a href="{{ route('subscriber.register') }}?plan=starter" class="btn btn-outline-primary py-3 rounded-3 w-100 fw-bold mt-auto" style="border-width:2px;">
-                    Get Started with Starter
-                </a>
-            </div>
-        </div>
-
-        <!-- Business Plan -->
-        <div class="col-lg-4 col-md-6 d-flex">
-            <div class="premium-card p-4 p-md-5 w-100 bg-white border border-primary border-2 rounded-4 d-flex flex-column justify-content-between position-relative" style="box-shadow: var(--shadow-md); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
-                <div class="position-absolute top-0 end-0 bg-primary text-white px-3 py-1 rounded-bottom-start fw-bold small-text" style="border-top-right-radius: 10px; border-bottom-left-radius: 12px; font-size:0.75rem;">
-                    ★ RECOMMENDED
-                </div>
-                <div>
-                    <h3 class="fw-bold text-primary mb-2" style="font-family:'Outfit',sans-serif;">Business Plan</h3>
-                    <p class="text-secondary small mb-4">For growing B2B brands that need unlimited products and advanced analytics.</p>
-                    
-                    <div class="mb-4">
-                        <span class="fs-2 fw-bold text-dark" id="business-price-val">₹1,299</span>
-                        <span class="text-secondary" id="business-period">/ month</span>
-                    </div>
-
-                    <hr class="my-4" style="border-color:#E2E8F0;">
-
-                    <ul class="list-unstyled d-flex flex-column gap-3 mb-4">
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">250 Products</span>
+                        <li class="d-flex align-items-start gap-2 {{ $plan->custom_branding ? '' : 'text-muted text-decoration-line-through' }}">
+                            <i class="bi {{ $plan->custom_branding ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} mt-0.5"></i>
+                            <span>Custom Brand Logos & Colors</span>
                         </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Subdomain or path-based store</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Advanced sharing & analytics</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2 text-muted">
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                            <span class="small">Custom domain mapping</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2 text-muted">
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                            <span class="small">White-label support</span>
+                        <li class="d-flex align-items-start gap-2 {{ $plan->watermark_removal ? '' : 'text-muted text-decoration-line-through' }}">
+                            <i class="bi {{ $plan->watermark_removal ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} mt-0.5"></i>
+                            <span>Watermark Customization & Removal</span>
                         </li>
                     </ul>
                 </div>
-                
-                <a href="{{ route('subscriber.register') }}?plan=business" class="btn btn-primary py-3 rounded-3 w-100 fw-bold mt-auto text-white" style="background:#1D6FEB; border:none;">
-                    Subscribe to Business
+
+                <a href="{{ route('subscriber.register') }}?plan={{ $plan->slug }}"
+                   class="{{ $btnClass }} mt-auto" style="{{ $btnStyle }}">
+                    {{ $isTrial ? 'Start Free Trial' : ($plan->price > 0 ? 'Subscribe Now' : 'Get Started') }}
                 </a>
             </div>
         </div>
+        @endforeach
 
-        <!-- Enterprise Plan -->
-        <div class="col-lg-4 col-md-6 d-flex">
-            <div class="premium-card p-4 p-md-5 w-100 bg-white border rounded-4 d-flex flex-column justify-content-between" style="box-shadow: var(--); transition: transform 0.3s; border-radius: 20px;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='none'">
-                <div>
-                    <h3 class="fw-bold text-dark mb-2" style="font-family:'Outfit',sans-serif;">Enterprise Plan</h3>
-                    <p class="text-secondary small mb-4">For large-scale B2B systems needing white-label and custom domains.</p>
-                    
-                    <div class="mb-4">
-                        <span class="fs-2 fw-bold text-dark" id="enterprise-price-val">₹3,999</span>
-                        <span class="text-secondary" id="enterprise-period">/ month</span>
-                    </div>
-
-                    <hr class="my-4" style="border-color:#E2E8F0;">
-
-                    <ul class="list-unstyled d-flex flex-column gap-3 mb-4">
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Unlimited Access</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Custom Domain mapping support</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">White-label (Remove Catasky logo)</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">Dedicated account support</span>
-                        </li>
-                        <li class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="text-dark small fw-semibold">SLA-backed uptime guarantee</span>
-                        </li>
-                    </ul>
-                </div>
-                
-                <a href="{{ route('subscriber.register') }}?plan=enterprise" class="btn btn-dark py-3 rounded-3 w-100 fw-bold mt-auto">
-                    Get Enterprise Plan
-                </a>
-            </div>
-        </div>
     </div>
 </div>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const monthlyBtn = document.getElementById('monthly-btn');
         const annualBtn = document.getElementById('annual-btn');
-        
-        const starterVal = document.getElementById('starter-price-val');
-        const businessVal = document.getElementById('business-price-val');
-        const enterpriseVal = document.getElementById('enterprise-price-val');
-        
-        const starterPeriod = document.getElementById('starter-period');
-        const businessPeriod = document.getElementById('business-period');
-        const enterprisePeriod = document.getElementById('enterprise-period');
+        const prices = document.querySelectorAll('.plan-price');
+        const periods = document.querySelectorAll('.plan-period');
 
         monthlyBtn.addEventListener('click', function() {
             monthlyBtn.classList.add('active');
@@ -192,13 +147,13 @@
             annualBtn.style.background = 'transparent';
             annualBtn.style.color = '#6C757D';
             
-            starterVal.textContent = '₹499';
-            businessVal.textContent = '₹1,299';
-            enterpriseVal.textContent = '₹3,999';
+            prices.forEach(function(priceEl) {
+                priceEl.textContent = priceEl.getAttribute('data-monthly');
+            });
             
-            starterPeriod.textContent = '/ month';
-            businessPeriod.textContent = '/ month';
-            enterprisePeriod.textContent = '/ month';
+            periods.forEach(function(periodEl) {
+                periodEl.textContent = ' / month';
+            });
         });
 
         annualBtn.addEventListener('click', function() {
@@ -210,13 +165,13 @@
             monthlyBtn.style.background = 'transparent';
             monthlyBtn.style.color = '#6C757D';
             
-            starterVal.textContent = '₹349';
-            businessVal.textContent = '₹899';
-            enterpriseVal.textContent = '₹2,799';
+            prices.forEach(function(priceEl) {
+                priceEl.textContent = priceEl.getAttribute('data-annual');
+            });
             
-            starterPeriod.textContent = '/ month (billed annually)';
-            businessPeriod.textContent = '/ month (billed annually)';
-            enterprisePeriod.textContent = '/ month (billed annually)';
+            periods.forEach(function(periodEl) {
+                periodEl.textContent = ' / month (billed annually)';
+            });
         });
     });
 </script>

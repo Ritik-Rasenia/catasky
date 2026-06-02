@@ -13,7 +13,8 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        $permissions = Permission::latest()->paginate(50);
+        abort_if(!auth()->user()->can('view-permissions'), 403, 'Unauthorized.');
+        $permissions = Permission::latest()->get();
         return view('admin.permissions.index', compact('permissions'));
     }
 
@@ -22,6 +23,7 @@ class PermissionController extends Controller
      */
     public function create()
     {
+        abort_if(!auth()->user()->can('create-permissions'), 403, 'Unauthorized.');
         return view('admin.permissions.create');
     }
 
@@ -30,6 +32,7 @@ class PermissionController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create-permissions'), 403, 'Unauthorized.');
         $request->validate([
             'name' => 'required|unique:permissions,name|regex:/^[a-z0-9_-]+$/',
             'description' => 'nullable|string|max:255',
@@ -42,6 +45,8 @@ class PermissionController extends Controller
             'description' => $request->description ?? '',
         ]);
 
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         return redirect()->route('admin.permissions.index')
                          ->with('success', 'Permission created successfully!');
     }
@@ -51,6 +56,7 @@ class PermissionController extends Controller
      */
     public function show(Permission $permission)
     {
+        abort_if(!auth()->user()->can('view-permissions'), 403, 'Unauthorized.');
         return view('admin.permissions.show', compact('permission'));
     }
 
@@ -59,6 +65,7 @@ class PermissionController extends Controller
      */
     public function edit(Permission $permission)
     {
+        abort_if(!auth()->user()->can('edit-permissions'), 403, 'Unauthorized.');
         return view('admin.permissions.edit', compact('permission'));
     }
 
@@ -67,6 +74,7 @@ class PermissionController extends Controller
      */
     public function update(Request $request, Permission $permission)
     {
+        abort_if(!auth()->user()->can('edit-permissions'), 403, 'Unauthorized.');
         $request->validate([
             'name' => 'required|unique:permissions,name,' . $permission->id . '|regex:/^[a-z0-9_-]+$/',
             'description' => 'nullable|string|max:255',
@@ -79,6 +87,8 @@ class PermissionController extends Controller
             'description' => $request->description ?? '',
         ]);
 
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         return redirect()->route('admin.permissions.index')
                          ->with('success', 'Permission updated successfully!');
     }
@@ -88,6 +98,7 @@ class PermissionController extends Controller
      */
     public function destroy(Permission $permission)
     {
+        abort_if(!auth()->user()->can('delete-permissions'), 403, 'Unauthorized.');
         // Check if permission is assigned to any role
         if ($permission->roles()->exists()) {
             return redirect()->route('admin.permissions.index')
@@ -95,6 +106,8 @@ class PermissionController extends Controller
         }
 
         $permission->delete();
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         return redirect()->route('admin.permissions.index')
                          ->with('success', 'Permission deleted successfully!');

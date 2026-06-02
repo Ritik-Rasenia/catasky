@@ -21,21 +21,65 @@ class CustomDomainMiddleware
 
         // Skip check if it is the primary app domain, localhost, or 127.0.0.1
         if ($host !== $primaryHost && $host !== '127.0.0.1' && $host !== 'localhost') {
-            // Find active custom domain mapping
-            $customDomain = CustomDomain::where('domain', $host)
-                ->where('status', 'active')
-                ->first();
+            $cleanHost = preg_replace('/^www\./i', '', $host);
+
+            // Fetch the custom domain matching the requested host
+            $customDomain = CustomDomain::where(function($q) use ($host, $cleanHost) {
+                $q->where('domain', $host)
+                  ->orWhere('domain', $cleanHost)
+                  ->orWhere('domain', 'www.' . $cleanHost);
+            })->first();
 
             if ($customDomain) {
-                // Fetch the subscriber's active profile
-                $subscriberProfile = SubscriberProfile::where('user_id', $customDomain->user_id)
-                    ->where('status', 'active')
-                    ->first();
+                // Suspended domains cannot route traffic
+                if ($customDomain->status === 'suspended') {
+                    $profile = $customDomain->user->subscriberProfile ?? null;
+                    return response()->view('errors.subscription-expired', [
+                        'company_name' => $profile ? $profile->company_name : 'Subscriber Store',
+                        'fallback_url' => $profile ? route('store.catalog', $profile->company_slug) : url('/')
+                    ]);
+                }
 
-                if ($subscriberProfile) {
-                    // Inject domain routing tags into the request
-                    $request->attributes->set('custom_domain_subscriber_id', $customDomain->user_id);
-                    $request->attributes->set('custom_domain_slug', $subscriberProfile->company_slug);
+                // Unverified domains cannot route traffic
+                if (!$customDomain->dns_verified || $customDomain->status !== 'active_routing') {
+                    abort(403, 'This custom domain routing is not active or verified yet.');
+                }
+
+                $user = $customDomain->user;
+                if ($user) {
+                    $sub = $user->activeSubscription();
+                    $plan = $sub ? $sub->plan : null;
+                    $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
+
+                    // Check if subscription has not expired and user is on an Enterprise plan
+                    if ($isEnterprise && $user->hasActiveSubscription()) {
+                        $profile = $user->subscriberProfile;
+                        if ($profile && $profile->isApproved() && $profile->store_status === 'live') {
+                            // Inject domain routing tags into the request
+                            $request->attributes->set('custom_domain_subscriber_id', $user->id);
+                            $request->attributes->set('custom_domain_slug', $profile->company_slug);
+                        } else {
+                            abort(403, 'This storefront profile is pending approval or currently suspended.');
+                        }
+                    } else {
+                        // The Enterprise Plan has expired or downgraded! Automatically suspend domain routing status
+                        $customDomain->update([
+                            'status' => 'suspended'
+                        ]);
+
+                        $profile = $user->subscriberProfile;
+                        if ($profile) {
+                            $profile->update([
+                                'domain_verified' => false
+                            ]);
+                        }
+
+                        // Render subscription expired page
+                        return response()->view('errors.subscription-expired', [
+                            'company_name' => $profile ? $profile->company_name : 'Subscriber Store',
+                            'fallback_url' => $profile ? route('store.catalog', $profile->company_slug) : url('/')
+                        ]);
+                    }
                 }
             }
         }

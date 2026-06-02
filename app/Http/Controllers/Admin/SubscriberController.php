@@ -18,6 +18,7 @@ class SubscriberController extends Controller
 {
     public function index(Request $request)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         $query = User::role('Subscriber')->with(['subscriberProfile', 'subscription' => function($q) {
             $q->with('plan');
         }]);
@@ -49,6 +50,7 @@ class SubscriberController extends Controller
 
     public function show(User $user)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         if (!$user->hasRole('Subscriber')) abort(404);
         $user->load(['subscriberProfile', 'subscriptions.plan', 'payments.plan']);
         $productCount = SubscriberProduct::where('user_id', $user->id)->count();
@@ -58,6 +60,7 @@ class SubscriberController extends Controller
 
     public function suspend(Request $request, User $user)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         if (!$user->hasRole('Subscriber')) abort(404);
         $request->validate(['reason' => 'nullable|string|max:500']);
 
@@ -75,6 +78,7 @@ class SubscriberController extends Controller
 
     public function unsuspend(User $user)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         if (!$user->hasRole('Subscriber')) abort(404);
         $profile = $user->subscriberProfile;
         if ($profile) {
@@ -89,6 +93,7 @@ class SubscriberController extends Controller
 
     public function assignPlan(Request $request, User $user)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         if (!$user->hasRole('Subscriber')) abort(404);
         $request->validate([
             'plan_id'  => 'required|exists:subscription_plans,id',
@@ -116,6 +121,7 @@ class SubscriberController extends Controller
 
     public function destroy(User $user)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         if (!$user->hasRole('Subscriber')) abort(404);
         $user->delete();
         return redirect()->route('admin.subscribers.index')
@@ -125,12 +131,14 @@ class SubscriberController extends Controller
     // Subscription Plans Management
     public function plans()
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         $plans = SubscriptionPlan::withCount('subscriptions')->orderBy('sort_order')->get();
         return view('admin.subscribers.plans', compact('plans'));
     }
 
     public function storePlan(Request $request)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         $request->validate([
             'name'          => 'required|string|max:255',
             'price'         => 'required|numeric|min:0',
@@ -149,6 +157,7 @@ class SubscriberController extends Controller
 
     public function updatePlan(Request $request, SubscriptionPlan $subscriptionPlan)
     {
+        abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         $subscriptionPlan->update(array_merge($request->except('_token', '_method'), [
             'features'  => $request->features ? explode("\n", $request->features) : null,
             'is_active' => $request->boolean('is_active', true),

@@ -43,11 +43,6 @@
                         <input type="password" name="password" class="form-control">
                     </div>
 
-                    <div class="col-md-6 mb-4">
-                        <label class="form-label">Confirm Password</label>
-                        <input type="password" name="confirm-password" class="form-control">
-                    </div>
-
                     <div class="col-md-12 mb-4">
                         <label class="form-label fw-bold">Assign Roles</label>
                         <div class="row">

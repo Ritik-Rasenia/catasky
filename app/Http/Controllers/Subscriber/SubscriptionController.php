@@ -28,7 +28,6 @@ class SubscriptionController extends Controller
     public function plans()
     {
         $plans = SubscriptionPlan::where('is_active', true)
-            ->where('is_trial', false)
             ->orderBy('sort_order')
             ->get();
         $currentSubscription = auth()->user()->activeSubscription();
@@ -59,25 +58,26 @@ class SubscriptionController extends Controller
         }
 
         $user = auth()->user();
+        $isTrial = $plan->is_trial;
 
-        // Create payment record (dummy/sandbox success)
+        // Create payment record (handling free trial bypass)
         $payment = Payment::create([
             'user_id'              => $user->id,
             'subscription_plan_id' => $plan->id,
-            'transaction_id'       => 'TXN-' . strtoupper(Str::random(12)),
-            'gateway'              => $gateway,
-            'gateway_payment_id'   => $request->input('gateway_payment_id', 'pay_' . Str::random(14)),
-            'gateway_order_id'     => $request->input('gateway_order_id', 'order_' . Str::random(14)),
-            'amount'               => $plan->price,
+            'transaction_id'       => $isTrial ? 'TRIAL-' . strtoupper(Str::random(12)) : 'TXN-' . strtoupper(Str::random(12)),
+            'gateway'              => $isTrial ? 'free_trial' : $gateway,
+            'gateway_payment_id'   => $isTrial ? 'trial_' . Str::random(14) : $request->input('gateway_payment_id', 'pay_' . Str::random(14)),
+            'gateway_order_id'     => $isTrial ? 'trial_order_' . Str::random(14) : $request->input('gateway_order_id', 'order_' . Str::random(14)),
+            'amount'               => $isTrial ? 0 : $plan->price,
             'currency'             => $plan->currency,
             'status'               => 'success',
             'paid_at'              => Carbon::now(),
             'gateway_response'     => [
-                'message' => 'Simulated ' . ucfirst($gateway) . ' sandbox payment success',
-                'mode' => 'test',
-                'email' => $request->input('paypal_email') ?? $user->email,
+                'message' => $isTrial ? 'Free trial subscription activated' : 'Simulated ' . ucfirst($gateway) . ' sandbox payment success',
+                'mode' => $isTrial ? 'trial' : 'test',
+                'email' => $user->email,
             ],
-            'notes'                => 'Demo payment - Test mode (' . ucfirst($gateway) . ')',
+            'notes'                => $isTrial ? 'Free Trial - No Payment Required' : 'Demo payment - Test mode (' . ucfirst($gateway) . ')',
         ]);
 
         // Cancel old subscriptions
@@ -85,13 +85,14 @@ class SubscriptionController extends Controller
             ->whereIn('status', ['active', 'trial'])
             ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
 
-        // Create new subscription
+        // Create new subscription with trial status and trial days if applicable
         $subscription = Subscription::create([
             'user_id'              => $user->id,
             'subscription_plan_id' => $plan->id,
-            'status'               => 'active',
+            'status'               => $isTrial ? 'trial' : 'active',
             'starts_at'            => Carbon::now(),
-            'ends_at'              => Carbon::now()->addDays($plan->duration_days),
+            'ends_at'              => Carbon::now()->addDays($isTrial ? $plan->trial_days : $plan->duration_days),
+            'trial_ends_at'        => $isTrial ? Carbon::now()->addDays($plan->trial_days) : null,
         ]);
 
         // Create invoice
@@ -100,14 +101,14 @@ class SubscriptionController extends Controller
             'subscription_id' => $subscription->id,
             'payment_id'      => $payment->id,
             'invoice_number'  => Invoice::generateNumber(),
-            'subtotal'        => $plan->price,
+            'subtotal'        => $isTrial ? 0 : $plan->price,
             'tax'             => 0,
-            'total'           => $plan->price,
+            'total'           => $isTrial ? 0 : $plan->price,
             'currency'        => $plan->currency,
             'status'          => 'paid',
             'paid_date'       => Carbon::now(),
             'line_items'      => [
-                ['description' => $plan->name . ' Plan (' . $plan->duration_days . ' days)', 'amount' => $plan->price]
+                ['description' => $plan->name . ' Plan (' . ($isTrial ? $plan->trial_days : $plan->duration_days) . ' days)', 'amount' => $isTrial ? 0 : $plan->price]
             ],
         ]);
 

@@ -1,12 +1,12 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Custom Domain Management —')
+@section('title', 'Custom Domains Management')
 
 @push('css')
 <style>
-    /* Premium glassmorphic styles */
+    /* Premium glassmorphic & high-fidelity styles */
     .saas-header {
-        background: linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E1B4B 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 20px;
         padding: 32px 36px;
@@ -26,99 +26,113 @@
         pointer-events: none;
     }
     .saas-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 18px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         overflow: hidden;
         transition: all 0.25s ease;
     }
     .saas-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05);
     }
     .table-hover tbody tr:hover {
-        background-color: rgba(99, 102, 241, 0.03);
+        background-color: rgba(79, 70, 229, 0.02);
     }
-    .status-badge {
+    .badge-status {
         font-size: 0.72rem;
         font-weight: 700;
-        padding: 4px 12px;
+        padding: 6px 12px;
         border-radius: 100px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         display: inline-flex;
         align-items: center;
         gap: 5px;
+        border: 1px solid transparent;
     }
-    .status-active {
-        background: rgba(16, 185, 129, 0.1);
-        color: #10B981;
-        border: 1px solid rgba(16, 185, 129, 0.2);
+    .badge-status-verified {
+        background: #ecfdf5;
+        color: #10b981;
+        border-color: #d1fae5;
     }
-    .status-pending {
-        background: rgba(245, 158, 11, 0.1);
-        color: #F59E0B;
-        border: 1px solid rgba(245, 158, 11, 0.2);
+    .badge-status-pending {
+        background: #fffbeb;
+        color: #f59e0b;
+        border-color: #fef3c7;
     }
-    .status-approved {
-        background: rgba(99, 102, 241, 0.1);
-        color: #6366F1;
-        border: 1px solid rgba(99, 102, 241, 0.2);
+    .badge-status-suspended {
+        background: #fef2f2;
+        color: #ef4444;
+        border-color: #fee2e2;
     }
-    .status-rejected {
-        background: rgba(239, 68, 68, 0.1);
-        color: #EF4444;
-        border: 1px solid rgba(239, 68, 68, 0.2);
+    .record-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
     }
-    .dns-txt-box {
-        background: #F8FAFC;
-        border: 1px dashed #CBD5E1;
-        border-radius: 8px;
-        padding: 6px 12px;
-        font-family: monospace;
-        font-size: 0.78rem;
-        color: #334155;
-        max-width: 250px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    .btn-white {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+    }
+    .btn-white:hover {
+        background: #f8fafc;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid" style="font-family:'Outfit',sans-serif;">
     {{-- Header --}}
-    <div class="saas-header">
+    <div class="saas-header animate-fade-in">
         <div style="position: relative; z-index: 2;">
             <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); margin-bottom: 8px;">
-                Catasky SaaS Core
+                CATASKY SAAS CORE
             </div>
-            <h2 class="fw-extrabold text-white mb-2" style="font-family: 'Outfit', sans-serif;">Domain Management</h2>
-            <p class="text-white-50 mb-0" style="max-width: 600px;">
+            <h2 class="fw-extrabold text-white mb-2" style="font-family: 'Outfit', sans-serif; font-size: 2.25rem;">Domain Management</h2>
+            <p class="text-white-50 mb-0" style="max-width: 650px; font-size: 0.95rem; line-height: 1.6;">
                 Review White-Label custom domain mapping requests for Enterprise subscribers, inspect DNS values, and issue automated SSL certs.
             </p>
         </div>
     </div>
 
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show border-0 mb-4" role="alert" style="border-radius:12px; background:#DCFCE7; color:#15803d; font-size:0.9rem;">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
     {{-- Filter Card --}}
-    <div class="saas-card mb-4">
+    <div class="saas-card mb-4 animate-fade-in">
         <div class="card-body p-4">
             <form action="{{ route('admin.saas.domains.index') }}" method="GET" class="row g-3 align-items-center">
-                <div class="col-md-8 col-lg-9">
+                <div class="col-md-6 col-lg-8">
                     <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search by domain or company name..." value="{{ request('search') }}">
+                        <span class="input-group-text bg-white border-end-0 text-muted" style="border-radius: 12px 0 0 12px;"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search by domain or company name..." value="{{ request('search') }}" style="border-radius:0 12px 12px 0; font-size: 0.95rem; padding-top: 10px; padding-bottom: 10px;">
                     </div>
                 </div>
-                <div class="col-md-4 col-lg-3 d-grid">
+                
+                <div class="col-md-3 col-lg-2">
+                    <select name="status" class="form-select border" style="border-radius:12px; font-size: 0.95rem; padding-top: 10px; padding-bottom: 10px;">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="verified" {{ request('status') === 'verified' ? 'selected' : '' }}>Verified</option>
+                        <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspended</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 col-lg-2 d-grid">
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary rounded-pill flex-grow-1 px-4"><i class="bi bi-funnel-fill me-2"></i>Filter</button>
-                        @if(request()->filled('search'))
-                            <a href="{{ route('admin.saas.domains.index') }}" class="btn btn-light rounded-pill"><i class="bi bi-x-lg"></i></a>
+                        <button type="submit" class="btn text-white w-100 fw-bold d-flex align-items-center justify-content-center gap-1.5" style="background:#4F46E5; border:none; border-radius:12px; padding-top: 10px; padding-bottom: 10px;">
+                            <i class="bi bi-funnel-fill"></i> Filter
+                        </button>
+                        @if(request()->filled('search') || request()->filled('status'))
+                            <a href="{{ route('admin.saas.domains.index') }}" class="btn btn-light d-flex align-items-center justify-content-center" style="border-radius:12px; border: 1px solid #cbd5e1;"><i class="bi bi-x-lg"></i></a>
                         @endif
                     </div>
                 </div>
@@ -126,144 +140,183 @@
         </div>
     </div>
 
-    {{-- Grid Content --}}
-    <div class="saas-card">
+    {{-- Table Content --}}
+    <div class="saas-card animate-fade-in">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
                     <thead>
-                        <tr class="bg-light">
-                            <th class="ps-4 py-3 text-uppercase small fw-bold text-muted border-0">Custom Domain</th>
-                            <th class="py-3 text-uppercase small fw-bold text-muted border-0">Subscriber Store</th>
-                            <th class="py-3 text-uppercase small fw-bold text-muted border-0">TXT Verification Record</th>
-                            <th class="py-3 text-uppercase small fw-bold text-muted border-0">DNS Status</th>
-                            <th class="py-3 text-uppercase small fw-bold text-muted border-0">SSL Status</th>
-                            <th class="py-3 text-uppercase small fw-bold text-muted border-0">Status</th>
-                            <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted border-0">Actions</th>
+                        <tr style="background-color: #f8fafc; border-bottom: 1px solid #f1f5f9;">
+                            <th class="ps-4 py-3 text-uppercase small fw-bold text-secondary border-0" style="width:15%;">Store Name</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0" style="width:15%;">Subscriber Name</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0" style="width:20%;">Domain Name</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Plan</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">DNS Status</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">SSL Status</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Routing Status</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Created Date</th>
+                            <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-secondary border-0" style="width:10%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($domains as $domain)
                         @php
                             $profile = $domain->user->subscriberProfile ?? null;
-                            $status = $domain->status;
-                            $sslStatus = $domain->ssl_status;
+                            $sub = $domain->user->activeSubscription();
+                            $planName = $sub && $sub->plan ? $sub->plan->name : 'None';
+                            
+                            // Map Status
+                            $statusLabel = 'PENDING DNS';
+                            $statusClass = 'badge-status-pending';
+                            if ($domain->status === 'suspended') {
+                                $statusLabel = 'SUSPENDED';
+                                $statusClass = 'badge-status-suspended';
+                            } elseif ($domain->status === 'active_routing') {
+                                $statusLabel = 'ACTIVE ROUTING';
+                                $statusClass = 'badge-status-verified';
+                            } elseif ($domain->status === 'dns_verified') {
+                                $statusLabel = 'DNS VERIFIED';
+                                $statusClass = 'badge-status-verified';
+                            } elseif ($domain->status === 'ssl_provisioning') {
+                                $statusLabel = 'SSL PROVISIONING';
+                                $statusClass = 'badge-status-pending';
+                            }
                         @endphp
                         <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded bg-primary bg-opacity-10 text-primary p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                                        <i class="bi bi-globe2"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">{{ $domain->domain }}</div>
-                                        <a href="http://{{ $domain->domain }}" target="_blank" class="text-muted small text-decoration-none">
-                                            <i class="bi bi-link-45deg"></i>Visit Domain
-                                        </a>
-                                    </div>
-                                </div>
+                            {{-- Store Name --}}
+                            <td class="ps-4 py-3.5">
+                                <strong class="text-dark d-block" style="font-size: 0.95rem;">{{ $profile ? $profile->company_name : 'No Store Profile' }}</strong>
                             </td>
-                            <td>
-                                @if($profile)
-                                    <div class="fw-bold text-dark">{{ $profile->company_name }}</div>
-                                    <div class="text-muted small">Owner: {{ $domain->user->name }}</div>
-                                @else
-                                    <span class="text-muted small">No profile</span>
-                                @endif
+
+                            {{-- Subscriber Name --}}
+                            <td class="py-3.5">
+                                <span class="text-secondary fw-semibold">{{ $domain->user->name }}</span>
+                                <span class="text-muted d-block small" style="font-size:0.75rem;">{{ $domain->user->email }}</span>
                             </td>
-                            <td>
-                                <div class="d-flex flex-column gap-1">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="small fw-semibold text-muted text-uppercase" style="font-size: 0.65rem; width: 40px;">Host:</span>
-                                        <div class="dns-txt-box" title="{{ $domain->dns_txt_key }}">{{ $domain->dns_txt_key }}</div>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="small fw-semibold text-muted text-uppercase" style="font-size: 0.65rem; width: 40px;">Value:</span>
-                                        <div class="dns-txt-box" title="{{ $domain->dns_txt_value }}">{{ $domain->dns_txt_value }}</div>
-                                    </div>
-                                </div>
+
+                            {{-- Domain Name --}}
+                            <td class="py-3.5">
+                                <a href="https://{{ $domain->domain }}" target="_blank" class="text-primary fw-bold text-decoration-none small d-inline-flex align-items-center gap-1">
+                                    {{ $domain->domain }} <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem;"></i>
+                                </a>
                             </td>
-                            <td>
-                                @if($domain->dns_verified)
-                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 border border-success border-opacity-20">
-                                        <i class="bi bi-shield-check me-1"></i> Verified
-                                    </span>
-                                @else
-                                    <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-2 border border-warning border-opacity-20">
-                                        <i class="bi bi-shield-exclamation me-1"></i> Unverified
-                                    </span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($sslStatus === 'active')
-                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 border border-success border-opacity-20">
-                                        <i class="bi bi-lock-fill me-1"></i> Active
-                                    </span>
-                                @else
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 border border-secondary border-opacity-20">
-                                        <i class="bi bi-hourglass-split me-1"></i> Pending
-                                    </span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="status-badge status-{{ $status }}">
-                                    @if($status === 'active')
-                                        Active
-                                    @elseif($status === 'approved')
-                                        Verified
-                                    @elseif($status === 'rejected')
-                                        Rejected
-                                    @else
-                                        Pending
-                                    @endif
+
+                            {{-- Plan --}}
+                            <td class="py-3.5 text-center">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-2.5 py-1 fw-bold" style="font-size: 0.72rem; border-radius: 6px;">
+                                    {{ $planName }}
                                 </span>
                             </td>
-                            <td class="text-end pe-4">
-                                <div class="d-flex justify-content-end gap-1">
-                                    {{-- DNS verification simulation --}}
-                                    <form action="{{ route('admin.saas.domains.verify', $domain->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-light border" title="Simulate DNS Lookup Check">
-                                            <i class="bi bi-arrow-repeat text-primary"></i> DNS Check
-                                        </button>
-                                    </form>
+                            
+                            {{-- DNS Status --}}
+                            <td class="py-3.5 text-center">
+                                @if($domain->dns_verified)
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
+                                        VERIFIED
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
+                                        PENDING
+                                    </span>
+                                @endif
+                            </td>
+                            
+                            {{-- SSL Status --}}
+                            <td class="py-3.5 text-center">
+                                @if($domain->ssl_status === 'active')
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
+                                        ACTIVE
+                                    </span>
+                                @elseif($domain->ssl_status === 'provisioning')
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
+                                        PROVISIONING
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
+                                        PENDING
+                                    </span>
+                                @endif
+                            </td>
+                            
+                            {{-- Routing Status --}}
+                            <td class="py-3.5 text-center">
+                                <span class="badge-status {{ $statusClass }}">
+                                    {{ $statusLabel }}
+                                </span>
+                            </td>
 
-                                    @if($status !== 'active')
-                                        <form action="{{ route('admin.saas.domains.approve', $domain->id) }}" method="POST" class="d-inline">
+                            {{-- Created Date --}}
+                            <td class="py-3.5 text-center text-secondary small fw-semibold">
+                                {{ $domain->created_at->format('M d, Y') }}
+                            </td>
+                            
+                            {{-- Actions --}}
+                            <td class="text-end pe-4 py-3.5" style="white-space: nowrap;">
+                                <div class="d-inline-flex justify-content-end align-items-center">
+                                    <div class="btn-group rounded-3 overflow-hidden">
+                                        {{-- View Details --}}
+                                        <a href="{{ route('admin.saas.domains.show', $domain->id) }}" class="btn btn-white btn-sm px-3" title="View Domain Details">
+                                            <i class="fa-solid fa-eye text-primary"></i>
+                                        </a>
+ 
+                                        {{-- DNS Check / Verify --}}
+                                        @if(!$domain->dns_verified)
+                                            <form action="{{ route('admin.saas.domains.verify', $domain->id) }}" method="POST" class="d-inline m-0">
+                                                @csrf
+                                                <button type="submit" class="btn btn-white btn-sm px-3" title="Verify DNS Records">
+                                                    <i class="fa-solid fa-arrows-rotate text-success"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+ 
+                                        {{-- Activate --}}
+                                        @if($domain->status !== 'active_routing')
+                                            <form action="{{ route('admin.saas.domains.approve', $domain->id) }}" method="POST" class="d-inline m-0">
+                                                @csrf
+                                                <button type="submit" class="btn btn-white btn-sm px-3" title="Activate Domain Routing">
+                                                    <i class="fa-solid fa-circle-play text-success"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+ 
+                                        {{-- Suspend --}}
+                                        @if($domain->status === 'active_routing' || $domain->status === 'dns_verified')
+                                            <form action="{{ route('admin.saas.domains.suspend', $domain->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Are you sure you want to suspend this custom domain?');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-white btn-sm px-3" title="Suspend Domain Routing">
+                                                    <i class="fa-solid fa-circle-pause text-warning"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+ 
+                                        {{-- Delete --}}
+                                        <form action="{{ route('admin.saas.domains.destroy', $domain->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Are you sure you want to delete this custom domain mapping record?');">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success" title="Activate Domain Routing">
-                                                <i class="bi bi-check-lg"></i>
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-white btn-sm px-3" title="Remove Mapping">
+                                                <i class="fa-solid fa-trash-can text-danger"></i>
                                             </button>
                                         </form>
-                                    @endif
-
-                                    @if($status !== 'rejected')
-                                        <form action="{{ route('admin.saas.domains.reject', $domain->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject / Deactivate">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </form>
-                                    @endif
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-globe text-muted" style="font-size:2.5rem; display:block; margin-bottom:12px;"></i>
-                                No custom domain mapping requests found.
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-globe text-muted" style="font-size:2.5rem; display:block; margin-bottom:12px; opacity:0.4;"></i>
+                                No custom domain mapping records matched your filters.
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-
+ 
             @if($domains->hasPages())
                 <div class="d-flex justify-content-between align-items-center p-4 border-top">
                     <div class="text-muted small">
-                        Showing {{ $domains->firstItem() }} to {{ $domains->lastItem() }} of {{ $domains->total() }} domains
+                        Showing {{ $domains->firstItem() }} to {{ $domains->lastItem() }} of {{ $domains->total() }} custom domains
                     </div>
                     <div>
                         {{ $domains->appends(request()->query())->links() }}

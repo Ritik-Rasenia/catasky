@@ -14,28 +14,28 @@ class DashboardDispatcherController extends Controller
 {
     // --- Products ---
     public function productsIndex(Request $request) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->index($request);
         }
         return app(SubscriberProductController::class)->index($request);
     }
     
     public function productsCreate() {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->create();
         }
         return app(SubscriberProductController::class)->create();
     }
     
     public function productsStore(Request $request) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->store($request);
         }
         return app(SubscriberProductController::class)->store($request);
     }
     
     public function productsShow($id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->show($id);
         }
         $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
@@ -43,7 +43,7 @@ class DashboardDispatcherController extends Controller
     }
     
     public function productsEdit($id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->edit($id);
         }
         $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
@@ -51,7 +51,7 @@ class DashboardDispatcherController extends Controller
     }
     
     public function productsUpdate(Request $request, $id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->update($request, $id);
         }
         $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
@@ -59,7 +59,7 @@ class DashboardDispatcherController extends Controller
     }
     
     public function productsDestroy($id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProductController::class)->destroy($id);
         }
         $product = \App\Models\SubscriberProduct::where('user_id', auth()->id())->findOrFail($id);
@@ -68,28 +68,28 @@ class DashboardDispatcherController extends Controller
 
     // --- Attributes ---
     public function attributesIndex(Request $request) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->index($request);
         }
         return app(SubscriberAttributeController::class)->index($request);
     }
     
     public function attributesCreate() {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->create();
         }
         return app(SubscriberAttributeController::class)->create();
     }
     
     public function attributesStore(Request $request) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->store($request);
         }
         return app(SubscriberAttributeController::class)->store($request);
     }
     
     public function attributesShow($id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->show($id);
         }
         $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
@@ -97,7 +97,7 @@ class DashboardDispatcherController extends Controller
     }
     
     public function attributesEdit($id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->edit($id);
         }
         $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
@@ -105,7 +105,7 @@ class DashboardDispatcherController extends Controller
     }
     
     public function attributesUpdate(Request $request, $id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->update($request, $id);
         }
         $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
@@ -113,7 +113,7 @@ class DashboardDispatcherController extends Controller
     }
     
     public function attributesDestroy($id) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminAttributeController::class)->destroy($id);
         }
         $attribute = \App\Models\Attribute::where('user_id', auth()->id())->findOrFail($id);
@@ -122,21 +122,21 @@ class DashboardDispatcherController extends Controller
 
     // --- Profile ---
     public function profileEdit() {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProfileController::class)->edit();
         }
         return app(SubscriberProfileController::class)->edit();
     }
     
     public function profileUpdate(Request $request) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProfileController::class)->updateProfile($request);
         }
         return app(SubscriberProfileController::class)->update($request);
     }
     
     public function profilePassword(Request $request) {
-        if (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->isSubscriber()) {
             return app(AdminProfileController::class)->updatePassword($request);
         }
         return app(SubscriberProfileController::class)->updatePassword($request);

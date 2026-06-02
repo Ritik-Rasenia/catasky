@@ -232,7 +232,7 @@
             @if($logoUrl)
                 <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:40px;max-width:140px;object-fit:contain;">
             @else
-                <div class="brand-logo-icon">C</div>
+                <div class="brand-logo-icon">Catasky</div>
             @endif
         </a>
 

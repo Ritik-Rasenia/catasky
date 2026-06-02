@@ -15,14 +15,30 @@ class SaaSDomainController extends Controller
     {
         $query = CustomDomain::with('user.subscriberProfile');
 
+        // Search By: Store Name, Subscriber Name, Domain Name
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function($q) use ($search) {
                 $q->where('domain', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function($qu) use ($search) {
+                      $qu->where('name', 'like', '%' . $search . '%');
+                  })
                   ->orWhereHas('user.subscriberProfile', function($qp) use ($search) {
                       $qp->where('company_name', 'like', '%' . $search . '%');
                   });
             });
+        }
+
+        // Filter By Status: Pending, Verified, Suspended
+        if ($request->filled('status')) {
+            $status = $request->input('status');
+            if ($status === 'pending') {
+                $query->whereIn('status', ['pending_dns', 'dns_verified', 'ssl_provisioning']);
+            } elseif ($status === 'verified') {
+                $query->where('status', 'active_routing');
+            } elseif ($status === 'suspended') {
+                $query->where('status', 'suspended');
+            }
         }
 
         $domains = $query->latest()->paginate(15);
@@ -31,13 +47,31 @@ class SaaSDomainController extends Controller
     }
 
     /**
-     * Verify domain's simulated DNS status.
+     * Display a subscriber's custom domain details.
+     */
+    public function show(CustomDomain $domain)
+    {
+        $domain->load(['user.subscriberProfile']);
+        return view('admin.saas.domains.show', compact('domain'));
+    }
+
+    /**
+     * Verify domain's simulated DNS status (runs complete automatic workflow).
      */
     public function verify(CustomDomain $domain)
     {
-        $domain->verifyDnsMock();
+        $domain->verifyDns();
 
-        return back()->with('success', 'Domain DNS check completed. Simulated DNS records validated successfully!');
+        // Automatically sync to subscriber profile upon DNS verification check
+        $profile = $domain->user->subscriberProfile ?? null;
+        if ($profile) {
+            $profile->update([
+                'custom_domain' => $domain->domain,
+                'domain_verified' => true
+            ]);
+        }
+
+        return back()->with('success', 'Domain DNS automated check completed! Verification, SSL provisioning, and routing are now fully Active.');
     }
 
     /**
@@ -46,12 +80,20 @@ class SaaSDomainController extends Controller
     public function approve(CustomDomain $domain)
     {
         $domain->update([
-            'status' => 'active',
+            'status' => 'active_routing',
             'ssl_status' => 'active',
             'dns_verified' => true
         ]);
 
-        return back()->with('success', 'Custom domain ' . $domain->domain . ' activated successfully!');
+        $profile = $domain->user->subscriberProfile ?? null;
+        if ($profile) {
+            $profile->update([
+                'custom_domain' => $domain->domain,
+                'domain_verified' => true
+            ]);
+        }
+
+        return back()->with('success', 'Custom domain ' . $domain->domain . ' routing activated successfully!');
     }
 
     /**
@@ -60,9 +102,55 @@ class SaaSDomainController extends Controller
     public function reject(CustomDomain $domain)
     {
         $domain->update([
-            'status' => 'rejected'
+            'status' => 'suspended'
         ]);
 
-        return back()->with('success', 'Custom domain ' . $domain->domain . ' has been rejected.');
+        $profile = $domain->user->subscriberProfile ?? null;
+        if ($profile && $profile->custom_domain === $domain->domain) {
+            $profile->update([
+                'domain_verified' => false
+            ]);
+        }
+
+        return back()->with('success', 'Custom domain ' . $domain->domain . ' has been suspended.');
+    }
+
+    /**
+     * Suspend the custom domain.
+     */
+    public function suspend(CustomDomain $domain)
+    {
+        $domain->update([
+            'status' => 'suspended'
+        ]);
+
+        $profile = $domain->user->subscriberProfile ?? null;
+        if ($profile && $profile->custom_domain === $domain->domain) {
+            $profile->update([
+                'domain_verified' => false
+            ]);
+        }
+
+        return back()->with('success', 'Custom domain ' . $domain->domain . ' has been suspended successfully.');
+    }
+
+    /**
+     * Remove the custom domain.
+     */
+    public function destroy(CustomDomain $domain)
+    {
+        $domainName = $domain->domain;
+
+        $profile = $domain->user->subscriberProfile ?? null;
+        if ($profile && $profile->custom_domain === $domainName) {
+            $profile->update([
+                'custom_domain' => null,
+                'domain_verified' => false
+            ]);
+        }
+
+        $domain->delete();
+
+        return back()->with('success', 'Custom domain ' . $domainName . ' removed successfully!');
     }
 }

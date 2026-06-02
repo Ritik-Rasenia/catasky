@@ -58,8 +58,14 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'              => 'required|string|max:255',
-            'sku'               => 'required|string|max:255',
+            'name'              => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('products', 'name')->whereNull('deleted_at')
+            ],
+            'sku'               => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('products', 'sku')->whereNull('deleted_at')
+            ],
             'part_code'         => 'nullable|string|max:255',
             'part_number'       => 'nullable|string|max:255',
             'brand_id'          => 'nullable|array',
@@ -195,8 +201,18 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
 
         $request->validate([
-            'name'              => 'required|string|max:255',
-            'sku'               => 'required|string|max:255',
+            'name'              => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('products', 'name')
+                    ->ignore($product->id)
+                    ->whereNull('deleted_at')
+            ],
+            'sku'               => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('products', 'sku')
+                    ->ignore($product->id)
+                    ->whereNull('deleted_at')
+            ],
             'part_code'         => 'nullable|string|max:255',
             'part_number'       => 'nullable|string|max:255',
             'brand_id'          => 'nullable|array',
@@ -737,6 +753,7 @@ class ProductController extends Controller
 
     public function destroySubscriberProduct(string $id)
     {
+        abort_if(!auth()->user()->can('delete-products'), 403, 'Unauthorized.');
         $product = \App\Models\SubscriberProduct::findOrFail($id);
 
         if ($product->thumbnail && file_exists(public_path('uploads/subscriber-products/' . $product->thumbnail))) {

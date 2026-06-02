@@ -55,11 +55,11 @@ class AuthController extends Controller
                 ->withInput();
         }
 
-        // Restrict login strictly to Super Admin or Admin role
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin')) {
+        // Block Subscriber role — they must use the Subscriber login page
+        if ($user->hasRole('Subscriber')) {
             return back()
                 ->withErrors([
-                    'email' => 'Access denied. This page is only for administrators.',
+                    'email' => 'Subscribers must login via the Subscriber login page.',
                 ])
                 ->withInput();
         }

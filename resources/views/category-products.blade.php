@@ -20,11 +20,11 @@
             <!-- Horizontal Scrollable Category Chips -->
             <div class="category-scroll pt-2">
                 @if(isset($isSubscriberStore) && $isSubscriberStore)
-                    <a href="{{ request()->url() }}{{ request('search') ? '?search='.urlencode(request('search')) : '' }}" class="category-chip {{ !request('category') ? 'active' : '' }}">
+                    <a href="{{ request()->url() }}{{ request('search') ? '?search='.urlencode(request('search')) : '' }}{{ request('sort') ? (request('search') ? '&' : '?') . 'sort='.urlencode(request('sort')) : '' }}" class="category-chip {{ !request('category') ? 'active' : '' }}">
                         🔥 All
                     </a>
                     @foreach($allCategories as $cat)
-                        <a href="?category={{ $cat->slug }}{{ request('search') ? '&search='.urlencode(request('search')) : '' }}" class="category-chip {{ request('category') === $cat->slug ? 'active' : '' }}">
+                        <a href="?category={{ $cat->slug }}{{ request('search') ? '&search='.urlencode(request('search')) : '' }}{{ request('sort') ? '&sort='.urlencode(request('sort')) : '' }}" class="category-chip {{ request('category') === $cat->slug ? 'active' : '' }}">
                             {{ $cat->name }}
                         </a>
                     @endforeach

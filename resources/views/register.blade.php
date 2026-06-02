@@ -340,7 +340,7 @@
                         <i class="bi bi-lock-fill input-icon"></i>
                         <input type="password" name="password" id="password"
                             class="form-input @error('password') is-invalid @enderror"
-                            placeholder="Alphanumeric (8-20 characters)"
+                            placeholder="8–12 characters"
                             required autocomplete="new-password"
                             oninput="checkStrength(this.value)">
                     </div>
@@ -387,7 +387,7 @@
     </div>
 
 <script>
-// Password strength checker
+// Password strength checker (length 8–12 only)
 function checkStrength(pw) {
     const segs = [
         document.getElementById('seg-1'),
@@ -398,13 +398,21 @@ function checkStrength(pw) {
     const label = document.getElementById('strength-label');
 
     let score = 0;
-    if (pw.length >= 8 && pw.length <= 20) score++;
-    if (/[a-zA-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (!/[^a-zA-Z0-9]/.test(pw) && pw.length > 0) score++;
+    if (pw.length >= 4) score++;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 10 && pw.length <= 12) score++;
+    if (pw.length >= 8 && pw.length <= 12) score++;
+    if (pw.length > 12) score = 1; // Over limit
 
     const colors = ['#EF4444','#F59E0B','#10B981','#4F46E5'];
-    const labels = ['Weak','Fair','Good','Perfect (Alphanumeric)'];
+    const labels = ['Too Short','Getting there','Almost there','Valid (8–12 chars)'];
+
+    if (pw.length > 12) {
+        segs.forEach(seg => seg.style.background = '#EF4444');
+        label.textContent = 'Too Long (max 12)';
+        label.style.color = '#EF4444';
+        return;
+    }
 
     segs.forEach((seg, i) => {
         seg.style.background = i < score ? colors[score - 1] : 'rgba(255,255,255,0.08)';
@@ -419,15 +427,21 @@ document.getElementById('reg-form').addEventListener('submit', function(e) {
     const pw = document.getElementById('password').value;
     const pwConf = document.getElementById('password_confirmation').value;
 
-    if (pw.length < 8 || pw.length > 20) {
+    if (!pw) {
         e.preventDefault();
-        alert('Please choose a password between 8 and 20 characters.');
+        alert('Password is required.');
         return false;
     }
 
-    if (/[^a-zA-Z0-9]/.test(pw)) {
+    if (pw.length < 8) {
         e.preventDefault();
-        alert('Password must contain letters and numbers only (no special characters or spaces).');
+        alert('Password must be at least 8 characters.');
+        return false;
+    }
+
+    if (pw.length > 12) {
+        e.preventDefault();
+        alert('Password cannot exceed 12 characters.');
         return false;
     }
 

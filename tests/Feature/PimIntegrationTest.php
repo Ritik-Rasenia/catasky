@@ -59,7 +59,7 @@ class PimIntegrationTest extends TestCase
             'user_id' => $this->subscriberUser->id,
             'company_name' => 'Acme Corp',
             'company_slug' => 'acme-corp',
-            'status' => 'active',
+            'status' => 'approved',
         ]);
 
         // 6. Create a default category
@@ -183,7 +183,7 @@ class PimIntegrationTest extends TestCase
         // Create a product with dynamic attributes
         $response = $this->post(route('subscriber.products.store'), [
             'name' => 'Super Phone X',
-            'category_id' => $this->category->id,
+            'category_id' => [$this->category->id],
             'sku' => 'PHONE-X-001',
             'mrp' => 59999.00,
             'offer_price' => 54999.00,
@@ -243,4 +243,65 @@ class PimIntegrationTest extends TestCase
             'approval_status' => 'approved',
         ]);
     }
+
+    /**
+     * Test product details page compiles and renders correctly when brand_id is an array.
+     */
+    public function test_product_details_page_handles_array_brand_id_without_type_error(): void
+    {
+        // 1. Create a brand
+        $brand = \App\Models\Brand::create([
+            'name' => 'Test Brand',
+            'slug' => 'test-brand',
+            'status' => 1
+        ]);
+
+        // 2. Create a product
+        $product = \App\Models\Product::create([
+            'brand_id' => [$brand->id],
+            'category_id' => [$this->category->id],
+            'subcategory_id' => [],
+            'name' => 'Winner Cup Desk Trophy',
+            'slug' => 'winner-cup-desk-trophy-X2w0ys',
+            'sku' => 'WINNER-CUP-001',
+            'mrp' => 1200.00,
+            'offer_price' => 999.00,
+            'status' => 1,
+            'short_description' => 'A beautiful desk trophy.',
+            'variant' => '₹999',
+            'specifications' => 'Material: Brass',
+            'tags' => 'trophy, desk',
+            'packaging' => 'Box',
+            'additional_info' => 'No info',
+        ]);
+
+        // 3. Make GET request to the product details page
+        $response = $this->get(route('product.details', $product->slug));
+
+        // 4. Assert response is successful (no TypeError / 500 error)
+        $response->assertStatus(200);
+
+        // 5. Submit B2B enquiry to make sure the single brand_id resolves correctly and saves
+        $enquiryData = [
+            'product_id' => $product->id,
+            'brand_id' => '', // leave empty to force controller fallback logic
+            'name' => 'Corporate Customer',
+            'email' => 'corporate@example.com',
+            'phone' => '1234567890',
+            'message' => 'We want to buy 100 units.'
+        ];
+
+        $enquiryResponse = $this->post(route('enquiry.submit'), $enquiryData);
+
+        $enquiryResponse->assertRedirect();
+        
+        // Assert enquiry was logged with the brand ID resolved from product (first element of array)
+        $this->assertDatabaseHas('enquiries', [
+            'product_id' => $product->id,
+            'brand_id' => $brand->id,
+            'name' => 'Corporate Customer',
+            'email' => 'corporate@example.com',
+        ]);
+    }
 }
+

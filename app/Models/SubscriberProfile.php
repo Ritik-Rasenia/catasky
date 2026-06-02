@@ -14,11 +14,12 @@ class SubscriberProfile extends Model
         'address', 'city', 'state', 'country', 'pincode', 'gst_number',
         'logo', 'banner', 'bio', 'whatsapp_number', 'email_for_inquiries',
         'primary_color', 'secondary_color', 'status', 'store_status', 'is_verified',
-        'suspended_at', 'suspension_reason',
+        'suspended_at', 'suspension_reason', 'custom_domain', 'domain_verified',
     ];
 
     protected $casts = [
         'is_verified' => 'boolean',
+        'domain_verified' => 'boolean',
         'suspended_at' => 'datetime',
     ];
 

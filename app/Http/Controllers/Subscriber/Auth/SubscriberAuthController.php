@@ -82,13 +82,16 @@ class SubscriberAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email',
-            'password'     => 'required|string|min:8|max:20|alpha_num|confirmed',
+            'password'     => 'required|string|min:8|max:12|confirmed',
             'company_name' => 'required|string|max:255',
             'phone'        => 'nullable|string|max:20',
             'whatsapp_number' => 'nullable|string|max:20',
         ], [
+            'password.required'  => 'Password is required.',
+            'password.min'       => 'Password must be at least 8 characters.',
+            'password.max'       => 'Password cannot exceed 12 characters.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'email.unique' => 'This email is already registered.',
+            'email.unique'       => 'This email is already registered.',
         ]);
 
         if ($validator->fails()) {
@@ -297,8 +300,11 @@ class SubscriberAuthController extends Controller
         $request->validate([
             'token'                 => 'required',
             'email'                 => 'required|email|exists:users,email',
-            'password'              => 'required|string|min:8|max:20|alpha_num|confirmed',
+            'password'              => 'required|string|min:8|max:12|confirmed',
         ], [
+            'password.required'  => 'Password is required.',
+            'password.min'       => 'Password must be at least 8 characters.',
+            'password.max'       => 'Password cannot exceed 12 characters.',
             'password.confirmed' => 'Password confirmation does not match.',
         ]);
 

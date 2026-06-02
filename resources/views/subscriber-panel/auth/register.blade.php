@@ -355,7 +355,7 @@
             @if($logoUrl)
                 <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:150px;max-width:150px;object-fit:contain;margin:auto;">
             @else
-                <div class="brand-logo-icon">C</div>
+                <div class="brand-logo-icon">Catasky</div>
             @endif
           
         </a>
@@ -402,9 +402,8 @@
                     @if($logoUrl)
                         <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:42px;max-width:150px;object-fit:contain;">
                     @else
-                        <div style="width:38px;height:38px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;">C</div>
+                        <div style="width:38px;height:38px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;">Catasky</div>
                     @endif
-                    <span style="font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:800;color:white;">{{ $siteTitle }}</span>
                 </div>
             </div>
 
@@ -477,7 +476,7 @@
                                 <i class="bi bi-lock-fill input-icon"></i>
                                 <input type="password" name="password" id="reg-password"
                                     class="form-input @error('password') is-invalid @enderror"
-                                    placeholder="Alphanumeric (8-20 chars)" required autocomplete="new-password">
+                                    placeholder="8–12 characters" required autocomplete="new-password">
                                 <i class="bi bi-eye-slash-fill password-toggle" id="toggle-password"></i>
                             </div>
                             <div id="password-strength-container" class="mt-2 d-none">
@@ -486,9 +485,7 @@
                                 </div>
                                 <div id="strength-text" class="small fw-semibold text-muted mb-2" style="font-size: 0.72rem;">Password Strength: <span id="strength-label" class="text-danger">Too Weak</span></div>
                                 <div class="d-flex flex-wrap gap-2" style="font-size: 0.7rem;">
-                                    <span id="rule-length" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> At least 8 chars (max 20)</span>
-                                    <span id="rule-alphanumeric" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> Letters and numbers only</span>
-                                    <span id="rule-no-special" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> No spaces or special symbols</span>
+                                    <span id="rule-length" class="text-danger d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill"></i> 8–12 characters required</span>
                                 </div>
                             </div>
                             @error('password') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
@@ -583,8 +580,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const strengthLabel = document.getElementById('strength-label');
     
     const ruleLength = document.getElementById('rule-length');
-    const ruleAlphanumeric = document.getElementById('rule-alphanumeric');
-    const ruleNoSpecial = document.getElementById('rule-no-special');
     
     const matchContainer = document.getElementById('password-match-container');
     const matchStatus = document.getElementById('match-status');
@@ -608,7 +603,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this.classList.toggle('bi-eye-slash-fill');
     });
 
-    // Password Real-time Strength Checker
+    // Password Real-time Strength Checker (length 8–12 only)
     passwordInput.addEventListener('input', function() {
         const val = this.value;
         if (val.length > 0) {
@@ -617,35 +612,36 @@ document.addEventListener('DOMContentLoaded', function() {
             strengthContainer.classList.add('d-none');
         }
         
-        // Rules
-        const isLengthValid = val.length >= 8 && val.length <= 20;
-        const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(val);
-        const isNoSpecial = !/[^a-zA-Z0-9]/.test(val) && val.length > 0;
+        // Only length rule matters
+        const isLengthValid = val.length >= 8 && val.length <= 12;
         
         updateRuleIndicator(ruleLength, isLengthValid);
-        updateRuleIndicator(ruleAlphanumeric, isAlphanumeric);
-        updateRuleIndicator(ruleNoSpecial, isNoSpecial);
         
         // Calculate score
         let score = 0;
-        if (isLengthValid) score += 34;
-        if (isAlphanumeric) score += 33;
-        if (isNoSpecial) score += 33;
+        if (val.length >= 4) score += 25;
+        if (val.length >= 8) score += 50;
+        if (val.length >= 10) score += 25;
+        if (val.length > 12) score = 10; // Over max
         
         strengthBar.style.width = score + '%';
         
-        if (score <= 34) {
-            strengthBar.style.backgroundColor = '#EF4444'; // Red
-            strengthLabel.textContent = 'Too Weak';
+        if (val.length > 12) {
+            strengthBar.style.backgroundColor = '#EF4444';
+            strengthLabel.textContent = 'Too Long (max 12)';
             strengthLabel.className = 'text-danger';
-        } else if (score <= 67) {
-            strengthBar.style.backgroundColor = '#F59E0B'; // Orange
-            strengthLabel.textContent = 'Weak';
+        } else if (val.length >= 8 && val.length <= 12) {
+            strengthBar.style.backgroundColor = '#10B981';
+            strengthLabel.textContent = 'Valid';
+            strengthLabel.className = 'text-success fw-bold';
+        } else if (val.length >= 4) {
+            strengthBar.style.backgroundColor = '#F59E0B';
+            strengthLabel.textContent = 'Too Short';
             strengthLabel.className = 'text-warning';
         } else {
-            strengthBar.style.backgroundColor = '#10B981'; // Green
-            strengthLabel.textContent = 'Strong Alphanumeric';
-            strengthLabel.className = 'text-success fw-bold';
+            strengthBar.style.backgroundColor = '#EF4444';
+            strengthLabel.textContent = 'Too Weak';
+            strengthLabel.className = 'text-danger';
         }
         
         checkPasswordMatch();
@@ -686,24 +682,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Form submit validation check
+    // Form submit — only check length (8–12) and match
     registerForm.addEventListener('submit', function(e) {
         const val = passwordInput.value;
         const pVal = passwordInput.value;
         const cVal = confirmInput.value;
         
-        const isLengthValid = val.length >= 8 && val.length <= 20;
-        const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(val);
-        
-        if (!isLengthValid) {
+        if (!val) {
             e.preventDefault();
-            alert('Please choose a password between 8 and 20 characters.');
+            alert('Password is required.');
             return false;
         }
         
-        if (!isAlphanumeric) {
+        if (val.length < 8) {
             e.preventDefault();
-            alert('Password must contain letters and numbers only (no special characters or spaces).');
+            alert('Password must be at least 8 characters.');
+            return false;
+        }
+        
+        if (val.length > 12) {
+            e.preventDefault();
+            alert('Password cannot exceed 12 characters.');
             return false;
         }
         

@@ -147,6 +147,84 @@
             filter: brightness(1.1) !important;
             color: #ffffff !important;
         }
+
+        /* Premium Floating Enquiry Button Styling */
+        .floating-enquiry-btn {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            z-index: 1040;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 26px;
+            border-radius: 50px;
+            background: var(--primary-gradient);
+            color: #ffffff !important;
+            font-family: 'Outfit', 'Poppins', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none !important;
+            box-shadow: 0 10px 25px rgba(29, 111, 235, 0.35);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+
+        .floating-enquiry-btn i {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .floating-enquiry-btn:hover {
+            transform: translateY(-6px) scale(1.04);
+            box-shadow: 0 15px 35px rgba(29, 111, 235, 0.5);
+            background: linear-gradient(135deg, #0284C7 0%, #1D6FEB 100%);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #ffffff !important;
+        }
+
+        .floating-enquiry-btn:hover i {
+            transform: rotate(-10deg) scale(1.15);
+        }
+
+        .floating-enquiry-btn:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        /* Subtle pulsing attention-getter animation */
+        @keyframes enquiryPulse {
+            0% {
+                box-shadow: 0 10px 25px rgba(29, 111, 235, 0.35), 0 0 0 0 rgba(29, 111, 235, 0.45);
+            }
+            70% {
+                box-shadow: 0 10px 25px rgba(29, 111, 235, 0.35), 0 0 0 12px rgba(29, 111, 235, 0);
+            }
+            100% {
+                box-shadow: 0 10px 25px rgba(29, 111, 235, 0.35), 0 0 0 0 rgba(29, 111, 235, 0);
+            }
+        }
+
+        .floating-enquiry-btn {
+            animation: enquiryPulse 2.5s infinite ease-in-out;
+        }
+
+        /* Adaptive mobile viewport alignment to clear bottom selection bar */
+        @media (max-width: 576px) {
+            .floating-enquiry-btn {
+                bottom: 90px;
+                right: 20px;
+                padding: 12px 20px;
+                font-size: 13.5px;
+                box-shadow: 0 8px 20px rgba(29, 111, 235, 0.3);
+            }
+            .floating-enquiry-btn i {
+                font-size: 16px;
+            }
+        }
         #selection-bar .bar-pill-btn i {
             font-size: 15px !important;
             vertical-align: middle !important;
@@ -532,7 +610,7 @@
                             <li><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
                         @else
                             <li><a href="{{ route('home') }}" class="text-white-50 text-decoration-none hover-white">Home Page</a></li>
-                            <li><a href="{{ route('catalogue') }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
+                            <li><a href="{{ route('demo') }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
                         @endif
                         <li><a href="{{ route('contact') }}" class="text-white-50 text-decoration-none hover-white">Contact Us</a></li>
                     </ul>
@@ -547,6 +625,8 @@
                                 $categoryIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
                                     ->where('status', 'active')
                                     ->pluck('category_id')
+                                    ->flatten()
+                                    ->filter()
                                     ->unique();
                                 $footerCats = \App\Models\Category::whereIn('id', $categoryIds)
                                     ->where('status', 1)
@@ -629,6 +709,7 @@
         </div>
     </footer>
 
+    @if(request()->routeIs('product.details'))
     <!-- Floating Sticky Multi-Selection Glass Bar -->
     <div id="selection-bar" class="floating-bar" data-authenticated="{{ auth()->check() ? 'true' : 'false' }}">
         <div class="bar-actions">
@@ -648,6 +729,7 @@
             @endauth
         </div>
     </div>
+    @endif
 
     <!-- Product B2B Details Slide Drawer (Overlay + Drawer) -->
     <div class="drawer-overlay" id="drawer-overlay"></div>
@@ -4623,6 +4705,12 @@
             </div>
         @endif
     </div>
+
+    <!-- Premium Floating Enquiry Button -->
+    <a href="{{ route('contact') }}" class="floating-enquiry-btn shadow-lg" title="Enquire Now">
+        <i class="bi bi-chat-left-text-fill"></i>
+        <span>Enquire Now</span>
+    </a>
 
     @stack('scripts')
     <script>

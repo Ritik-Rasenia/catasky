@@ -40,26 +40,46 @@
         </div>
     @endif
 
-    <section class="dash-hero">
-        <div>
-            <div class="dash-kicker">Subscriber workspace</div>
-            <h1>{{ $profile?->company_name ?? $user->name }} catalog command center</h1>
-            <p>Track catalog readiness, publish products, review sharing activity, and keep your storefront moving.</p>
+    <section class="dash-hero-container mb-4">
+        <div class="dash-hero-content">
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <span class="badge-workspace"><i class="bi bi-cpu-fill"></i> Subscriber Workspace</span>
+                <span class="badge-status-live"><span class="pulse-dot"></span> Storefront: Active &amp; Live</span>
+            </div>
+            <h1>{{ $profile?->company_name ?? $user->name }} Catalog Command Center</h1>
+            <p class="hero-desc">Configure catalog readiness, publish products, review sharing activity, and manage your custom B2B storefront hub.</p>
+            
+           
         </div>
-        <div class="dash-hero-actions d-flex align-items-center gap-2">
-            <form method="GET" id="filterForm" class="d-inline-block m-0">
-                <select name="filter" class="form-select form-select-sm border shadow-sm px-3" onchange="this.form.submit()" style="background-color: var(--surface-color, #fff); color: var(--text-primary); font-size: 0.85rem; height: 38px; border-radius: 10px; border: 1px solid var(--border) !important; min-width: 140px; cursor: pointer;">
-                    <option value="all_time" {{ $currentFilter === 'all_time' ? 'selected' : '' }}>All Time</option>
-                    <option value="today" {{ $currentFilter === 'today' ? 'selected' : '' }}>Today</option>
-                    <option value="yesterday" {{ $currentFilter === 'yesterday' ? 'selected' : '' }}>Yesterday</option>
-                    <option value="this_week" {{ $currentFilter === 'this_week' ? 'selected' : '' }}>This Week</option>
-                    <option value="last_30_days" {{ $currentFilter === 'last_30_days' ? 'selected' : '' }}>Last 30 Days</option>
-                    <option value="this_month" {{ $currentFilter === 'this_month' ? 'selected' : '' }}>This Month</option>
-                    <option value="last_month" {{ $currentFilter === 'last_month' ? 'selected' : '' }}>Last Month</option>
-                    <option value="this_year" {{ $currentFilter === 'this_year' ? 'selected' : '' }}>This Year</option>
-                </select>
-            </form>
-            <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Product</a>
+
+        <div class="dash-hero-actions-panel mt-4 mt-lg-0">
+            <div class="actions-wrapper">
+                <div class="action-label"><i class="bi bi-sliders"></i> Workspace Controls</div>
+                
+                <form method="GET" id="filterForm" class="filter-action-form m-0">
+                    <div class="filter-select-wrapper">
+                        <i class="bi bi-funnel-fill select-icon"></i>
+                        <select name="filter" class="form-select workspace-select" onchange="this.form.submit()">
+                            <option value="all_time" {{ $currentFilter === 'all_time' ? 'selected' : '' }}>All Time Stats</option>
+                            <option value="today" {{ $currentFilter === 'today' ? 'selected' : '' }}>Today's Activity</option>
+                            <option value="yesterday" {{ $currentFilter === 'yesterday' ? 'selected' : '' }}>Yesterday</option>
+                            <option value="this_week" {{ $currentFilter === 'this_week' ? 'selected' : '' }}>This Week</option>
+                            <option value="last_30_days" {{ $currentFilter === 'last_30_days' ? 'selected' : '' }}>Last 30 Days</option>
+                            <option value="this_month" {{ $currentFilter === 'this_month' ? 'selected' : '' }}>This Month</option>
+                            <option value="last_month" {{ $currentFilter === 'last_month' ? 'selected' : '' }}>Last Month</option>
+                            <option value="this_year" {{ $currentFilter === 'this_year' ? 'selected' : '' }}>This Year</option>
+                        </select>
+                    </div>
+                </form>
+
+                <a href="{{ route('subscriber.products.create') }}" class="btn btn-workspace-primary btn-add-product">
+                    <i class="bi bi-plus-circle-fill"></i> Add Product
+                </a>
+
+                <a href="{{ route('subscriber.profile.edit') }}" class="btn btn-workspace-secondary btn-go-store">
+                    <i class="bi bi-shop"></i> Go to Store <i class="bi bi-chevron-right ms-1 small-arrow" style="font-size:0.75rem;"></i>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -234,44 +254,9 @@
                 <a href="{{ route('subscriber.notifications.index') }}" class="dash-footer-link">View all notifications <i class="bi bi-arrow-right"></i></a>
             </div>
 
-            <div class="dash-card">
-                <div class="dash-card-header">
-                    <div>
-                        <h3><i class="bi bi-lightning-charge"></i> Shortcuts</h3>
-                        <span>Common actions</span>
-                    </div>
-                </div>
-                <div class="shortcut-stack">
-                    <a href="{{ route('subscriber.products.create') }}"><i class="bi bi-plus-circle"></i><span>Add New Product</span><i class="bi bi-chevron-right"></i></a>
-                    <a href="{{ route('subscriber.attributes.index') }}"><i class="bi bi-sliders2"></i><span>Manage Specifications</span><i class="bi bi-chevron-right"></i></a>
-                </div>
-            </div>
+          
 
-            <div class="dash-card">
-                <div class="dash-card-header">
-                    <div>
-                        <h3><i class="bi bi-link-45deg"></i> Top Share Links</h3>
-                        <span>Most viewed links</span>
-                    </div>
-                </div>
-                <div class="dash-list">
-                    @forelse($topShareLinks as $link)
-                        <div class="dash-list-item static">
-                            <span class="list-icon"><i class="bi bi-bar-chart"></i></span>
-                            <span>
-                                <strong>{{ $link->title ?? $link->product?->name ?? 'Catalog share' }}</strong>
-                                <small>{{ number_format($link->view_count) }} views</small>
-                            </span>
-                        </div>
-                    @empty
-                        <div class="dash-empty compact">
-                            <i class="bi bi-link"></i>
-                            <strong>No share links yet</strong>
-                            <span>Create a link to track engagement.</span>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
+           
 
             <div class="dash-card">
                 <div class="dash-card-header">
@@ -282,11 +267,11 @@
                 </div>
                 <div class="activity-list">
                     @forelse($recentActivity as $act)
-                        <div class="activity-item">
+                        <div class="activity-item action-{{ strtolower($act->action ?? 'modified') }}">
                             <span></span>
-                            <div>
-                                <strong>{{ $act->action ?? 'Modified item' }}</strong>
-                                <small>{{ $act->created_at?->diffForHumans() ?? 'Recently' }}</small>
+                            <div class="activity-text">
+                                <strong>{{ $act->description ?? 'Modified catalog specifications' }}</strong>
+                                <small><i class="bi bi-clock me-1"></i>{{ $act->created_at?->diffForHumans() ?? 'Recently' }}</small>
                             </div>
                         </div>
                     @empty
@@ -312,7 +297,6 @@
     }
 
     .dash-alert,
-    .dash-hero,
     .dash-card,
     .dash-metric,
     .dash-plan-card {
@@ -360,58 +344,322 @@
         display: block;
     }
 
-    .dash-hero {
+    /* Redesigned Subscriber Workspace Hero Section */
+    .dash-hero-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 28px;
+        padding: 36px;
+        background: linear-gradient(135deg, rgba(29, 111, 235, 0.09) 0%, rgba(124, 58, 237, 0.08) 100%), var(--surface-color, #fff);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .dash-hero-container::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 80%);
+        pointer-events: none;
+    }
+    
+    .dash-hero-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .badge-workspace {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(37, 99, 235, 0.09);
+        color: var(--primary-color);
+        padding: 6px 12px;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: 1px solid rgba(37, 99, 235, 0.15);
+    }
+    
+    .badge-status-live {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.09);
+        color: #059669;
+        padding: 6px 12px;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: 1px solid rgba(16, 185, 129, 0.15);
+    }
+    
+    .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #10b981;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse-active 1.8s infinite;
+    }
+    
+    @keyframes pulse-active {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+        }
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+    
+    .dash-hero-container h1 {
+        margin: 12px 0 8px;
+        color: var(--text-color, #0f172a);
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        font-size: 32px;
+        line-height: 1.15;
+        letter-spacing: -0.02em !important;
+    }
+    
+    .hero-desc {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.6;
+        max-width: 760px;
+        margin-bottom: 24px;
+    }
+    
+    /* Onboarding / Instruction Cards */
+    .workspace-instructions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+    
+    .instruction-card {
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        padding: 12px 16px;
+        border-radius: 14px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        height: 100%;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .instruction-card:hover {
+        transform: translateY(-3px);
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(37, 99, 235, 0.25);
+        box-shadow: 0 10px 20px -10px rgba(37, 99, 235, 0.12);
+    }
+    
+    .instruction-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        padding: 28px;
-        background: linear-gradient(135deg, rgba(29, 111, 235, 0.08), rgba(16, 185, 129, 0.07)), var(--surface-color, #fff);
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 16px;
     }
-
-    .dash-kicker {
+    
+    .icon-add {
+        background: rgba(37, 99, 235, 0.08);
         color: var(--primary-color);
+    }
+    
+    .icon-share {
+        background: rgba(124, 58, 237, 0.08);
+        color: var(--secondary-color);
+    }
+    
+    .icon-profile {
+        background: rgba(16, 185, 129, 0.08);
+        color: #059669;
+    }
+    
+    .instruction-text h6 {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+    
+    .instruction-text p {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    
+    /* Control Action Panel */
+    .dash-hero-actions-panel {
+        width: 280px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        border-left: 1px dashed rgba(100, 116, 139, 0.15);
+        padding-left: 28px;
+    }
+    
+    .actions-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .action-label {
         font-size: 11px;
         font-weight: 800;
+        color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 8px;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
-
-    .dash-hero h1,
+    
+    .filter-action-form {
+        margin: 0;
+        width: 100%;
+    }
+    
+    .filter-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    
+    .select-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 14px;
+        pointer-events: none;
+        z-index: 5;
+    }
+    
+    .workspace-select {
+        padding-left: 36px !important;
+        background-color: var(--surface-color, #fff) !important;
+        color: var(--text-color) !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        height: 44px !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--border-color, #e2e8f0) !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+    }
+    
+    .workspace-select:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    }
+    
+    .btn-workspace-primary,
+    .btn-workspace-secondary,
+    .btn-workspace-light {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 44px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 700;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+    
+    .btn-workspace-primary {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: #fff !important;
+        border: none;
+    }
+    
+    .btn-workspace-primary:hover {
+        transform: translateY(-1.5px);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
+        opacity: 0.95;
+    }
+    
+    .btn-workspace-secondary {
+        background: transparent;
+        color: var(--primary-color) !important;
+        border: 1px solid var(--primary-color);
+    }
+    
+    .btn-workspace-secondary:hover {
+        background: rgba(37, 99, 235, 0.04);
+        transform: translateY(-1.5px);
+        box-shadow: 0 6px 15px rgba(37, 99, 235, 0.1);
+    }
+    
+    .btn-workspace-secondary:hover .small-arrow {
+        transform: translate(1.5px, -1.5px);
+    }
+    
+    .small-arrow {
+        transition: transform 0.2s ease;
+    }
+    
+    .btn-workspace-light {
+        background: var(--surface-muted, #f8fafc);
+        color: var(--text-color) !important;
+        border: 1px solid var(--border-color, #e2e8f0);
+    }
+    
+    .btn-workspace-light:hover {
+        background: var(--border-color, #e2e8f0);
+        transform: translateY(-1.5px);
+    }
+    
     .dash-plan-card h2 {
         margin: 0;
-        color: var(--text-primary);
+        color: #fff;
         font-family: 'Outfit', sans-serif;
         font-weight: 800;
         letter-spacing: 0 !important;
     }
 
-    .dash-hero h1 {
-        font-size: 30px;
-        line-height: 1.15;
-    }
-
-    .dash-hero p,
     .dash-plan-card p,
     .dash-card-header span,
     .dash-metric span,
     .dash-list-item small,
     .activity-item small {
         color: var(--text-muted);
-    }
-
-    .dash-hero p {
-        max-width: 720px;
-        margin: 10px 0 0;
-        font-size: 14px;
-    }
-
-    .dash-hero-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
     }
 
     .dash-metrics {
@@ -714,25 +962,100 @@
         flex: 1;
     }
 
+    .activity-list {
+        position: relative;
+        padding: 16px 20px 8px !important;
+    }
+
+    .activity-list::before {
+        content: '';
+        position: absolute;
+        top: 24px;
+        left: 25px;
+        bottom: 24px;
+        width: 2px;
+        background: linear-gradient(to bottom, var(--primary-color) 0%, rgba(37, 99, 235, 0.05) 100%);
+        border-radius: 2px;
+    }
+
     .activity-item {
         display: flex;
-        gap: 12px;
-        padding: 0 0 18px;
+        gap: 16px;
+        position: relative;
+        padding-bottom: 20px;
+        z-index: 2;
+    }
+
+    .activity-item:last-child {
+        padding-bottom: 5px;
     }
 
     .activity-item > span {
         width: 12px;
         height: 12px;
-        margin-top: 4px;
+        margin-top: 5px;
         border-radius: 50%;
-        background: var(--primary-color);
-        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+        background: #fff;
+        border: 2px solid var(--primary-color);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
         flex-shrink: 0;
+        z-index: 3;
+        transition: all 0.2s ease;
     }
 
-    .activity-item strong,
-    .activity-item small {
+    .activity-item:hover > span {
+        background: var(--primary-color);
+        transform: scale(1.15);
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
+    }
+
+    .activity-item.action-created > span {
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    }
+    .activity-item.action-created:hover > span {
+        background: #10b981;
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.25);
+    }
+
+    .activity-item.action-updated > span {
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+    }
+    .activity-item.action-updated:hover > span {
+        background: #f59e0b;
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.25);
+    }
+
+    .activity-item.action-deleted > span {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+    }
+    .activity-item.action-deleted:hover > span {
+        background: #ef4444;
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25);
+    }
+
+    .activity-text {
+        flex: 1;
+    }
+
+    .activity-item strong {
+        color: var(--text-color, #1e293b);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.45;
+        margin-bottom: 2px;
         display: block;
+    }
+
+    .activity-item small {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-muted, #64748b);
+        font-size: 11px;
+        font-weight: 500;
     }
 
     .dash-empty {
@@ -762,17 +1085,52 @@
         font-size: 16px;
     }
 
-    html[data-theme="dark"] .dash-hero {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(16, 185, 129, 0.12)), var(--surface-color);
-    }
-
     html[data-theme="dark"] .dash-list-item,
     html[data-theme="dark"] .shortcut-stack a,
     html[data-theme="dark"] .icon-action {
         background: var(--surface-muted);
     }
 
+    /* Redesigned Workspace Dark Mode Accents */
+    html[data-theme="dark"] .dash-hero-container {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16) 0%, rgba(124, 58, 237, 0.14) 100%), var(--surface-color);
+        box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    html[data-theme="dark"] .instruction-card {
+        background: rgba(17, 24, 39, 0.45);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    html[data-theme="dark"] .instruction-card:hover {
+        background: rgba(17, 24, 39, 0.65);
+        border-color: rgba(37, 99, 235, 0.35);
+        box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.3);
+    }
+
     @media (max-width: 1199.98px) {
+        .dash-hero-container {
+            flex-direction: column;
+            padding: 28px;
+        }
+        .dash-hero-actions-panel {
+            width: 100%;
+            border-left: none;
+            border-top: 1px dashed rgba(100, 116, 139, 0.15);
+            padding-left: 0;
+            padding-top: 24px;
+            margin-top: 20px;
+        }
+        .actions-wrapper {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-action-form, .btn-workspace-primary, .btn-workspace-secondary, .btn-workspace-light {
+            flex: 1 1 200px;
+        }
+
         .dash-metrics {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -783,23 +1141,21 @@
     }
 
     @media (max-width: 767.98px) {
-        .dash-hero,
+        .workspace-instructions {
+            grid-template-columns: 1fr;
+        }
+        .actions-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-action-form, .btn-workspace-primary, .btn-workspace-secondary, .btn-workspace-light {
+            flex: 1 1 auto;
+            width: 100%;
+        }
+
         .dash-plan-card {
             align-items: flex-start;
             flex-direction: column;
-        }
-
-        .dash-hero h1 {
-            font-size: 24px;
-        }
-
-        .dash-hero-actions {
-            width: 100%;
-            justify-content: stretch;
-        }
-
-        .dash-hero-actions .btn {
-            flex: 1 1 150px;
         }
 
         .dash-metrics {

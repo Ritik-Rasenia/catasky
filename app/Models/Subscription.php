@@ -45,7 +45,7 @@ class Subscription extends Model
         if ($this->status === 'active' && $this->ends_at && $this->ends_at->isFuture()) {
             return true;
         }
-        if ($this->status === 'trial' && $this->trial_ends_at && $this->trial_ends_at->isFuture()) {
+        if ($this->status === 'trial' && (($this->trial_ends_at && $this->trial_ends_at->isFuture()) || ($this->ends_at && $this->ends_at->isFuture()))) {
             return true;
         }
         return false;
@@ -55,13 +55,16 @@ class Subscription extends Model
     {
         return in_array($this->status, ['expired', 'cancelled']) ||
                ($this->ends_at && $this->ends_at->isPast() && $this->status !== 'trial') ||
-               ($this->status === 'trial' && $this->trial_ends_at && $this->trial_ends_at->isPast());
+               ($this->status === 'trial' && (($this->trial_ends_at && $this->trial_ends_at->isPast()) || ($this->ends_at && $this->ends_at->isPast())));
     }
 
     public function daysRemaining(): int
     {
-        if ($this->status === 'trial' && $this->trial_ends_at) {
-            return max(0, (int) Carbon::now()->diffInDays($this->trial_ends_at, false));
+        if ($this->status === 'trial') {
+            $date = $this->trial_ends_at ?? $this->ends_at;
+            if ($date) {
+                return max(0, (int) Carbon::now()->diffInDays($date, false));
+            }
         }
         if ($this->ends_at) {
             return max(0, (int) Carbon::now()->diffInDays($this->ends_at, false));

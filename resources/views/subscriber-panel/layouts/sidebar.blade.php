@@ -2,6 +2,9 @@
     @php
         $setting = \App\Models\Setting::first();
         $user = auth()->user();
+        $sub = $user ? $user->activeSubscription() : null;
+        $plan = $sub ? $sub->plan : null;
+        $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
 
         $isActive = function (array $patterns): bool {
             foreach ($patterns as $pattern) {
@@ -9,11 +12,10 @@
                     return true;
                 }
             }
-
             return false;
         };
 
-        $canSee = function (?string $permission, ?string $route = null) use ($user): bool {
+        $canSee = function (?string $permission, ?string $route = null) use ($user, $isEnterprise): bool {
             // Default permission check for staff / non-subscribers
             if ($user && !$user->hasRole('Subscriber')) {
                 // Super Admin / Admin can see everything in the workspace
@@ -38,12 +40,18 @@
                 'subscriber.brands.index',
                 'subscriber.categories.index',
                 'subscriber.subcategories.index',
+                'subscriber.domain.index',
                 'subscriber.notifications.index',
                 'contact',
             ];
 
             if (!$route) {
                 return !$permission || ($user && $user->can($permission));
+            }
+
+            // Hide Custom Domain if not enterprise
+            if ($route === 'subscriber.domain.index' && !$isEnterprise) {
+                return false;
             }
 
             // If subscriber is pending approval or has no active subscription, strictly limit visible tabs to basic items
@@ -78,6 +86,7 @@
             [
                 'label' => 'Catalogue',
                 'items' => [
+                   
                     [
                         'label'      => 'Brands',
                         'icon'       => 'bi-patch-check-fill',
@@ -85,6 +94,7 @@
                         'permission' => null,
                         'active'     => ['subscriber.brands.*'],
                     ],
+                     
                     [
                         'label'      => 'Categories',
                         'icon'       => 'bi-layers-fill',
@@ -99,7 +109,6 @@
                         'permission' => null,
                         'active'     => ['subscriber.subcategories.*'],
                     ],
-                 
                     [
                         'label'      => 'Products',
                         'icon'       => 'bi-box-seam-fill',
@@ -125,18 +134,25 @@
                 'label' => 'Account',
                 'items' => [
                     [
+                        'label'      => 'Store Settings',
+                        'icon'       => 'bi-gear-fill',
+                        'route'      => 'subscriber.profile.edit',
+                        'permission' => 'dashboard.view',
+                        'active'     => ['subscriber.profile.*'],
+                    ],
+                    [
+                        'label'      => 'Custom Domain',
+                        'icon'       => 'bi-globe2',
+                        'route'      => 'subscriber.domain.index',
+                        'permission' => null,
+                        'active'     => ['subscriber.domain.*'],
+                    ],
+                    [
                         'label'      => 'Subscription',
                         'icon'       => 'bi-credit-card-2-front-fill',
                         'route'      => 'subscriber.subscription.index',
                         'permission' => 'dashboard.view',
                         'active'     => ['subscriber.subscription.*'],
-                    ],
-                    [
-                        'label'      => 'Profile',
-                        'icon'       => 'bi-person-circle',
-                        'route'      => 'subscriber.profile.edit',
-                        'permission' => 'dashboard.view',
-                        'active'     => ['subscriber.profile.*'],
                     ],
                 ],
             ],

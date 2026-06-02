@@ -10,6 +10,11 @@ class IsSuperAdmin
 {
     /**
      * Handle an incoming request.
+     * 
+     * Super Admin & Admin → full access (bypass all permission checks).
+     * Any other non-Subscriber role → enters admin panel, but is subject to
+     * individual route permission checks (middleware('permission:...') on routes).
+     * Subscriber role → blocked, must use Subscriber panel.
      *
      * @param  Closure(Request): (Response)  $next
      */
@@ -19,8 +24,8 @@ class IsSuperAdmin
             return redirect()->route('login');
         }
 
-        if (!auth()->user()->hasRole('Super Admin') && !auth()->user()->hasRole('Admin')) {
-            abort(403, 'Access denied. Super Admin privileges required.');
+        if (!auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Unauthorized. Super Admin access required.');
         }
 
         return $next($request);

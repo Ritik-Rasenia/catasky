@@ -278,37 +278,10 @@
 @section('content')
 <div class="container-fluid py-2">
     
-    {{-- Modern Page Header --}}
-    <div class="premium-page-header d-flex flex-column flex-md-row justify-content-between align-md-items-center gap-3">
-        <div>
-            <h3 class="fw-bold mb-1" style="font-family:'Outfit', sans-serif;">Branding & Store Settings</h3>
-            <p class="text-white text-opacity-75 small mb-0">Configure your public storefront catalog design, business credentials, and profile specifications.</p>
-        </div>
-        
-        {{-- Custom Status Badge --}}
+    {{-- Custom Status Badge --}}
         @php
             $storeStatus = $profile->store_status ?? 'draft';
         @endphp
-        <div>
-            @if($storeStatus === 'live')
-                <span class="badge bg-success bg-opacity-25 text-white border border-success border-opacity-50 px-3 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5" style="font-size: 0.85rem;">
-                    <span class="d-inline-block bg-success rounded-circle" style="width:7px; height:7px;"></span> Live & Verified Storefront
-                </span>
-            @elseif($storeStatus === 'pending')
-                <span class="badge bg-warning bg-opacity-25 text-white border border-warning border-opacity-50 px-3 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5" style="font-size: 0.85rem;">
-                    <span class="spinner-grow spinner-grow-sm text-warning" style="width:8px; height:8px;"></span> Verification Pending
-                </span>
-            @elseif($storeStatus === 'rejected')
-                <span class="badge bg-danger bg-opacity-25 text-white border border-danger border-opacity-50 px-3 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5" style="font-size: 0.85rem;">
-                    <span class="d-inline-block bg-danger rounded-circle" style="width:7px; height:7px;"></span> Revision Required
-                </span>
-            @else
-                <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-50 px-3 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5" style="font-size: 0.85rem;">
-                    <span class="d-inline-block bg-secondary rounded-circle" style="width:7px; height:7px;"></span> Draft Mode
-                </span>
-            @endif
-        </div>
-    </div>
 
     {{-- Alert Messages --}}
     @if(session('success'))
@@ -372,7 +345,7 @@
                                     <a href="{{ route('store.public', $profile->company_slug) }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-semibold"><i class="bi bi-box-arrow-up-right me-1"></i> Visit Catalog Front</a>
                                     <div class="input-group input-group-sm" style="max-width:320px;">
                                         <input type="text" class="form-control bg-white border" readonly id="public-store-link" value="{{ route('store.public', $profile->company_slug) }}">
-                                        <button class="btn btn-outline-success" type="button" onclick="copyLink()"><i class="bi bi-copy"></i> Copy</button>
+                                        <button class="btn btn-outline-success mx-3" type="button" onclick="copyLink()"><i class="bi bi-copy"></i> Copy</button>
                                     </div>
                                 </div>
                             </div>
@@ -646,11 +619,11 @@
                         <div class="card-body p-4">
                             <div class="row align-items-center">
                                 <div class="col-md-8">
-                                    <span class="badge rounded-pill bg-white bg-opacity-20 text-white mb-2 px-3 py-1 fw-bold" style="font-size:0.72rem;">ACTIVE B2B LICENSE</span>
-                                    <h3 class="fw-bold mb-1" style="font-family:'Outfit', sans-serif;">
+                                    <span class="badge rounded-pill bg-white bg-opacity-20 text-dark mb-2 px-3 py-1 fw-bold" style="font-size:0.72rem;">ACTIVE B2B LICENSE</span>
+                                    <h3 class="fw-bold mb-1 text-white" style="font-family:'Outfit', sans-serif;">
                                         {{ $subscription->plan?->name ?? 'Free Access Plan' }}
                                     </h3>
-                                    <p class="opacity-75 small mb-0 mt-2">
+                                    <p class="opacity-75 small mb-0 mt-2 text-white">
                                         @if($subscription)
                                             Billing cycle started: {{ $subscription->starts_at ? $subscription->starts_at->format('M d, Y') : 'N/A' }}
                                         @else
@@ -729,7 +702,7 @@
 
                 {{-- Panel 4: Account Security --}}
                 <div class="tab-pane fade" id="panel-security" role="tabpanel">
-                    <div class="premium-card" style="max-width: 600px;">
+                    <div class="premium-card" style="max-width: 900px;">
                         <div class="card-header bg-transparent py-3 px-4 border-bottom">
                             <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-lock-fill text-primary me-2"></i>Change Login Password</h5>
                         </div>

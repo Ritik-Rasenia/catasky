@@ -84,6 +84,22 @@ class DefaultPermissionsAndRolesSeeder extends Seeder
 
             // System Management
             ['name' => 'manage-system', 'description' => 'Manage System Maintenance and Commands'],
+
+            // Module-level Permissions (Requirement 9)
+            ['name' => 'dashboard-access', 'description' => 'Dashboard Access'],
+            ['name' => 'user-management', 'description' => 'User Management'],
+            ['name' => 'subscriber-management', 'description' => 'Subscriber Management'],
+            ['name' => 'plan-management', 'description' => 'Plan Management'],
+            ['name' => 'role-management', 'description' => 'Role Management'],
+            ['name' => 'permission-management', 'description' => 'Permission Management'],
+            ['name' => 'product-management', 'description' => 'Product Management'],
+            ['name' => 'category-management', 'description' => 'Category Management'],
+            ['name' => 'brand-management', 'description' => 'Brand Management'],
+            ['name' => 'order-management', 'description' => 'Order Management'],
+            ['name' => 'domain-management', 'description' => 'Domain Management'],
+            ['name' => 'reports', 'description' => 'Reports Access'],
+            ['name' => 'settings', 'description' => 'Settings Management'],
+            ['name' => 'system-configuration', 'description' => 'System Configuration'],
         ];
 
         // Create permissions

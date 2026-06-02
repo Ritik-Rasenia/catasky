@@ -134,11 +134,15 @@ class SubscriberProduct extends Model
         
         static $cachedBrands = null;
         if ($cachedBrands === null) {
-            $cachedBrands = \App\Models\Brand::all()->keyBy('id');
+            $cachedBrands = \App\Models\Brand::withoutGlobalScope('tenant')->get()->keyBy('id');
         }
         
         return collect($ids)->map(function($id) use ($cachedBrands) {
-            return $cachedBrands->get($id);
+            $brand = $cachedBrands->get($id);
+            if ($brand && ($brand->subscriber_id === null || $brand->subscriber_id == $this->user_id)) {
+                return $brand;
+            }
+            return null;
         })->filter();
     }
 
@@ -159,11 +163,15 @@ class SubscriberProduct extends Model
         
         static $cachedCategories = null;
         if ($cachedCategories === null) {
-            $cachedCategories = \App\Models\Category::all()->keyBy('id');
+            $cachedCategories = \App\Models\Category::withoutGlobalScope('tenant')->get()->keyBy('id');
         }
         
         return collect($ids)->map(function($id) use ($cachedCategories) {
-            return $cachedCategories->get($id);
+            $cat = $cachedCategories->get($id);
+            if ($cat && ($cat->subscriber_id === null || $cat->subscriber_id == $this->user_id)) {
+                return $cat;
+            }
+            return null;
         })->filter();
     }
 
@@ -184,11 +192,15 @@ class SubscriberProduct extends Model
         
         static $cachedSubcategories = null;
         if ($cachedSubcategories === null) {
-            $cachedSubcategories = \App\Models\Subcategory::all()->keyBy('id');
+            $cachedSubcategories = \App\Models\Subcategory::withoutGlobalScope('tenant')->get()->keyBy('id');
         }
         
         return collect($ids)->map(function($id) use ($cachedSubcategories) {
-            return $cachedSubcategories->get($id);
+            $sub = $cachedSubcategories->get($id);
+            if ($sub && ($sub->subscriber_id === null || $sub->subscriber_id == $this->user_id)) {
+                return $sub;
+            }
+            return null;
         })->filter();
     }
 

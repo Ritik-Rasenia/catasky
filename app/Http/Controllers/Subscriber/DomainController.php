@@ -10,48 +10,58 @@ use Illuminate\Support\Str;
 
 class DomainController extends Controller
 {
-    public function index()
+    /**
+     * Enforce strict enterprise subscriber access.
+     */
+    protected function ensureEnterprise()
     {
         $user = auth()->user();
-        
-        // 1. Ensure user is on an Enterprise plan (by checking custom_branding or slug)
-        $sub = $user->activeSubscription();
+        $sub = $user ? $user->activeSubscription() : null;
         $plan = $sub ? $sub->plan : null;
-        
         $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
 
-        if (!$isEnterprise) {
-            return view('subscriber-panel.domain.index', [
-                'isEnterprise' => false,
-                'currentPlan' => $plan ? $plan->name : 'None',
-                'domains' => collect()
-            ]);
+        if (!$isEnterprise || !$user->hasActiveSubscription()) {
+            abort(403, 'Unauthorized. Only Enterprise subscribers can access the custom domain management page.');
         }
+
+        return [$user, $plan];
+    }
+
+    public function index()
+    {
+        list($user, $plan) = $this->ensureEnterprise();
 
         $domains = CustomDomain::where('user_id', $user->id)->latest()->get();
 
         return view('subscriber-panel.domain.index', [
             'isEnterprise' => true,
             'domains' => $domains,
-            'plan' => $plan
+            'plan' => $plan,
+            'user' => $user
         ]);
     }
 
     public function store(Request $request)
     {
-        $user = auth()->user();
-        $sub = $user->activeSubscription();
-        $plan = $sub ? $sub->plan : null;
-        $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
+        list($user, $plan) = $this->ensureEnterprise();
 
-        if (!$isEnterprise) {
-            return back()->with('error', 'Only Enterprise Subscribers can configure custom domain routing.');
+        // One domain per Enterprise store
+        $existingCount = CustomDomain::where('user_id', $user->id)->count();
+        if ($existingCount >= 1) {
+            return back()->with('error', 'Maximum limit reached. Your Enterprise plan supports 1 active custom domain.');
         }
 
+        // Validate domain uniqueness against BOTH custom_domains AND subscriber_profiles tables
         $request->validate([
-            'domain' => 'required|string|unique:custom_domains,domain|regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/',
+            'domain' => [
+                'required',
+                'string',
+                'unique:custom_domains,domain',
+                'unique:subscriber_profiles,custom_domain',
+                'regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/'
+            ],
         ], [
-            'domain.regex' => 'Please enter a valid domain name (e.g. catalog.mybrand.com).',
+            'domain.regex' => 'Please enter a valid domain name (e.g. www.mycompany.com).',
             'domain.unique' => 'This custom domain has already been mapped or requested.',
         ]);
 
@@ -63,7 +73,7 @@ class DomainController extends Controller
         $domain = CustomDomain::create([
             'user_id'       => $user->id,
             'domain'        => $domainName,
-            'status'        => 'pending',
+            'status'        => 'pending_dns',
             'ssl_status'    => 'pending',
             'dns_txt_key'   => $verification['key'],
             'dns_txt_value' => $verification['value'],
@@ -78,6 +88,8 @@ class DomainController extends Controller
 
     public function verify(Request $request)
     {
+        $this->ensureEnterprise();
+
         $request->validate(['domain_id' => 'required|exists:custom_domains,id']);
         $domain = CustomDomain::findOrFail($request->domain_id);
 
@@ -85,14 +97,52 @@ class DomainController extends Controller
             abort(403);
         }
 
-        // Simulate DNS ownership check
-        $domain->verifyDnsMock();
+        // Trigger automatic DNS verification flow (transitions status to active_routing & ssl_status to active)
+        $domain->verifyDns();
 
-        SubscriberActivityLog::log('updated', 'Successfully verified DNS records for custom domain: ' . $domain->domain, $domain);
+        // Update subscriber profile to sync verified custom domain
+        $profile = auth()->user()->subscriberProfile;
+        if ($profile) {
+            $profile->update([
+                'custom_domain' => $domain->domain,
+                'domain_verified' => true
+            ]);
+        }
+
+        SubscriberActivityLog::log('updated', 'Successfully automated DNS verification and active routing for custom domain: ' . $domain->domain, $domain);
 
         return response()->json([
             'success' => true,
-            'message' => '🎉 DNS Verification Successful! TXT record found. Domain is now approved.'
+            'message' => '🎉 DNS Verification Successful! Domain is now active and routing traffic.'
         ]);
+    }
+
+    public function destroy($id)
+    {
+        $this->ensureEnterprise();
+
+        $domain = CustomDomain::findOrFail($id);
+
+        if ($domain->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $domainName = $domain->domain;
+
+        // Clear custom domain on subscriber profile if this is the active domain
+        $profile = auth()->user()->subscriberProfile;
+        if ($profile && $profile->custom_domain === $domainName) {
+            $profile->update([
+                'custom_domain' => null,
+                'domain_verified' => false
+            ]);
+        }
+
+        $domain->delete();
+
+        SubscriberActivityLog::log('deleted', 'Removed custom domain mapping: ' . $domainName, $domain);
+
+        return redirect()->route('subscriber.domain.index')
+            ->with('success', 'Custom domain mapping removed successfully.');
     }
 }

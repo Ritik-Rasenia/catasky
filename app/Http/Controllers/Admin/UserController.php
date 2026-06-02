@@ -16,6 +16,7 @@ class UserController extends Controller
      */
     public function index()
     {
+        abort_if(!auth()->user()->can('view-users'), 403, 'Unauthorized.');
         $users = User::latest()->get();
         return view('admin.users.index', compact('users'));
     }
@@ -25,6 +26,7 @@ class UserController extends Controller
      */
     public function create()
     {
+        abort_if(!auth()->user()->can('create-users'), 403, 'Unauthorized.');
         $roles = Role::pluck('name', 'name')->all();
         return view('admin.users.create', compact('roles'));
     }
@@ -34,6 +36,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create-users'), 403, 'Unauthorized.');
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -56,6 +59,7 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
+        abort_if(!auth()->user()->can('view-users'), 403, 'Unauthorized.');
         $user = User::findOrFail($id);
         return view('admin.users.show', compact('user'));
     }
@@ -65,6 +69,7 @@ class UserController extends Controller
      */
     public function edit(string $id)
     {
+        abort_if(!auth()->user()->can('edit-users'), 403, 'Unauthorized.');
         $user = User::findOrFail($id);
         $roles = Role::pluck('name', 'name')->all();
         $userRoles = $user->roles->pluck('name', 'name')->all();
@@ -77,10 +82,11 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        abort_if(!auth()->user()->can('edit-users'), 403, 'Unauthorized.');
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$id,
-            'password' => 'nullable|same:confirm-password|min:6',
+            'password' => 'nullable|min:6',
             'roles' => 'required|array'
         ]);
 
@@ -105,6 +111,7 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_if(!auth()->user()->can('delete-users'), 403, 'Unauthorized.');
         User::findOrFail($id)->delete();
 
         return redirect()->route('admin.users.index')

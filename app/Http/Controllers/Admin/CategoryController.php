@@ -14,6 +14,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
+        abort_if(!auth()->user()->can('view-categories'), 403, 'Unauthorized.');
         $categories = Category::with('subscriber.subscriberProfile')->latest()->get();
 
         return view('admin.categories.index', compact('categories'));
@@ -24,6 +25,7 @@ class CategoryController extends Controller
      */
     public function create()
     {
+        abort_if(!auth()->user()->can('create-categories'), 403, 'Unauthorized.');
         return view('admin.categories.create');
     }
 
@@ -32,8 +34,12 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create-categories'), 403, 'Unauthorized.');
         $request->validate([
-            'name'      => 'required|unique:categories,name',
+            'name'      => [
+                'required',
+                \Illuminate\Validation\Rule::unique('categories', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+            ],
             'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'    => 'required',
         ]);
@@ -63,6 +69,7 @@ class CategoryController extends Controller
      */
     public function show(string $id)
     {
+        abort_if(!auth()->user()->can('view-categories'), 403, 'Unauthorized.');
         $category = Category::findOrFail($id);
         return view('admin.categories.show', compact('category'));
     }
@@ -72,6 +79,7 @@ class CategoryController extends Controller
      */
     public function edit(string $id)
     {
+        abort_if(!auth()->user()->can('edit-categories'), 403, 'Unauthorized.');
         $category = Category::findOrFail($id);
         return view('admin.categories.edit', compact('category'));
     }
@@ -81,10 +89,17 @@ class CategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        abort_if(!auth()->user()->can('edit-categories'), 403, 'Unauthorized.');
         $category = Category::findOrFail($id);
 
         $request->validate([
-            'name'      => 'required|unique:categories,name,'.$category->id,
+            'name'      => [
+                'required',
+                \Illuminate\Validation\Rule::unique('categories', 'name')
+                    ->ignore($category->id)
+                    ->whereNull('subscriber_id')
+                    ->whereNull('deleted_at')
+            ],
             'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'    => 'required',
         ]);
@@ -118,6 +133,7 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_if(!auth()->user()->can('delete-categories'), 403, 'Unauthorized.');
         $category = Category::findOrFail($id);
 
         if($category->image && file_exists(public_path('uploads/categories/'.$category->image))){
@@ -136,6 +152,7 @@ class CategoryController extends Controller
      */
     public function getSubcategories(Request $request, $categoryId = null)
     {
+        abort_if(!auth()->user()->can('view-categories'), 403, 'Unauthorized.');
         $catIds = $categoryId ?: $request->category_id;
         $query = \App\Models\Subcategory::where('status', 1);
         
@@ -151,8 +168,12 @@ class CategoryController extends Controller
 
     public function quickStore(Request $request)
     {
+        abort_if(!auth()->user()->can('create-categories'), 403, 'Unauthorized.');
         $request->validate([
-            'name' => 'required|unique:categories,name',
+            'name' => [
+                'required',
+                \Illuminate\Validation\Rule::unique('categories', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+            ],
         ]);
 
         $category = Category::create([

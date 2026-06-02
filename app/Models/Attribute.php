@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\Multitenantable;
 
 class Attribute extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Multitenantable;
 
     protected $fillable = [
         'user_id', 'attribute_group_id', 'name', 'slug', 'type',

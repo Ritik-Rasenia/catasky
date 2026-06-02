@@ -15,6 +15,7 @@ class RoleController extends Controller
      */
     public function index()
     {
+        abort_if(!auth()->user()->can('view-roles'), 403, 'Unauthorized.');
         $roles = Role::latest()->get();
         return view('admin.roles.index', compact('roles'));
     }
@@ -24,6 +25,7 @@ class RoleController extends Controller
      */
     public function create()
     {
+        abort_if(!auth()->user()->can('create-roles'), 403, 'Unauthorized.');
         $permissions = Permission::all();
         return view('admin.roles.create', compact('permissions'));
     }
@@ -33,6 +35,7 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create-roles'), 403, 'Unauthorized.');
         $request->validate([
             'name' => 'required|unique:roles,name',
             'permissions' => 'required|array',
@@ -40,6 +43,8 @@ class RoleController extends Controller
 
         $role = Role::create(['name' => $request->name]);
         $role->syncPermissions($request->permissions);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         return redirect()->route('admin.roles.index')
                          ->with('success', 'Role Created Successfully');
@@ -50,6 +55,7 @@ class RoleController extends Controller
      */
     public function show(string $id)
     {
+        abort_if(!auth()->user()->can('view-roles'), 403, 'Unauthorized.');
         $role = Role::findOrFail($id);
         return view('admin.roles.show', compact('role'));
     }
@@ -59,6 +65,7 @@ class RoleController extends Controller
      */
     public function edit(string $id)
     {
+        abort_if(!auth()->user()->can('edit-roles'), 403, 'Unauthorized.');
         $role = Role::findOrFail($id);
         $permissions = Permission::all();
         $rolePermissions = $role->permissions->pluck('name')->toArray();
@@ -71,6 +78,7 @@ class RoleController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        abort_if(!auth()->user()->can('edit-roles'), 403, 'Unauthorized.');
         $request->validate([
             'name' => 'required|unique:roles,name,'.$id,
             'permissions' => 'required|array',
@@ -81,6 +89,8 @@ class RoleController extends Controller
         $role->save();
         $role->syncPermissions($request->permissions);
 
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         return redirect()->route('admin.roles.index')
                          ->with('success', 'Role Updated Successfully');
     }
@@ -90,11 +100,14 @@ class RoleController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_if(!auth()->user()->can('delete-roles'), 403, 'Unauthorized.');
         $role = Role::findOrFail($id);
         if($role->name == 'Super Admin'){
             return redirect()->route('admin.roles.index')->with('error', 'Super Admin role cannot be deleted');
         }
         $role->delete();
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         return redirect()->route('admin.roles.index')
                          ->with('success', 'Role Deleted Successfully');

@@ -216,7 +216,7 @@
                             <form action="{{ route('enquiry.submit') }}" method="POST">
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                <input type="hidden" name="brand_id" value="{{ $product->brand_id }}">
+                                <input type="hidden" name="brand_id" value="{{ is_array($product->brand_id) ? (collect($product->brand_id)->first() ?? '') : $product->brand_id }}">
                                 <input type="hidden" name="is_subscriber_product" value="{{ $product instanceof \App\Models\SubscriberProduct ? '1' : '0' }}">
 
                                 <div class="row g-3">

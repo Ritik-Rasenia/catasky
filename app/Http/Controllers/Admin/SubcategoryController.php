@@ -36,7 +36,10 @@ class SubcategoryController extends Controller
     {
         $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'name'        => 'required|unique:subcategories,name',
+            'name'        => [
+                'required',
+                \Illuminate\Validation\Rule::unique('subcategories', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+            ],
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'      => 'required',
         ]);
@@ -92,7 +95,13 @@ class SubcategoryController extends Controller
 
         $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'name'        => 'required|unique:subcategories,name,'.$subcategory->id,
+            'name'        => [
+                'required',
+                \Illuminate\Validation\Rule::unique('subcategories', 'name')
+                    ->ignore($subcategory->id)
+                    ->whereNull('subscriber_id')
+                    ->whereNull('deleted_at')
+            ],
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'      => 'required',
         ]);

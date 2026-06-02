@@ -40,6 +40,7 @@ use App\Http\Controllers\Subscriber\BulkUploadController as SubscriberBulkUpload
 
 Route::get('/', [FrontendController::class, 'index'])->name('home');
 Route::get('/catalogue', [FrontendController::class, 'catalogue'])->name('catalogue');
+Route::get('/demo', [FrontendController::class, 'demoCatalogue'])->name('demo');
 Route::get('/brands', [FrontendController::class, 'brands'])->name('brands');
 Route::get('/categories', [FrontendController::class, 'categories'])->name('categories');
 Route::get('/sub-categories', [FrontendController::class, 'subcategories'])->name('subcategories');
@@ -183,98 +184,227 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
     | SUPER ADMIN & STAFF-ONLY ROUTES (Protected by superadmin middleware)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('superadmin')->name('admin.')->group(function () {
-        Route::get('/tracking-analytics', [App\Http\Controllers\DoubleTickController::class, 'analyticsDashboard'])->name('tracking.analytics');
+    Route::middleware('admin_panel')->name('admin.')->group(function () {
+        // Reports Access (Analytics Dashboard)
+        Route::get('/tracking-analytics', [App\Http\Controllers\DoubleTickController::class, 'analyticsDashboard'])
+            ->name('tracking.analytics')
+            ->middleware('permission:reports');
 
-        Route::post('/brands/quick-store', [BrandController::class, 'quickStore'])->name('brands.quick-store');
-        Route::post('/categories/quick-store', [CategoryController::class, 'quickStore'])->name('categories.quick-store');
-        Route::post('/subcategories/quick-store', [SubcategoryController::class, 'quickStore'])->name('subcategories.quick-store');
-        Route::resource('brands', BrandController::class)->middleware('permission:view-brands');
-        Route::resource('categories', CategoryController::class)->middleware('permission:view-categories');
-        Route::resource('subcategories', SubcategoryController::class)->middleware('permission:view-subcategories');
+        // --- BRANDS (Granular Access) ---
+        Route::group(['middleware' => ['permission:create-brands']], function () {
+            Route::get('brands/create', [BrandController::class, 'create'])->name('brands.create');
+            Route::post('brands', [BrandController::class, 'store'])->name('brands.store');
+            Route::post('/brands/quick-store', [BrandController::class, 'quickStore'])->name('brands.quick-store');
+        });
+        Route::group(['middleware' => ['permission:edit-brands']], function () {
+            Route::get('brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
+            Route::put('brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+        });
+        Route::group(['middleware' => ['permission:delete-brands']], function () {
+            Route::delete('brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
+        });
+        Route::group(['middleware' => ['permission:view-brands']], function () {
+            Route::get('brands', [BrandController::class, 'index'])->name('brands.index');
+            Route::get('brands/{brand}', [BrandController::class, 'show'])->name('brands.show');
+        });
+
+        // --- CATEGORIES (Granular Access) ---
+        Route::group(['middleware' => ['permission:create-categories']], function () {
+            Route::get('categories/create', [CategoryController::class, 'create'])->name('categories.create');
+            Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+            Route::post('/categories/quick-store', [CategoryController::class, 'quickStore'])->name('categories.quick-store');
+        });
+        Route::group(['middleware' => ['permission:edit-categories']], function () {
+            Route::get('categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
+            Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        });
+        Route::group(['middleware' => ['permission:delete-categories']], function () {
+            Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+        });
+        Route::group(['middleware' => ['permission:view-categories']], function () {
+            Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
+            Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+        });
+
+        // --- SUBCATEGORIES (Granular Access) ---
+        Route::group(['middleware' => ['permission:create-subcategories']], function () {
+            Route::get('subcategories/create', [SubcategoryController::class, 'create'])->name('subcategories.create');
+            Route::post('subcategories', [SubcategoryController::class, 'store'])->name('subcategories.store');
+            Route::post('/subcategories/quick-store', [SubcategoryController::class, 'quickStore'])->name('subcategories.quick-store');
+        });
+        Route::group(['middleware' => ['permission:edit-subcategories']], function () {
+            Route::get('subcategories/{subcategory}/edit', [SubcategoryController::class, 'edit'])->name('subcategories.edit');
+            Route::put('subcategories/{subcategory}', [SubcategoryController::class, 'update'])->name('subcategories.update');
+        });
+        Route::group(['middleware' => ['permission:delete-subcategories']], function () {
+            Route::delete('subcategories/{subcategory}', [SubcategoryController::class, 'destroy'])->name('subcategories.destroy');
+        });
+        Route::group(['middleware' => ['permission:view-subcategories']], function () {
+            Route::get('subcategories', [SubcategoryController::class, 'index'])->name('subcategories.index');
+            Route::get('subcategories/{subcategory}', [SubcategoryController::class, 'show'])->name('subcategories.show');
+        });
 
         // AJAX Routes for Dependent Dropdowns
         Route::get('/get-subcategories/{category_id}', [CategoryController::class, 'getSubcategories']);
 
-        // Products Operations
-        Route::get('/admin/products-ops/import/template', [AdminProductController::class, 'downloadTemplate'])->name('products.import.template')->middleware('permission:import-products');
-        Route::get('/admin/products-ops/import', [AdminProductController::class, 'importPage'])->name('products.import')->middleware('permission:import-products');
-        Route::post('/admin/products-ops/import', [AdminProductController::class, 'import'])->name('products.import.submit')->middleware('permission:import-products');
-        Route::get('/admin/products-ops/import/status/{id}', [AdminProductController::class, 'importStatus'])->name('products.import.status')->middleware('permission:import-products');
-        Route::get('/admin/products-ops/import-logs', [AdminProductController::class, 'importLogs'])->name('products.import-logs')->middleware('permission:import-products');
-        Route::get('/admin/products-ops/import-logs/{id}', [AdminProductController::class, 'importLogShow'])->name('products.import-logs.show')->middleware('permission:import-products');
-        Route::get('/admin/products-ops/export', [AdminProductController::class, 'export'])->name('products.export')->middleware('permission:export-products');
-        Route::delete('/product-images/{id}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy')->middleware('permission:edit-products');
-        Route::delete('/subscriber-products/{product}', [AdminProductController::class, 'destroySubscriberProduct'])->name('subscriber-products.destroy')->middleware('permission:delete-products');
+        // --- USERS (Granular Access) ---
+        Route::group(['middleware' => ['permission:create-users']], function () {
+            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+            Route::post('users', [UserController::class, 'store'])->name('users.store');
+        });
+        Route::group(['middleware' => ['permission:edit-users']], function () {
+            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+        });
+        Route::group(['middleware' => ['permission:delete-users']], function () {
+            Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        });
+        Route::group(['middleware' => ['permission:view-users']], function () {
+            Route::get('users', [UserController::class, 'index'])->name('users.index');
+            Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        });
 
-        Route::resource('users', UserController::class)->middleware('permission:view-users');
-        Route::resource('roles', RoleController::class)->middleware('permission:roles.manage');
-        Route::resource('permissions', PermissionController::class)->middleware('permission:permissions.manage');
-        Route::resource('newsletters', NewsletterController::class)->middleware('permission:view-newsletters');
+        // --- ROLES (Granular Access) ---
+        Route::group(['middleware' => ['permission:create-roles']], function () {
+            Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create');
+            Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
+        });
+        Route::group(['middleware' => ['permission:edit-roles']], function () {
+            Route::get('roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
+            Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+        });
+        Route::group(['middleware' => ['permission:delete-roles']], function () {
+            Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        });
+        Route::group(['middleware' => ['permission:view-roles']], function () {
+            Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show');
+        });
 
-        // Attributes Management Extras
-        Route::post('/attributes/group', [AdminAttributeController::class, 'storeGroup'])->name('attributes.storeGroup');
-        Route::get('/saas/approvals/custom-fields', [AdminAttributeController::class, 'approvals'])->name('saas.approvals.custom-fields');
-        Route::post('/attributes/{attribute}/approve', [AdminAttributeController::class, 'approve'])->name('attributes.approve');
-        Route::post('/attributes/{attribute}/reject', [AdminAttributeController::class, 'reject'])->name('attributes.reject');
-        Route::get('/attributes/subcategory/{subcategory}', [AdminAttributeController::class, 'forSubcategory'])->name('attributes.forSubcategory');
+        // --- PERMISSIONS (Granular Access) ---
+        Route::group(['middleware' => ['permission:create-permissions']], function () {
+            Route::get('permissions/create', [PermissionController::class, 'create'])->name('permissions.create');
+            Route::post('permissions', [PermissionController::class, 'store'])->name('permissions.store');
+        });
+        Route::group(['middleware' => ['permission:edit-permissions']], function () {
+            Route::get('permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
+            Route::put('permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
+        });
+        Route::group(['middleware' => ['permission:delete-permissions']], function () {
+            Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
+        });
+        Route::group(['middleware' => ['permission:view-permissions']], function () {
+            Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
+            Route::get('permissions/{permission}', [PermissionController::class, 'show'])->name('permissions.show');
+        });
 
-        Route::resource('templates', AdminTemplateController::class);
+        // --- NEWSLETTERS (Granular Access) ---
+        Route::group(['middleware' => ['permission:view-newsletters']], function () {
+            Route::get('newsletters', [NewsletterController::class, 'index'])->name('newsletters.index');
+        });
+        Route::group(['middleware' => ['permission:delete-newsletters']], function () {
+            Route::delete('newsletters/{newsletter}', [NewsletterController::class, 'destroy'])->name('newsletters.destroy');
+        });
 
-        // Enquiries Management
-        Route::get('/enquiries', [\App\Http\Controllers\Admin\EnquiryController::class, 'index'])->name('enquiries.index');
-        Route::get('/enquiries/{id}', [\App\Http\Controllers\Admin\EnquiryController::class, 'show'])->name('enquiries.show');
-        Route::delete('/enquiries/{id}', [\App\Http\Controllers\Admin\EnquiryController::class, 'destroy'])->name('enquiries.destroy');
-        Route::post('/enquiries/{id}/mark-as-read', [\App\Http\Controllers\Admin\EnquiryController::class, 'markAsRead'])->name('enquiries.mark-as-read');
+        // --- TEMPLATES & ATTRIBUTES (Category & Product Management) ---
+        Route::group(['middleware' => ['permission:product-management']], function () {
+            Route::resource('templates', AdminTemplateController::class);
+            Route::post('/attributes/group', [AdminAttributeController::class, 'storeGroup'])->name('attributes.storeGroup');
+            Route::get('/saas/approvals/custom-fields', [AdminAttributeController::class, 'approvals'])->name('saas.approvals.custom-fields');
+            Route::post('/attributes/{attribute}/approve', [AdminAttributeController::class, 'approve'])->name('attributes.approve');
+            Route::post('/attributes/{attribute}/reject', [AdminAttributeController::class, 'reject'])->name('attributes.reject');
+            Route::get('/attributes/subcategory/{subcategory}', [AdminAttributeController::class, 'forSubcategory'])->name('attributes.forSubcategory');
+        });
 
-        // General settings
-        Route::get('/settings', [SettingController::class, 'index'])->name('settings.index')->middleware('permission:settings.manage');
-        Route::post('/settings', [SettingController::class, 'update'])->name('settings.update')->middleware('permission:settings.manage');
+        // --- PRODUCTS IMPORT/EXPORT (Product Management) ---
+        Route::group(['middleware' => ['permission:product-management']], function () {
+            Route::get('/admin/products-ops/import/template', [AdminProductController::class, 'downloadTemplate'])->name('products.import.template');
+            Route::get('/admin/products-ops/import', [AdminProductController::class, 'importPage'])->name('products.import');
+            Route::post('/admin/products-ops/import', [AdminProductController::class, 'import'])->name('products.import.submit');
+            Route::get('/admin/products-ops/import/status/{id}', [AdminProductController::class, 'importStatus'])->name('products.import.status');
+            Route::get('/admin/products-ops/import-logs', [AdminProductController::class, 'importLogs'])->name('products.import-logs');
+            Route::get('/admin/products-ops/import-logs/{id}', [AdminProductController::class, 'importLogShow'])->name('products.import-logs.show');
+            Route::get('/admin/products-ops/export', [AdminProductController::class, 'export'])->name('products.export');
+        });
 
-        // System
-        Route::get('/system', [SystemController::class, 'index'])->name('system.index')->middleware('permission:manage-system');
-        Route::post('/system/command', [SystemController::class, 'runCommand'])->name('system.command')->middleware('permission:manage-system');
-        Route::post('/system/storage-link', [SystemController::class, 'storageLink'])->name('system.storage-link')->middleware('permission:manage-system');
-        Route::post('/system/clear-logs', [SystemController::class, 'clearLogs'])->name('system.clear-logs')->middleware('permission:manage-system');
+        Route::group(['middleware' => ['permission:delete-products']], function () {
+            Route::delete('/admin/subscriber-products/{id}', [AdminProductController::class, 'destroySubscriberProduct'])->name('subscriber-products.destroy');
+        });
 
-        // Subscriber & SaaS Platform Management
-        Route::get('/subscribers', [AdminSubscriberController::class, 'index'])->name('subscribers.index')->middleware('permission:subscribers.manage');
-        Route::get('/subscribers/{user}', [AdminSubscriberController::class, 'show'])->name('subscribers.show')->middleware('permission:subscribers.manage');
-        Route::delete('/subscribers/{user}', [AdminSubscriberController::class, 'destroy'])->name('subscribers.destroy')->middleware('permission:subscribers.manage');
-        Route::post('/subscribers/{user}/suspend', [AdminSubscriberController::class, 'suspend'])->name('subscribers.suspend')->middleware('permission:subscribers.manage');
-        Route::post('/subscribers/{user}/unsuspend', [AdminSubscriberController::class, 'unsuspend'])->name('subscribers.unsuspend')->middleware('permission:subscribers.manage');
-        Route::post('/subscribers/{user}/assign-plan', [AdminSubscriberController::class, 'assignPlan'])->name('subscribers.assign-plan')->middleware('permission:subscribers.manage');
+        // --- ENQUIRIES (Granular Access) ---
+        Route::group(['middleware' => ['permission:view-enquiries']], function () {
+            Route::get('/enquiries', [\App\Http\Controllers\Admin\EnquiryController::class, 'index'])->name('enquiries.index');
+            Route::get('/enquiries/{id}', [\App\Http\Controllers\Admin\EnquiryController::class, 'show'])->name('enquiries.show');
+        });
+        Route::group(['middleware' => ['permission:delete-enquiries']], function () {
+            Route::delete('/enquiries/{id}', [\App\Http\Controllers\Admin\EnquiryController::class, 'destroy'])->name('enquiries.destroy');
+        });
+        Route::group(['middleware' => ['permission:mark-enquiries-read']], function () {
+            Route::post('/enquiries/{id}/mark-as-read', [\App\Http\Controllers\Admin\EnquiryController::class, 'markAsRead'])->name('enquiries.mark-as-read');
+        });
 
-        Route::get('/subscription-plans', [AdminSubscriberController::class, 'plans'])->name('subscription-plans.index')->middleware('permission:subscribers.manage');
-        Route::post('/subscription-plans', [AdminSubscriberController::class, 'storePlan'])->name('subscription-plans.store')->middleware('permission:subscribers.manage');
-        Route::put('/subscription-plans/{subscriptionPlan}', [AdminSubscriberController::class, 'updatePlan'])->name('subscription-plans.update')->middleware('permission:subscribers.manage');
+        // --- SETTINGS (Granular Access) ---
+        Route::group(['middleware' => ['permission:view-settings']], function () {
+            Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+        });
+        Route::group(['middleware' => ['permission:edit-settings']], function () {
+            Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+        });
 
-        Route::prefix('saas')->name('saas.')->middleware('permission:subscribers.manage')->group(function () {
-            Route::get('/subscribers', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'subscribers'])->name('subscribers.index');
-            Route::post('/subscribers/{user}/suspend', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'suspendSubscriber'])->name('subscribers.suspend');
-            Route::post('/subscribers/{user}/unsuspend', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'unsuspendSubscriber'])->name('subscribers.unsuspend');
-            
-            Route::get('/approvals', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approvals'])->name('approvals.index');
-            Route::post('/approvals/account/{profile}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveAccount'])->name('approvals.account.approve');
-            Route::post('/approvals/account/{profile}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectAccount'])->name('approvals.account.reject');
-            Route::post('/approvals/store/{profile}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveStore'])->name('approvals.store.approve');
-            Route::post('/approvals/store/{profile}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectStore'])->name('approvals.store.reject');
-            Route::post('/approvals/product/{product}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveProduct'])->name('approvals.product.approve');
-            Route::post('/approvals/product/{product}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectProduct'])->name('approvals.product.reject');
-            Route::post('/approvals/share/{shareLink}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveShare'])->name('approvals.share.approve');
-            Route::post('/approvals/share/{shareLink}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectShare'])->name('approvals.share.reject');
+        // --- SYSTEM CONFIGURATION ---
+        Route::group(['middleware' => ['permission:manage-system']], function () {
+            Route::get('/system', [SystemController::class, 'index'])->name('system.index');
+            Route::post('/system/command', [SystemController::class, 'runCommand'])->name('system.command');
+            Route::post('/system/storage-link', [SystemController::class, 'storageLink'])->name('system.storage-link');
+            Route::post('/system/clear-logs', [SystemController::class, 'clearLogs'])->name('system.clear-logs');
+        });
 
-            Route::get('/domains', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'index'])->name('domains.index');
-            Route::post('/domains/{domain}/verify', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'verify'])->name('domains.verify');
-            Route::post('/domains/{domain}/approve', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'approve'])->name('domains.approve');
-            Route::post('/domains/{domain}/reject', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'reject'])->name('domains.reject');
+        // --- SUBSCRIBER, DOMAIN, PLANS, PAYMENTS & SaaS (Subscriber Management) ---
+        Route::group(['middleware' => ['permission:subscribers.manage']], function () {
+            // Subscribers
+            Route::get('/subscribers', [AdminSubscriberController::class, 'index'])->name('subscribers.index');
+            Route::get('/subscribers/{user}', [AdminSubscriberController::class, 'show'])->name('subscribers.show');
+            Route::delete('/subscribers/{user}', [AdminSubscriberController::class, 'destroy'])->name('subscribers.destroy');
+            Route::post('/subscribers/{user}/suspend', [AdminSubscriberController::class, 'suspend'])->name('subscribers.suspend');
+            Route::post('/subscribers/{user}/unsuspend', [AdminSubscriberController::class, 'unsuspend'])->name('subscribers.unsuspend');
+            Route::post('/subscribers/{user}/assign-plan', [AdminSubscriberController::class, 'assignPlan'])->name('subscribers.assign-plan');
 
-            Route::get('/payments', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'index'])->name('payments.index');
-            Route::get('/invoices', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'invoices'])->name('invoices.index');
-            Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'downloadInvoice'])->name('invoices.download');
+            // Plans
+            Route::get('/subscription-plans', [AdminSubscriberController::class, 'plans'])->name('subscription-plans.index');
+            Route::post('/subscription-plans', [AdminSubscriberController::class, 'storePlan'])->name('subscription-plans.store');
+            Route::put('/subscription-plans/{subscriptionPlan}', [AdminSubscriberController::class, 'updatePlan'])->name('subscription-plans.update');
 
-            Route::get('/analytics', [\App\Http\Controllers\Admin\SaaSAnalyticsController::class, 'index'])->name('analytics.index');
-            Route::get('/usage', [\App\Http\Controllers\Admin\SaaSAnalyticsController::class, 'usage'])->name('usage.index');
+            // SaaS prefix
+            Route::prefix('saas')->name('saas.')->group(function () {
+                Route::get('/subscribers', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'subscribers'])->name('subscribers.index');
+                Route::post('/subscribers/{user}/suspend', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'suspendSubscriber'])->name('subscribers.suspend');
+                Route::post('/subscribers/{user}/unsuspend', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'unsuspendSubscriber'])->name('subscribers.unsuspend');
+                
+                Route::get('/approvals', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approvals'])->name('approvals.index');
+                Route::post('/approvals/account/{profile}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveAccount'])->name('approvals.account.approve');
+                Route::post('/approvals/account/{profile}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectAccount'])->name('approvals.account.reject');
+                Route::post('/approvals/store/{profile}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveStore'])->name('approvals.store.approve');
+                Route::post('/approvals/store/{profile}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectStore'])->name('approvals.store.reject');
+                Route::post('/approvals/product/{product}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveProduct'])->name('approvals.product.approve');
+                Route::post('/approvals/product/{product}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectProduct'])->name('approvals.product.reject');
+                Route::post('/approvals/share/{shareLink}/approve', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'approveShare'])->name('approvals.share.approve');
+                Route::post('/approvals/share/{shareLink}/reject', [\App\Http\Controllers\Admin\SaaSApprovalController::class, 'rejectShare'])->name('approvals.share.reject');
+
+                Route::get('/domains', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'index'])->name('domains.index');
+                Route::get('/domains/{domain}', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'show'])->name('domains.show');
+                Route::post('/domains/{domain}/verify', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'verify'])->name('domains.verify');
+                Route::post('/domains/{domain}/approve', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'approve'])->name('domains.approve');
+                Route::post('/domains/{domain}/reject', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'reject'])->name('domains.reject');
+                Route::post('/domains/{domain}/suspend', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'suspend'])->name('domains.suspend');
+                Route::delete('/domains/{domain}', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'destroy'])->name('domains.destroy');
+
+                Route::get('/payments', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'index'])->name('payments.index');
+                Route::get('/invoices', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'invoices'])->name('invoices.index');
+                Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'downloadInvoice'])->name('invoices.download');
+
+                Route::get('/analytics', [\App\Http\Controllers\Admin\SaaSAnalyticsController::class, 'index'])->name('analytics.index');
+                Route::get('/usage', [\App\Http\Controllers\Admin\SaaSAnalyticsController::class, 'usage'])->name('usage.index');
+            });
         });
 
         // Notifications
@@ -282,6 +412,9 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::post('/admin/notifications/mark-all-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
         Route::post('/admin/notifications/{id}/read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAsRead'])->name('notifications.markRead');
         Route::get('/admin/notifications/{id}/redirect', [\App\Http\Controllers\Admin\NotificationController::class, 'readAndRedirect'])->name('notifications.redirect');
+
+        // RBAC Debug page
+        Route::get('/rbac-debug', [\App\Http\Controllers\Admin\RbacDebugController::class, 'index'])->name('rbac.debug');
 
         // Super Admin Logout
         Route::post('/admin-logout', [AuthController::class, 'logout'])->name('logout');
@@ -396,6 +529,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/domain', [\App\Http\Controllers\Subscriber\DomainController::class, 'index'])->name('domain.index');
         Route::post('/domain', [\App\Http\Controllers\Subscriber\DomainController::class, 'store'])->name('domain.store');
         Route::post('/domain/verify', [\App\Http\Controllers\Subscriber\DomainController::class, 'verify'])->name('domain.verify');
+        Route::delete('/domain/{domain}', [\App\Http\Controllers\Subscriber\DomainController::class, 'destroy'])->name('domain.destroy');
 
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Subscriber\NotificationController::class, 'index'])->name('notifications.index');
@@ -481,6 +615,14 @@ Route::post('/product/{slug}/review', [FrontendController::class, 'submitReview'
 Route::get('/product/{slug}/pdf', [FrontendController::class, 'downloadProductPdf'])->name('product.pdf');
 Route::get('/sitemap.xml', [FrontendController::class, 'sitemap'])->name('sitemap');
 Route::get('/api/products-filter', [FrontendController::class, 'apiFilterProducts'])->name('api.products.filter');
+
+Route::get('/route-clear', function() {
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    return "Route cache and all other system caches cleared successfully!";
+})->name('route-clear');
 
 Route::get('/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('store.public');
 

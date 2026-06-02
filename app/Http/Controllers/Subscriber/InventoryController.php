@@ -18,7 +18,7 @@ class InventoryController extends Controller
 
         // Load active subscriber products with their variants
         $query = SubscriberProduct::where('user_id', $user->id)
-            ->with(['variants', 'category']);
+            ->with(['variants']);
 
         if ($request->search) {
             $query->where('name', 'like', '%' . $request->search . '%')

@@ -54,8 +54,14 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'              => 'required|string|max:255',
-            'sku'               => 'required|string|max:255',
+            'name'              => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('subscriber_products', 'name')->where('user_id', auth()->id())->whereNull('deleted_at')
+            ],
+            'sku'               => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('subscriber_products', 'sku')->where('user_id', auth()->id())->whereNull('deleted_at')
+            ],
             'category_id'       => 'nullable|array',
             'category_id.*'     => 'exists:categories,id',
             'subcategory_id'    => 'nullable|array',
@@ -153,7 +159,8 @@ class ProductController extends Controller
         $product->load(['images', 'attributeValues.attribute']);
         $categories = Category::where('subscriber_id', $user->id)->orderBy('name')->get();
         $brands = \App\Models\Brand::where('subscriber_id', $user->id)->orderBy('name')->get();
-        $subcategories = $product->category_id ? Subcategory::where('subscriber_id', $user->id)->where('category_id', $product->category_id)->get() : collect();
+        $catIds = is_array($product->category_id) ? $product->category_id : ($product->category_id ? [$product->category_id] : []);
+        $subcategories = !empty($catIds) ? Subcategory::where('subscriber_id', $user->id)->whereIn('category_id', $catIds)->get() : collect();
         $subIds = is_array($product->subcategory_id) ? $product->subcategory_id : ($product->subcategory_id ? [$product->subcategory_id] : []);
         $productTypes = !empty($subIds) ? \App\Models\ChildCategory::whereIn('subcategory_id', $subIds)->get() : collect();
         $attributes = Attribute::where('user_id', $user->id)
@@ -172,8 +179,20 @@ class ProductController extends Controller
         $this->authorizeSubscriberProduct($product);
  
         $request->validate([
-            'name'              => 'required|string|max:255',
-            'sku'               => 'required|string|max:255',
+            'name'              => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('subscriber_products', 'name')
+                    ->ignore($product->id)
+                    ->where('user_id', auth()->id())
+                    ->whereNull('deleted_at')
+            ],
+            'sku'               => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('subscriber_products', 'sku')
+                    ->ignore($product->id)
+                    ->where('user_id', auth()->id())
+                    ->whereNull('deleted_at')
+            ],
             'category_id'       => 'nullable|array',
             'category_id.*'     => 'exists:categories,id',
             'subcategory_id'    => 'nullable|array',

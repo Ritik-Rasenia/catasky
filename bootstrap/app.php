@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'       => \App\Http\Middleware\CheckRole::class,
             'subscriber'     => \App\Http\Middleware\SubscriberMiddleware::class,
             'superadmin' => \App\Http\Middleware\IsSuperAdmin::class,
+            'admin_panel' => \App\Http\Middleware\AdminPanelAccess::class,
             'is_subscriber' => \App\Http\Middleware\IsSubscriber::class,
             'tenant_isolation' => \App\Http\Middleware\TenantIsolation::class,
             'active_subscription' => \App\Http\Middleware\ActiveSubscription::class,

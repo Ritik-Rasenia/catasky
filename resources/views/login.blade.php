@@ -316,7 +316,7 @@
             @if($logoUrl)
                 <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-width:150px;object-fit:contain;margin:auto;">
             @else
-                <div class="brand-logo-icon">C</div>
+                <div class="brand-logo-icon">Catasky</div>
             @endif
            
         </a>
@@ -375,11 +375,10 @@
             <div class="d-lg-none text-cente">
                 <div style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;">
                     @if($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-height:42px;max-width:150px;object-fit:contain;">
+                        <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" style="max-width:150px;object-fit:contain;margin:auto;">
                     @else
-                        <div style="width:38px;height:38px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;">C</div>
+                        <div style="width:38px;height:38px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;">Catasky</div>
                     @endif
-                    <span style="font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:800;color:white;">{{ $siteTitle }}</span>
                 </div>
             </div>
 

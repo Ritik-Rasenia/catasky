@@ -56,6 +56,27 @@ class SubscriberRoleAndPlansSeeder extends Seeder
         // Seed default subscription plans
         $plans = [
             [
+                'name'              => 'Free Trial',
+                'slug'              => 'free-trial',
+                'description'       => 'Try all features free for 14 days. No credit card required.',
+                'price'             => 0,
+                'currency'          => 'INR',
+                'duration_days'     => 14,
+                'product_limit'     => 25,
+                'attribute_limit'   => 10,
+                'share_link_limit'  => 50,
+                'pdf_sharing'       => true,
+                'image_sharing'     => true,
+                'watermark_removal' => false,
+                'custom_branding'   => false,
+                'analytics'         => false,
+                'is_trial'          => true,
+                'trial_days'        => 14,
+                'is_active'         => true,
+                'sort_order'        => 0,
+                'features'          => ['25 Products', '10 Attributes', '50 Share Links', 'PDF & Image Sharing', '14-Day Free Access'],
+            ],
+            [
                 'name'              => 'Starter',
                 'slug'              => 'starter',
                 'description'       => 'Perfect for small businesses just getting started.',
@@ -73,17 +94,17 @@ class SubscriberRoleAndPlansSeeder extends Seeder
                 'is_trial'          => false,
                 'trial_days'        => 14,
                 'is_active'         => true,
-                'sort_order'        => 0,
+                'sort_order'        => 1,
                 'features'          => ['50 Products', '20 Attributes', '100 Share Links', 'PDF & Image Sharing', 'WhatsApp Sharing'],
             ],
             [
-                'name'              => 'Business',
+                'name'              => 'Professional',
                 'slug'              => 'business',
                 'description'       => 'For growing businesses with advanced operational needs.',
                 'price'             => 1299,
                 'currency'          => 'INR',
                 'duration_days'     => 30,
-                'product_limit'     => 250,
+                'product_limit'     => 999999, // Unlimited
                 'attribute_limit'   => 100,
                 'share_link_limit'  => 500,
                 'pdf_sharing'       => true,
@@ -94,8 +115,8 @@ class SubscriberRoleAndPlansSeeder extends Seeder
                 'is_trial'          => false,
                 'trial_days'        => 14,
                 'is_active'         => true,
-                'sort_order'        => 1,
-                'features'          => ['250 Products', '100 Attributes', '500 Share Links', 'Custom Branding', 'No Watermark', 'Analytics'],
+                'sort_order'        => 2,
+                'features'          => ['Unlimited Products', '100 Attributes', '500 Share Links', 'Custom Branding', 'No Watermark', 'Analytics'],
             ],
             [
                 'name'              => 'Enterprise',
@@ -104,7 +125,7 @@ class SubscriberRoleAndPlansSeeder extends Seeder
                 'price'             => 3999,
                 'currency'          => 'INR',
                 'duration_days'     => 30,
-                'product_limit'     => 9999,
+                'product_limit'     => 999999, // Unlimited
                 'attribute_limit'   => 9999,
                 'share_link_limit'  => 9999,
                 'pdf_sharing'       => true,
@@ -115,13 +136,13 @@ class SubscriberRoleAndPlansSeeder extends Seeder
                 'is_trial'          => false,
                 'trial_days'        => 14,
                 'is_active'         => true,
-                'sort_order'        => 2,
+                'sort_order'        => 3,
                 'features'          => ['Unlimited Products', 'Unlimited Attributes', 'Unlimited Share Links', 'Priority Support', 'Custom Domain Ready'],
             ],
         ];
 
         foreach ($plans as $plan) {
-            SubscriptionPlan::firstOrCreate(
+            SubscriptionPlan::updateOrCreate(
                 ['slug' => $plan['slug']],
                 $plan
             );

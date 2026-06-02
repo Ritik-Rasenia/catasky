@@ -108,15 +108,6 @@
             [
                 'label' => 'SaaS Management',
                 'items' => [
-                    
-                    [
-                        'label' => 'Pending Approvals',
-                        'icon' => 'bi-check2-square',
-                        'route' => 'admin.saas.approvals.index',
-                        'permission' => 'system.manage',
-                        'active' => ['admin.saas.approvals.*'],
-                            'badge' => $pendingApprovalsCount > 0 ? $pendingApprovalsCount : null,
-                    ],
                     [
                         'label' => 'Subscribers',
                         'icon' => 'bi-people-fill',
@@ -124,8 +115,14 @@
                         'permission' => 'subscribers.manage',
                         'active' => ['admin.subscribers.*'],
                     ],
-                    
-                    
+                   
+                    [
+                        'label' => 'Custom Domains',
+                        'icon' => 'bi-globe2',
+                        'route' => 'admin.saas.domains.index',
+                        'permission' => 'subscribers.manage',
+                        'active' => ['admin.saas.domains.*'],
+                    ],
                     [
                         'label' => 'Payments',
                         'icon' => 'bi-cash-stack',
@@ -172,6 +169,13 @@
                         'route' => 'admin.permissions.index',
                         'permission' => 'permissions.manage',
                         'active' => ['admin.permissions.*'],
+                    ],
+                    [
+                        'label' => 'RBAC Debug Console',
+                        'icon' => 'bi-shield-fill-check',
+                        'route' => 'admin.rbac.debug',
+                        'permission' => 'roles.manage',
+                        'active' => ['admin.rbac.debug'],
                     ],
                 ],
             ],

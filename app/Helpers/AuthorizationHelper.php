@@ -33,7 +33,13 @@ class AuthorizationHelper
 
         $permissions = is_array($permissions) ? $permissions : func_get_args();
         
-        return Auth::user()->hasAnyPermission($permissions);
+        foreach ($permissions as $permission) {
+            if (Auth::user()->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -51,7 +57,13 @@ class AuthorizationHelper
 
         $permissions = is_array($permissions) ? $permissions : func_get_args();
         
-        return Auth::user()->hasAllPermissions($permissions);
+        foreach ($permissions as $permission) {
+            if (!Auth::user()->can($permission)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -650,7 +650,7 @@
         min-height: var(--top-navbar-height);
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         padding: 16px 20px !important;
     }
     
