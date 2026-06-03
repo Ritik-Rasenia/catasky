@@ -24,8 +24,8 @@ class IsSuperAdmin
             return redirect()->route('login');
         }
 
-        if (!auth()->user()->hasRole('Super Admin')) {
-            abort(403, 'Unauthorized. Super Admin access required.');
+        if (!auth()->user()->hasAnyRole(['Super Admin', 'Admin'])) {
+            abort(403, 'Unauthorized. Super Admin or Admin access required.');
         }
 
         return $next($request);

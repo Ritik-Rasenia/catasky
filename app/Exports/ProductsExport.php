@@ -9,35 +9,52 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class ProductsExport implements FromQuery, WithHeadings, WithMapping
 {
+    public function __construct(private ?int $tenantId = null)
+    {
+    }
+
     public function query()
     {
-        return Product::query()
+        $query = Product::withoutGlobalScope('tenant')
             ->with(['images'])
             ->orderBy('id');
+
+        return $this->tenantId === null
+            ? $query->whereNull('subscriber_id')
+            : $query->where('subscriber_id', $this->tenantId);
     }
 
     public function headings(): array
     {
         return [
-            'brand',
-            'category',
-            'sub_category',
-            'name',
-            'slug',
-            'part_code',
-            'part_number',
-            'thumbnail',
-            'gallery_images',
-            'tags',
-            'short_description',
-            'price',
-            'additional_info',
-            'featured',
-            'is_future',
-            'meta_title',
-            'meta_description',
-            'meta_keywords',
-            'status',
+            'Product Name',
+            'SKU',
+            'Slug',
+            'Part Code',
+            'Part Number',
+            'Brand',
+            'Category',
+            'Subcategory',
+            'MRP',
+            'Offer Price',
+            'MOQ',
+            'Stock Quantity',
+            'Stock Status',
+            'Short Description',
+            'Full Description',
+            'Status',
+            'Featured',
+            'Featured Image',
+            'Gallery Image 1',
+            'Gallery Image 2',
+            'Gallery Image 3',
+            'Tags',
+            'Weight',
+            'Colors',
+            'Sizes',
+            'Meta Title',
+            'Meta Description',
+            'Meta Keywords',
         ];
     }
 
@@ -46,28 +63,39 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
      */
     public function map($product): array
     {
-        $gallery = $product->images->pluck('image')->filter()->implode(', ');
+        $gallery = $product->images->pluck('image')->filter()->values()->toArray();
+        $specifications = json_decode($product->specifications, true) ?: [];
+        $stockStatus = $product->stock > 0 ? 'in_stock' : 'out_of_stock';
 
         return [
-            $product->brand->name ?? '',
-            $product->category->name ?? '',
-            $product->subcategory->name ?? '',
             $product->name,
+            $product->sku,
             $product->slug,
             $product->part_code ?? '',
             $product->part_number ?? '',
-            $product->thumbnail ?? '',
-            $gallery,
-            $product->tags ?? '',
+            $product->brands->pluck('name')->implode(', '),
+            $product->categories->pluck('name')->implode(', '),
+            $product->subcategories->pluck('name')->implode(', '),
+            $product->mrp ?? '',
+            $product->offer_price ?? '',
+            $product->moq ?? 1,
+            $product->stock ?? 0,
+            $stockStatus,
             $product->short_description ?? '',
-            $product->price ?? '',
-            $product->additional_info ?? '',
+            $product->additional_info ?? ($product->description ?? ''),
+            $product->status ? 1 : 0,
             $product->featured ? 1 : 0,
-            $product->is_future ? 1 : 0,
+            $product->thumbnail ?? '',
+            $gallery[0] ?? '',
+            $gallery[1] ?? '',
+            $gallery[2] ?? '',
+            $product->tags ?? '',
+            $specifications['Weight'] ?? '',
+            $specifications['Colors'] ?? '',
+            $specifications['Sizes'] ?? '',
             $product->meta_title ?? '',
             $product->meta_description ?? '',
             $product->meta_keywords ?? '',
-            $product->status ? 1 : 0,
         ];
     }
 }

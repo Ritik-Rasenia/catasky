@@ -29,7 +29,7 @@
 
         if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
             $siteTitle = $profile->company_name;
-            if ($profile->logo) {
+            if ($profile->logo && $profile->company_slug !== 'demo') {
                 $footerLogoUrl = asset('uploads/subscriber-logos/' . $profile->logo);
             }
         }
@@ -427,7 +427,7 @@
     <nav class="navbar navbar-expand-lg navbar-premium">
         <div class="container">
             <!-- Brand Logo -->
-            @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+            @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && $profile->company_slug !== 'demo')
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('subscriber_store', $profile->company_slug) }}">
                     @if($profile->logo)
                         <img src="{{ asset('uploads/subscriber-logos/' . $profile->logo) }}" alt="{{ $profile->company_name }}" decoding="async" style="max-height: 40px; object-fit: contain;">
@@ -567,7 +567,8 @@
                 <!-- Col 1: Bio -->
                 <div class="col-lg-4 col-md-6 col-12">
                     @php
-                        $homeUrl = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) 
+                        $isDemo = (isset($profile) && $profile->company_slug === 'demo');
+                        $homeUrl = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && !$isDemo) 
                             ? route('subscriber_store', $profile->company_slug) 
                             : route('home');
                         $footerBio = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
@@ -621,14 +622,15 @@
                     <h6 class="fw-bold text-white mb-3" style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Categories</h6>
                     <ul class="list-unstyled d-flex flex-column gap-2 small">
                         @php
-                            if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
+                            if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && $profile->company_slug !== 'demo') {
                                 $categoryIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
                                     ->where('status', 'active')
                                     ->pluck('category_id')
                                     ->flatten()
                                     ->filter()
                                     ->unique();
-                                $footerCats = \App\Models\Category::whereIn('id', $categoryIds)
+                                $footerCats = \App\Models\Category::withoutGlobalScope('tenant')
+                                    ->whereIn('id', $categoryIds)
                                     ->where('status', 1)
                                     ->take(4)
                                     ->get();
@@ -638,9 +640,15 @@
                         @endphp
                         @foreach($footerCats as $fcat)
                             @php
-                                $catUrl = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) 
-                                    ? route('subscriber_store', $profile->company_slug) . '?category=' . $fcat->slug 
-                                    : route('category.products', $fcat->slug);
+                                if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
+                                    if ($profile->company_slug === 'demo') {
+                                        $catUrl = route('demo') . '?category=' . $fcat->slug;
+                                    } else {
+                                        $catUrl = route('subscriber_store', $profile->company_slug) . '?category=' . $fcat->slug;
+                                    }
+                                } else {
+                                    $catUrl = route('category.products', $fcat->slug);
+                                }
                             @endphp
                             <li><a href="{{ $catUrl }}" class="text-white-50 text-decoration-none hover-white">{{ $fcat->name }}</a></li>
                         @endforeach
@@ -709,24 +717,22 @@
         </div>
     </footer>
 
-    @if(request()->routeIs('product.details'))
+    @if(!request()->is('dashboard*') && !request()->is('secure-admin-login') && !request()->is('subscriber/login*') && !request()->is('subscriber/register*') && !request()->routeIs('home'))
     <!-- Floating Sticky Multi-Selection Glass Bar -->
     <div id="selection-bar" class="floating-bar" data-authenticated="{{ auth()->check() ? 'true' : 'false' }}">
         <div class="bar-actions">
-            @auth
-                <!-- Left button: Selected count -->
-                <button class="bar-pill-btn selected-btn" onclick="openSharingModal('selection')" title="View Selected Blueprints">
-                    <i class="bi bi-list-task me-2"></i>Selected (<span id="selected-count">0</span>)
-                </button>
-                <!-- Center button: Share PDF -->
-                <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
-                    <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
-                </button>
-                <!-- Right button: Share Image -->
-                <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
-                    <i class="bi bi-images me-2"></i>Image Share
-                </button>
-            @endauth
+            <!-- Left button: Selected count -->
+            <button class="bar-pill-btn selected-btn" onclick="openSharingModal('selection')" title="View Selected Blueprints">
+                <i class="bi bi-list-task me-2"></i>Selected (<span id="selected-count">0</span>)
+            </button>
+            <!-- Center button: Share PDF -->
+            <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
+                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
+            </button>
+            <!-- Right button: Share Image -->
+            <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
+                <i class="bi bi-images me-2"></i>Image Share
+            </button>
         </div>
     </div>
     @endif
@@ -1315,7 +1321,7 @@
             return getCurrentExportType();
         }
 
-        function formatProductPrice(product, fallback = 'On Request') {
+        function formatProductPrice(product, fallback = '') {
             if (!product) return fallback;
             const rawPrice = [product.sale_price, product.offer_price, product.price, product.mrp].find(value => {
                 return value !== null && value !== undefined && String(value).trim() !== '' && !Number.isNaN(Number(value));
@@ -2851,7 +2857,8 @@
             }
 
             function formatDisplayPrice(value) {
-                const price = String(value || 'On Request').trim();
+                const price = String(value || '').trim();
+                if (!price) return '';
                 return price.includes('\u20B9') || price.includes('&#8377;') || price.toLowerCase().includes('request') ? price : '₹ ' + price;
             }
 
@@ -2926,7 +2933,7 @@
                         </div>` : ''}
 
                         ${imgUrl
-                            ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;">`
+                            ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;object-fit:contain;display:block;z-index:1;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;">`
                             : `<div style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;z-index:1;">No Image</div>`
                         }
                     </div>
@@ -3016,9 +3023,9 @@
                 // Sync badge counters
                 $('#cart-count, #mobile-cart-count, #selected-count, .selected-count-span').text(count);
 
-                // Show the export actions only for logged-in users. Logged-in users keep
-                // the bar visible at 0 selections so they can open the empty selection state.
-                if (isAuthenticated) {
+                // Show the export actions for logged-in users, or guest users with items selected.
+                // Logged-in users keep the bar visible at 0 selections to open empty states.
+                if (isAuthenticated || count > 0) {
                     $('#selection-bar').addClass('active');
                 } else {
                     $('#selection-bar').removeClass('active');
@@ -3067,7 +3074,11 @@
                 `);
 
                 searchTimeout = setTimeout(function() {
-                    $.get('{{ route("search") }}', { query: query }, function(response) {
+                    const searchParams = { query: query };
+                    @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                        searchParams.company_slug = '{{ $profile->company_slug }}';
+                    @endif
+                    $.get('{{ route("search") }}', searchParams, function(response) {
                         const html = $(response).find('#product-grid').html();
                         if (html && html.trim().length > 0) {
                             $('#search-results-pane').html(`
@@ -3229,7 +3240,7 @@
                             if (data && data.success) {
                                 validCount++;
                                 const p = data.product;
-                                const moq = p.part_code || 'MOQ: 100 pcs';
+                                const moq = p.moq ? 'MOQ: ' + p.moq + ' pcs' : 'MOQ: 100 pcs';
                                 const price = formatProductPrice(p);
                                 const thumbnailUrl = data.thumbnail_url || '';
                                 
@@ -3330,7 +3341,7 @@
                             if (data && data.success) {
                                 const p = data.product;
                                 const name = p.name;
-                                const moq = p.part_code || 'MOQ: 100';
+                                const moq = p.moq ? 'MOQ: ' + p.moq : 'MOQ: 100';
                                 msg += `📦 *${index + 1}. ${name}* (${moq})\n`;
                                 msg += `🔗 ${window.location.origin}/product/${p.slug}\n\n`;
                             }
@@ -3391,7 +3402,9 @@
                     data: {
                         phone: phone,
                         product_ids: selectedProducts,
-                        catalog_title: title
+                        catalog_title: title,
+                        is_subscriber: window.isSubscriberStore ? 1 : 0,
+                        company_slug: typeof companySlug !== 'undefined' ? companySlug : ''
                     },
                     success: function(response) {
                         $('#dt-status-log').removeClass('alert-info alert-danger').addClass('alert-success').html(`
@@ -3423,6 +3436,8 @@
                         phone: 'B2B Client', // placeholder label for automatic generic link shares
                         product_ids: selectedProducts,
                         catalog_title: catalogTitle,
+                        is_subscriber: window.isSubscriberStore ? 1 : 0,
+                        company_slug: typeof companySlug !== 'undefined' ? companySlug : '',
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(res) {
@@ -3568,6 +3583,8 @@
                                         catalog_title: catalogTitle,
                                         pdf_url: pdfUrlForApi,
                                         send_type: 'pdf',
+                                        is_subscriber: window.isSubscriberStore ? 1 : 0,
+                                        company_slug: typeof companySlug !== 'undefined' ? companySlug : '',
                                         _token: '{{ csrf_token() }}'
                                     },
                                     success: function(dtResponse) {
@@ -3880,22 +3897,22 @@
                                 const offerRaw = p.sale_price ?? p.offer_price;
                                 const mrpValue = mrpRaw !== null && mrpRaw !== undefined && String(mrpRaw).trim() !== '' 
                                     ? '₹ ' + Number(mrpRaw).toLocaleString('en-IN') 
-                                    : 'On Request';
+                                    : '';
                                 
                                 const offerValue = offerRaw !== null && offerRaw !== undefined && String(offerRaw).trim() !== '' 
                                     ? '₹ ' + Number(offerRaw).toLocaleString('en-IN') 
-                                    : 'On Request';
+                                    : '';
 
                                 gridHtml += `
                                 <div style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif;">
                                     <!-- Image Box -->
                                     <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
                                         ${imgUrl 
-                                            ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; max-width: 100%; max-height: 100%;">`
+                                            ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
                                             : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
                                         }
                                         <!-- MRP overlay inside image box at bottom-left -->
-                                        ${shareSettings.showPrice ? `
+                                        ${shareSettings.showPrice && mrpValue ? `
                                         <div style="position: absolute; bottom: 8px; left: 8px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000000; background: rgba(255, 255, 255, 0.85); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
                                             MRP: ${mrpValue}
                                         </div>` : ''}
@@ -3906,7 +3923,7 @@
                                             <span style="font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
                                                 Name: ${escapeHtml(name)}
                                             </span>
-                                            ${shareSettings.showPrice ? `
+                                            ${shareSettings.showPrice && offerValue ? `
                                             <span style="font-weight: normal; white-space: nowrap;">
                                                 Offer: ${offerValue}
                                             </span>` : ''}
@@ -4221,22 +4238,22 @@
                             const offerRaw = p.sale_price ?? p.offer_price;
                             const mrpValue = mrpRaw !== null && mrpRaw !== undefined && String(mrpRaw).trim() !== '' 
                                 ? '₹ ' + Number(mrpRaw).toLocaleString('en-IN') 
-                                : 'On Request';
+                                : '';
                             
                             const offerValue = offerRaw !== null && offerRaw !== undefined && String(offerRaw).trim() !== '' 
                                 ? '₹ ' + Number(offerRaw).toLocaleString('en-IN') 
-                                : 'On Request';
+                                : '';
 
                             gridHtml += `
                             <div class="pdf-product-link-target" data-slug="${escapeHtml(p.slug)}" style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: inline-flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif; cursor: pointer;">
                                 <!-- Image Box -->
                                 <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
                                     ${imgUrl 
-                                        ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; max-width: 100%; max-height: 100%;">`
+                                        ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
                                         : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
                                     }
                                     <!-- MRP overlay inside image box at bottom-left -->
-                                    ${shareSettings.showPrice ? `
+                                    ${shareSettings.showPrice && mrpValue ? `
                                     <div style="position: absolute; bottom: 8px; left: 8px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000000; background: rgba(255, 255, 255, 0.85); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
                                         MRP: ${mrpValue}
                                     </div>` : ''}
@@ -4247,7 +4264,7 @@
                                         <span style="font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
                                             Name: ${escapeHtml(name)}
                                         </span>
-                                        ${shareSettings.showPrice ? `
+                                        ${shareSettings.showPrice && offerValue ? `
                                         <span style="font-weight: normal; white-space: nowrap;">
                                             Offer: ${offerValue}
                                         </span>` : ''}

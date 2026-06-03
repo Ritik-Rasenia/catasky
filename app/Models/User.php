@@ -93,6 +93,14 @@ class User extends Authenticatable
         return $this->hasRole('Admin');
     }
 
+    public function isDemo(): bool
+    {
+        return $this->email === 'demo' || 
+               $this->email === 'demo@catasky.com' || 
+               str_contains(strtolower($this->email), 'demo') || 
+               str_contains(strtolower($this->name), 'demo');
+    }
+
     public function hasActiveSubscription(): bool
     {
         $sub = $this->subscription;
@@ -106,4 +114,37 @@ class User extends Authenticatable
             ->latest()
             ->first();
     }
+
+    // ─── Notification Routing ──────────────────────────────────────────────
+
+    public function notifications()
+    {
+        if ($this->hasRole('Admin') || $this->hasRole('admin')) {
+            $superAdmin = self::role('Super Admin')->first() 
+                ?? self::role('super-admin')->first() 
+                ?? self::where('email', 'admin@catasky.com')->first()
+                ?? self::find(1);
+            if ($superAdmin && $superAdmin->id !== $this->id) {
+                return $superAdmin->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable');
+            }
+        }
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable');
+    }
+
+    public function unreadNotifications()
+    {
+        if ($this->hasRole('Admin') || $this->hasRole('admin')) {
+            $superAdmin = self::role('Super Admin')->first() 
+                ?? self::role('super-admin')->first() 
+                ?? self::where('email', 'admin@catasky.com')->first()
+                ?? self::find(1);
+            if ($superAdmin && $superAdmin->id !== $this->id) {
+                return $superAdmin->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable')
+                    ->whereNull('read_at');
+            }
+        }
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable')
+            ->whereNull('read_at');
+    }
 }
+

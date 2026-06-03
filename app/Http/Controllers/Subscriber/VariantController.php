@@ -71,7 +71,12 @@ class VariantController extends Controller
     {
         $request->validate([
             'subscriber_product_id' => 'required|exists:subscriber_products,id',
-            'variant_sku'           => 'required|string|unique:subscriber_product_variants,variant_sku',
+            'variant_sku'           => [
+                'required',
+                'string',
+                \Illuminate\Validation\Rule::unique('subscriber_product_variants', 'variant_sku')
+                    ->where('subscriber_product_id', $request->subscriber_product_id)
+            ],
             'price'                 => 'nullable|numeric|min:0',
             'stock'                 => 'required|integer|min:0',
             'attributes'            => 'required|array', // attribute_id => value (e.g. XL, Red)

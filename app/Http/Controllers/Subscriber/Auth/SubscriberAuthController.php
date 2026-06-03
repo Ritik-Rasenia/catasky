@@ -214,11 +214,11 @@ class SubscriberAuthController extends Controller
             'is_default'  => true,
         ]);
 
-        // Notify Super Admins of new subscriber registration
+        // Notify Super Admins and Admins of new subscriber registration
         try {
-            $superAdmins = User::role('Super Admin')->get();
-            if ($superAdmins->isNotEmpty()) {
-                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\SubscriberRegistrationNotification([
+            $admins = User::role(['Super Admin', 'Admin'])->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\SubscriberRegistrationNotification([
                     'title' => 'New B2B Registration',
                     'message' => 'New B2B registration request from ' . $regData['name'] . ' (' . $regData['company_name'] . ').',
                 ]));

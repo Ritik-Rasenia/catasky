@@ -137,6 +137,19 @@
 
 @section('content')
 <div class="container-fluid py-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div></div>
+        <div class="d-flex gap-2">
+            @can('manage-subscriber-products')
+            <a href="{{ route('subscriber.products.import') }}" class="btn btn-white border">
+                <i class="fa-solid fa-file-import me-1 text-primary"></i> Import Products
+            </a>
+            <a href="{{ route('subscriber.products.export') }}" class="btn btn-white border">
+                <i class="fa-solid fa-file-excel me-1 text-success"></i> Export Products
+            </a>
+            @endcan
+        </div>
+    </div>
     <form action="{{ route('subscriber.products.store') }}" method="POST" enctype="multipart/form-data" id="product-form" novalidate>
         @csrf
         <div class="row g-4">
@@ -372,7 +385,12 @@
                                 <input type="file" name="thumbnail" class="d-none" accept="image/*" id="thumbnail-input" onchange="previewThumbnail(event)">
                             </div>
                             <div id="thumbnail-preview" class="mt-2 text-center" style="display:none;">
-                                <img id="thumb-img" src="" alt="Thumbnail" style="max-height:110px;border-radius:10px;object-fit:cover;" class="p-1 bg-white border">
+                                <div id="thumb-container" style="display:none;">
+                                    <img id="thumb-img" src="" alt="Thumbnail" style="max-height:110px;border-radius:10px;object-fit:cover;" class="p-1 bg-white border mb-2">
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearThumbnail()">Remove Image</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div>
@@ -457,19 +475,43 @@
         if (file) {
             document.getElementById('thumb-img').src = URL.createObjectURL(file);
             document.getElementById('thumbnail-preview').style.display = 'block';
+            document.getElementById('thumb-container').style.display = 'block';
         }
     }
 
+    function clearThumbnail() {
+        document.getElementById('thumbnail-input').value = '';
+        document.getElementById('thumb-img').src = '';
+        document.getElementById('thumbnail-preview').style.display = 'none';
+        document.getElementById('thumb-container').style.display = 'none';
+    }
+
+    let galleryFiles = [];
+
     function previewImages(e) {
+        galleryFiles = galleryFiles.concat(Array.from(e.target.files));
+        renderGalleryPreview();
+    }
+
+    function removeGalleryFile(index) {
+        galleryFiles.splice(index, 1);
+        renderGalleryPreview();
+    }
+
+    function renderGalleryPreview() {
         const container = document.getElementById('gallery-preview');
+        const input = document.getElementById('gallery-input');
+        const dt = new DataTransfer();
         container.innerHTML = '';
-        Array.from(e.target.files).forEach(file => {
-            const url = URL.createObjectURL(file);
+        galleryFiles.forEach((file, index) => {
+            dt.items.add(file);
             const wrapper = document.createElement('div');
             wrapper.style.cssText = 'position:relative;height:70px;width:70px;';
-            wrapper.innerHTML = `<img src="${url}" style="height:70px;width:70px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">`;
+            wrapper.innerHTML = `<img src="${URL.createObjectURL(file)}" style="height:70px;width:70px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">
+                <button type="button" onclick="removeGalleryFile(${index})" style="position:absolute;top:4px;right:4px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;cursor:pointer;"><i class="bi bi-x"></i></button>`;
             container.appendChild(wrapper);
         });
+        input.files = dt.files;
     }
 
     // Dynamic Attribute loading

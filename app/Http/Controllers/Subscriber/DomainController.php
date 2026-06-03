@@ -7,6 +7,7 @@ use App\Models\CustomDomain;
 use App\Models\SubscriberActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 
 class DomainController extends Controller
 {
@@ -31,7 +32,7 @@ class DomainController extends Controller
     {
         list($user, $plan) = $this->ensureEnterprise();
 
-        $domains = CustomDomain::where('user_id', $user->id)->latest()->get();
+        $domains = CustomDomain::where('user_id', $user->id)->with('logs')->latest()->get();
 
         return view('subscriber-panel.domain.index', [
             'isEnterprise' => true,
@@ -51,34 +52,89 @@ class DomainController extends Controller
             return back()->with('error', 'Maximum limit reached. Your Enterprise plan supports 1 active custom domain.');
         }
 
-        // Validate domain uniqueness against BOTH custom_domains AND subscriber_profiles tables
-        $request->validate([
+        // 1. Sanitize the domain: strip http://, https://, and trailing slash
+        $domainName = strtolower(trim($request->domain));
+        $domainName = preg_replace('#^https?://#', '', $domainName);
+        $domainName = rtrim($domainName, '/');
+
+        // Merge back to request so validation uses sanitized domain name
+        $request->merge(['domain' => $domainName]);
+
+        // 2. Invalid characters validation
+        if (preg_match('/[^a-z0-9.-]/', $domainName)) {
+            return back()->withErrors(['domain' => 'Domain name contains invalid characters. Only letters, numbers, dots (.) and hyphens (-) are allowed.'])->withInput();
+        }
+
+        // 3. Domain format validation
+        if (!preg_match('/^[a-z0-9.-]+\.[a-z]{2,11}$/', $domainName)) {
+            return back()->withErrors(['domain' => 'Please enter a valid domain name format (e.g. store.company.com).'])->withInput();
+        }
+
+        // 4. Force delete soft deleted domains to prevent database unique key collision
+        CustomDomain::onlyTrashed()->where('domain', $domainName)->forceDelete();
+
+        // 5. Reserved domain validation
+        $reservedDomains = ['catasky.com', 'admin.catasky.com', 'api.catasky.com', 'mail.catasky.com', 'app.catasky.com', 'www.catasky.com', 'localhost', 'example.com', 'example.org', 'example.net'];
+        $isReserved = collect($reservedDomains)->contains(function ($reserved) use ($domainName) {
+            return $domainName === $reserved || str_ends_with($domainName, '.' . $reserved);
+        });
+        if ($isReserved || str_ends_with($domainName, 'catasky.com')) {
+            return back()->withErrors(['domain' => 'This domain is reserved for system use and cannot be mapped.'])->withInput();
+        }
+
+        // 6. Blacklisted domain validation
+        $blacklist = ['phishing', 'malware', 'scam', 'hack', 'porn', 'gamble', 'spam', 'xyx', 'free-money'];
+        foreach ($blacklist as $badWord) {
+            if (str_contains($domainName, $badWord)) {
+                return back()->withErrors(['domain' => 'This domain name contains prohibited keywords and is blacklisted.'])->withInput();
+            }
+        }
+
+        // 7. Domain existence validation (Resolves IP/DNS records except for sandbox/local env or keywords)
+        $isSandbox = config('app.env') === 'local' || collect(['demo', 'local', 'test', 'ritik'])->contains(function ($kw) use ($domainName) {
+            return str_contains($domainName, $kw);
+        });
+
+        if (!$isSandbox) {
+            if (!checkdnsrr($domainName, 'ANY') && !checkdnsrr($domainName, 'A') && !checkdnsrr($domainName, 'CNAME') && !checkdnsrr($domainName, 'MX') && !checkdnsrr($domainName, 'NS')) {
+                return back()->withErrors(['domain' => 'The domain name does not exist or has no active DNS zone records.'])->withInput();
+            }
+        }
+
+        // 8. Duplicate domain validation against BOTH custom_domains AND subscriber_profiles tables
+        $validator = Validator::make($request->all(), [
             'domain' => [
                 'required',
                 'string',
                 'unique:custom_domains,domain',
                 'unique:subscriber_profiles,custom_domain',
-                'regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/'
-            ],
+            ]
         ], [
-            'domain.regex' => 'Please enter a valid domain name (e.g. www.mycompany.com).',
-            'domain.unique' => 'This custom domain has already been mapped or requested.',
+            'domain.unique' => 'This custom domain has already been mapped to another store.',
         ]);
 
-        $domainName = strtolower(trim($request->domain));
-        
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
         // Generate verification codes
         $verification = CustomDomain::generateTxtVerification($domainName);
 
         $domain = CustomDomain::create([
-            'user_id'       => $user->id,
-            'domain'        => $domainName,
-            'status'        => 'pending_dns',
-            'ssl_status'    => 'pending',
-            'dns_txt_key'   => $verification['key'],
-            'dns_txt_value' => $verification['value'],
-            'dns_verified'  => false,
+            'user_id'            => $user->id,
+            'domain'             => $domainName,
+            'status'             => 'Pending DNS Setup',
+            'ssl_status'         => 'SSL Pending',
+            'dns_txt_key'        => $verification['key'], // @
+            'dns_txt_value'      => $verification['value'],
+            'dns_verified'       => false,
+            'dns_txt_verified'   => false,
+            'dns_a_verified'     => false,
+            'dns_cname_verified' => false,
+            'admin_approved'     => false,
         ]);
+
+        $domain->log('created', 'info', 'Custom domain requested and initialized as Pending DNS Setup.');
 
         SubscriberActivityLog::log('created', 'Requested custom domain mapping: ' . $domainName, $domain);
 
@@ -97,23 +153,34 @@ class DomainController extends Controller
             abort(403);
         }
 
-        // Trigger automatic DNS verification flow (transitions status to active_routing & ssl_status to active)
-        $domain->verifyDns();
+        // Trigger DNS verification flow (sets verified flags and updates status)
+        $success = $domain->verifyDns();
 
-        // Update subscriber profile to sync verified custom domain
-        $profile = auth()->user()->subscriberProfile;
-        if ($profile) {
-            $profile->update([
-                'custom_domain' => $domain->domain,
-                'domain_verified' => true
+        // Run activation check (activates only if all conditions met including admin approval)
+        $domain->checkAndActivate();
+
+        SubscriberActivityLog::log('updated', 'Triggered DNS verification check for custom domain: ' . $domain->domain, $domain);
+
+        if ($success) {
+            $msg = '🎉 DNS Verification Successful! ';
+            if ($domain->status === 'Active') {
+                $msg .= 'Domain is now active and routing traffic.';
+            } else {
+                $msg .= 'Domain DNS verified successfully. Pending Admin approval to go live.';
+            }
+            return response()->json([
+                'success' => true,
+                'message' => $msg
             ]);
         }
 
-        SubscriberActivityLog::log('updated', 'Successfully automated DNS verification and active routing for custom domain: ' . $domain->domain, $domain);
+        // Fetch the latest verification failure message
+        $latestFailLog = $domain->logs()->where('action', 'dns_check')->where('status', 'failed')->latest()->first();
+        $errorMsg = $latestFailLog ? $latestFailLog->message : 'DNS verification failed. Please ensure TXT, A, and CNAME records are correctly configured.';
 
         return response()->json([
-            'success' => true,
-            'message' => '🎉 DNS Verification Successful! Domain is now active and routing traffic.'
+            'success' => false,
+            'message' => $errorMsg
         ]);
     }
 
@@ -138,6 +205,7 @@ class DomainController extends Controller
             ]);
         }
 
+        $domain->log('deleted', 'info', 'Custom domain request deleted by subscriber.');
         $domain->delete();
 
         SubscriberActivityLog::log('deleted', 'Removed custom domain mapping: ' . $domainName, $domain);
@@ -146,3 +214,4 @@ class DomainController extends Controller
             ->with('success', 'Custom domain mapping removed successfully.');
     }
 }
+

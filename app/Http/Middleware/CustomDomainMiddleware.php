@@ -31,17 +31,8 @@ class CustomDomainMiddleware
             })->first();
 
             if ($customDomain) {
-                // Suspended domains cannot route traffic
-                if ($customDomain->status === 'suspended') {
-                    $profile = $customDomain->user->subscriberProfile ?? null;
-                    return response()->view('errors.subscription-expired', [
-                        'company_name' => $profile ? $profile->company_name : 'Subscriber Store',
-                        'fallback_url' => $profile ? route('store.catalog', $profile->company_slug) : url('/')
-                    ]);
-                }
-
-                // Unverified domains cannot route traffic
-                if (!$customDomain->dns_verified || $customDomain->status !== 'active_routing') {
+                // Reject traffic if domain is not fully verified, approved, and active
+                if ($customDomain->status !== 'Active' || $customDomain->ssl_status !== 'SSL Active') {
                     abort(403, 'This custom domain routing is not active or verified yet.');
                 }
 
@@ -64,7 +55,8 @@ class CustomDomainMiddleware
                     } else {
                         // The Enterprise Plan has expired or downgraded! Automatically suspend domain routing status
                         $customDomain->update([
-                            'status' => 'suspended'
+                            'status' => 'Pending DNS Setup',
+                            'admin_approved' => false
                         ]);
 
                         $profile = $user->subscriberProfile;

@@ -15,10 +15,6 @@
         <span class="text-secondary d-block" style="font-size: 0.5rem;">Custom Engraved</span>
     </div>
 
-    <!-- Category Floating pill -->
-    <span class="position-absolute top-3 start-3 badge bg-white text-primary border  rounded-pill fw-bold" style="font-size: 0.75rem;">
-        {{ $product->category->name ?? 'Corporate Elite' }}
-    </span>
 </div>
 
 <!-- Gallery Swatch Thumbnails -->
@@ -27,9 +23,9 @@
         <img src="{{ $thumbnail }}" class="img-swatch active" loading="lazy" decoding="async" onclick="swapDrawerImage('{{ $thumbnail }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--primary);">
         @foreach($gallery as $idx => $g)
             @php
-                $gUrl = $g->image;
+                $gUrl = $g->image_path;
                 if (!filter_var($gUrl, FILTER_VALIDATE_URL)) {
-                    $gUrl = asset('uploads/subscriber-products/gallery/' . $gUrl);
+                    $gUrl = asset('uploads/subscriber-products/' . $gUrl);
                 }
             @endphp
             <img src="{{ $gUrl }}" class="img-swatch" loading="lazy" decoding="async" onclick="swapDrawerImage('{{ $gUrl }}', this)" style="width: 54px; height: 54px; border-radius: 8px; object-fit: contain; border: 2px solid var(--border);">
@@ -52,6 +48,9 @@
         <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-bold py-1 px-3 small-text">
             {{ $product->sku ?: 'SKU' }}
         </span>
+        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-bold py-1 px-3 small-text">
+            MOQ: {{ $product->moq ?? 100 }} pcs
+        </span>
         <span class="text-gradient fw-bold fs-5 ms-auto">
             @if($product->offer_price)
                 &#8377;{{ number_format($product->offer_price, 2) }}
@@ -63,37 +62,12 @@
             @elseif($product->mrp)
                 &#8377;{{ number_format($product->mrp, 2) }}
             @else
-                On Request
+                
             @endif
         </span>
     </div>
 
-    <!-- Canva / Shopify Customization Mock Widget -->
-    <div class="premium-card p-3 bg-light border-0 mb-4">
-        <h6 class="fw-bold small text-secondary text-uppercase mb-3 d-flex justify-content-between align-items-center">
-            <span>Canva Styling Customizer</span>
-            <span class="badge bg-primary text-white rounded-pill" style="font-size: 0.6rem;">Exclusive</span>
-        </h6>
-        
-        <!-- Color swatches selector -->
-        <div class="mb-3">
-            <label class="small text-secondary mb-2 d-block">Select Product Shell Color</label>
-            <div class="d-flex align-items-center gap-1">
-                <span class="color-dot active" style="background: #3B82F6;" onclick="selectSwatchColor(this, 'Royal Blue')"></span>
-                <span class="color-dot" style="background: #10B981;" onclick="selectSwatchColor(this, 'Forest Green')"></span>
-                <span class="color-dot" style="background: #F59E0B;" onclick="selectSwatchColor(this, 'Matte Amber')"></span>
-                <span class="color-dot" style="background: #EF4444;" onclick="selectSwatchColor(this, 'Crimson Red')"></span>
-                <span class="color-dot" style="background: #1E293B;" onclick="selectSwatchColor(this, 'Midnight Carbon')"></span>
-                <span class="small-text text-secondary ms-2 fw-semibold" id="swatch-color-label">Royal Blue</span>
-            </div>
-        </div>
 
-        <!-- Corporate Brand Overlay Switch -->
-        <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center m-0">
-            <label class="form-check-label small text-secondary fw-semibold" for="branding-preview-switch">Mockup Custom Laser Logo Overlay</label>
-            <input class="form-check-input ms-0 premium-switch" type="checkbox" id="branding-preview-switch" style="width: 44px; height: 22px; cursor:pointer;" onchange="toggleLaserMockupOverlay(this)">
-        </div>
-    </div>
 
     <!-- Description & Spec Sheets Tabs -->
     <ul class="nav nav-pills nav-fill bg-light p-1 rounded-3 mb-3 small" id="drawerTabs" role="tablist">

@@ -122,11 +122,11 @@ class SubscriptionController extends Controller
 
         $profile = $user->subscriberProfile;
 
-        // Notify super admin of new subscription payment
+        // Notify super admin and admin of new subscription payment
         try {
-            $superAdmins = \App\Models\User::role('Super Admin')->get();
-            if ($superAdmins->isNotEmpty()) {
-                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\PaymentSuccessNotification([
+            $admins = \App\Models\User::role(['Super Admin', 'Admin'])->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\PaymentSuccessNotification([
                     'title' => 'New B2B Subscription Payment',
                     'message' => $user->name . ' (' . ($profile->company_name ?? '') . ') has subscribed to ' . $plan->name . ' plan.',
                 ]));
@@ -309,15 +309,15 @@ class SubscriptionController extends Controller
         $profile = $user->subscriberProfile;
 
         try {
-            $superAdmins = \App\Models\User::role('Super Admin')->get();
-            if ($superAdmins->isNotEmpty()) {
-                \Illuminate\Support\Facades\Notification::send($superAdmins, new \App\Notifications\PaymentSuccessNotification([
+            $admins = \App\Models\User::role(['Super Admin', 'Admin'])->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\PaymentSuccessNotification([
                     'title' => 'New B2B Subscription Payment (Razorpay)',
                     'message' => $user->name . ' (' . ($profile->company_name ?? '') . ') has subscribed to ' . $plan->name . ' plan.',
                 ]));
             }
         } catch (\Exception $e) {
-            Log::error('Super admin notification failed: ' . $e->getMessage());
+            Log::error('Admin notification failed: ' . $e->getMessage());
         }
 
         if ($profile && $profile->status === 'pending') {

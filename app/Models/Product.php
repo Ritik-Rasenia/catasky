@@ -13,6 +13,7 @@ class Product extends Model
 
     protected $fillable = [
         'brand_id',
+        'subscriber_id',
         'category_id',
         'subcategory_id',
         'name',
@@ -58,12 +59,17 @@ class Product extends Model
             if (filter_var($this->featured_image, FILTER_VALIDATE_URL)) {
                 return $this->featured_image;
             }
-            return asset('storage/products/' . $this->featured_image);
+            return str_starts_with($this->featured_image, 'storage/products/')
+                ? asset($this->featured_image)
+                : asset('storage/products/' . $this->featured_image);
         }
         if (filter_var($this->thumbnail, FILTER_VALIDATE_URL)) {
             return $this->thumbnail;
         }
-        return asset('uploads/products/' . ($this->thumbnail ?: 'default.png'));
+        $thumb = $this->thumbnail ?: 'default.png';
+        return str_starts_with($thumb, 'uploads/products/')
+            ? asset($thumb)
+            : asset('uploads/products/' . $thumb);
     }
 
     public function getBrandsAttribute()

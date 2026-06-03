@@ -260,6 +260,8 @@ class DoubleTickController extends Controller
             'pdf_url' => 'nullable|string',
             'image_urls' => 'nullable|array',
             'send_type' => 'nullable|string|in:text,pdf,images',
+            'is_subscriber' => 'nullable|in:0,1',
+            'company_slug' => 'nullable|string',
         ]);
 
         $productIds = $request->input('product_ids');
@@ -268,12 +270,20 @@ class DoubleTickController extends Controller
         $pdfUrl = $request->input('pdf_url');
         $sendType = $request->input('send_type') ?: 'text';
 
+        $userId = Auth::id();
+        if (!$userId && $request->input('is_subscriber') == 1 && $request->filled('company_slug')) {
+            $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
+            if ($profile) {
+                $userId = $profile->user_id;
+            }
+        }
+
         // Generate unique catalogue code
         $code = strtoupper(Str::random(7));
 
         // Create the Share record
-        $share = CatalogueShare::create([
-            'user_id' => Auth::id(),
+        $share = new CatalogueShare([
+            'user_id' => $userId,
             'catalogue_code' => $code,
             'product_ids' => implode(',', $productIds),
             'pdf_url' => $pdfUrl,
@@ -285,6 +295,12 @@ class DoubleTickController extends Controller
             'total_view_time' => 0,
             'visit_count' => 0
         ]);
+
+        if ($userId) {
+            $share->subscriber_id = $userId;
+        }
+
+        $share->save();
 
         // Construct unique catalogue B2B link
         $catalogLink = route('doubletick.view', $code);

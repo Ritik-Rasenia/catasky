@@ -23,7 +23,10 @@ class ProductImportJob implements ShouldQueue
 
     public int $timeout = 1800;
 
-    public function __construct(public int $importLogId) {}
+    public function __construct(
+        public int $importLogId,
+        public ?int $tenantId = null,
+    ) {}
 
     public function handle(): void
     {
@@ -55,7 +58,7 @@ class ProductImportJob implements ShouldQueue
         ]);
 
         try {
-            Excel::import(new ProductsImport($this->importLogId, $imagesPath), $relativeExcel, 'local');
+            Excel::import(new ProductsImport($this->importLogId, $imagesPath, $this->tenantId), $relativeExcel, 'local');
             $log->refresh();
             if ($log->status !== 'failed') {
                 $log->update([

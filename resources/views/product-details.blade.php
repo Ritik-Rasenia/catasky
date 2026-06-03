@@ -9,7 +9,13 @@
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb mb-0 small-text">
                 <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-secondary"><i class="bi bi-house-door-fill"></i> Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalogue</a></li>
+                @if(isset($profile) && $profile->company_slug === 'demo')
+                    <li class="breadcrumb-item"><a href="{{ route('demo') }}" class="text-secondary">Demo</a></li>
+                @elseif(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                    <li class="breadcrumb-item"><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-secondary">Catalogue</a></li>
+                @else
+                    <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalogue</a></li>
+                @endif
                 @if($product->category)
                     <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category->slug) }}" class="text-secondary">{{ $product->category->name }}</a></li>
                 @endif
@@ -111,11 +117,11 @@
                                 @if($product->price)
                                     &#8377;{{ number_format($product->price, 2) }}
                                 @else
-                                    {{ $product->variant ?: 'On Request' }}
+                                    {{ $product->variant ?: '' }}
                                 @endif
                             </div>
-                            @if($product->part_code)
-                                <div class="text-secondary small border-start ps-3"><i class="bi bi-boxes"></i> Min. MOQ: 100 units</div>
+                            @if($product->moq || $product->part_code)
+                                <div class="text-secondary small border-start ps-3"><i class="bi bi-boxes"></i> Min. MOQ: {{ $product->moq ?? 100 }} units</div>
                             @endif
                         </div>
                     </div>
@@ -359,7 +365,7 @@
                                         @if($rel->price)
                                             &#8377;{{ number_format($rel->price, 2) }}
                                         @else
-                                            {{ $rel->variant ?: 'On Request' }}
+                                            {{ $rel->variant ?: '' }}
                                         @endif
                                     </div>
                                     <span class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold text-white small" style="background: var(--primary-gradient); border: none; font-size: 0.75rem;">View</span>

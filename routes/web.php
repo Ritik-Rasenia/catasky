@@ -80,6 +80,7 @@ Route::get('/api/products-details', [FrontendController::class, 'apiProductsDeta
 Route::get('/api/product-details/{id}', [FrontendController::class, 'apiProductDetails']);
 Route::get('/product/{id}/details', [FrontendController::class, 'productQuickView'])->name('product.quickview');
 Route::get('/pricing', [FrontendController::class, 'pricing'])->name('pricing');
+Route::get('/store/{company_slug}/manifest.json', [FrontendController::class, 'storeManifest'])->name('store.manifest');
 Route::get('/store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('store.catalog');
 Route::get('/subscriber_store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('subscriber_store');
 
@@ -325,6 +326,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
             Route::get('/admin/products-ops/import-logs', [AdminProductController::class, 'importLogs'])->name('products.import-logs');
             Route::get('/admin/products-ops/import-logs/{id}', [AdminProductController::class, 'importLogShow'])->name('products.import-logs.show');
             Route::get('/admin/products-ops/export', [AdminProductController::class, 'export'])->name('products.export');
+            Route::delete('/admin/product-images/{image}', [AdminProductController::class, 'deleteImage'])->name('admin.product-images.destroy');
         });
 
         Route::group(['middleware' => ['permission:delete-products']], function () {
@@ -396,6 +398,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
                 Route::post('/domains/{domain}/approve', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'approve'])->name('domains.approve');
                 Route::post('/domains/{domain}/reject', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'reject'])->name('domains.reject');
                 Route::post('/domains/{domain}/suspend', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'suspend'])->name('domains.suspend');
+                Route::post('/domains/{domain}/regenerate-ssl', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'regenerateSsl'])->name('domains.regenerate-ssl');
                 Route::delete('/domains/{domain}', [\App\Http\Controllers\Admin\SaaSDomainController::class, 'destroy'])->name('domains.destroy');
 
                 Route::get('/payments', [\App\Http\Controllers\Admin\SaaSPaymentController::class, 'index'])->name('payments.index');

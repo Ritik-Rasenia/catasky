@@ -1,28 +1,24 @@
 <?php
-require 'vendor/autoload.php';
-$app = require_once 'bootstrap/app.php';
-$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+include 'vendor/autoload.php';
+$app = include_once 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$products = App\Models\Product::with('images')->take(10)->get();
-echo "Total Products Checked: " . $products->count() . "\n";
-foreach ($products as $p) {
-    echo "ID: {$p->id} | Name: {$p->name}\n";
-    echo "  - Thumbnail: {$p->thumbnail}\n";
-    $thumbPath = public_path('uploads/products/' . $p->thumbnail);
-    if (file_exists($thumbPath) && is_file($thumbPath)) {
-        echo "    * File exists, size: " . filesize($thumbPath) . " bytes\n";
-    } else {
-        echo "    * File does NOT exist at {$thumbPath}\n";
-    }
-    
-    echo "  - Gallery count: " . $p->images->count() . "\n";
-    foreach ($p->images as $img) {
-        echo "    * Gallery Image: {$img->image}\n";
-        $galPath = public_path('uploads/products/gallery/' . $img->image);
-        if (file_exists($galPath) && is_file($galPath)) {
-            echo "      - File exists, size: " . filesize($galPath) . " bytes\n";
-        } else {
-            echo "      - File does NOT exist at {$galPath}\n";
-        }
-    }
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\Brand;
+use App\Models\Subcategory;
+
+echo "--- PRODUCTS (Bypassing Scope) ---\n";
+foreach (Product::withoutGlobalScope('tenant')->get() as $p) {
+    echo "ID: {$p->id}, Name: {$p->name}, SubID: " . ($p->subscriber_id ?: 'NULL') . "\n";
+}
+
+echo "\n--- BRANDS (Bypassing Scope) ---\n";
+foreach (Brand::withoutGlobalScope('tenant')->get() as $b) {
+    echo "ID: {$b->id}, Name: {$b->name}, SubID: " . ($b->subscriber_id ?: 'NULL') . "\n";
+}
+
+echo "\n--- SUBCATEGORIES (Bypassing Scope) ---\n";
+foreach (Subcategory::withoutGlobalScope('tenant')->get() as $s) {
+    echo "ID: {$s->id}, Name: {$s->name}, SubID: " . ($s->subscriber_id ?: 'NULL') . "\n";
 }

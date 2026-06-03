@@ -66,6 +66,11 @@
         color: #ef4444;
         border-color: #fee2e2;
     }
+    .badge-status-blue {
+        background: #eff6ff;
+        color: #3b82f6;
+        border-color: #dbeafe;
+    }
     .record-card {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -121,8 +126,8 @@
                     <select name="status" class="form-select border" style="border-radius:12px; font-size: 0.95rem; padding-top: 10px; padding-bottom: 10px;">
                         <option value="">All Statuses</option>
                         <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="verified" {{ request('status') === 'verified' ? 'selected' : '' }}>Verified</option>
-                        <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspended</option>
+                        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
                     </select>
                 </div>
 
@@ -153,7 +158,7 @@
                             <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Plan</th>
                             <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">DNS Status</th>
                             <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">SSL Status</th>
-                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Routing Status</th>
+                            <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Domain Status</th>
                             <th class="py-3 text-uppercase small fw-bold text-secondary border-0 text-center" style="width:10%;">Created Date</th>
                             <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-secondary border-0" style="width:10%;">Actions</th>
                         </tr>
@@ -166,20 +171,17 @@
                             $planName = $sub && $sub->plan ? $sub->plan->name : 'None';
                             
                             // Map Status
-                            $statusLabel = 'PENDING DNS';
+                            $statusLabel = strtoupper($domain->status ?: 'Pending DNS Setup');
                             $statusClass = 'badge-status-pending';
-                            if ($domain->status === 'suspended') {
-                                $statusLabel = 'SUSPENDED';
+                            if ($domain->status === 'Active' || $domain->status === 'active_routing') {
+                                $statusLabel = 'ACTIVE';
+                                $statusClass = 'badge-status-verified';
+                            } elseif ($domain->status === 'Rejected' || $domain->status === 'suspended') {
+                                $statusLabel = 'REJECTED';
                                 $statusClass = 'badge-status-suspended';
-                            } elseif ($domain->status === 'active_routing') {
-                                $statusLabel = 'ACTIVE ROUTING';
-                                $statusClass = 'badge-status-verified';
-                            } elseif ($domain->status === 'dns_verified') {
+                            } elseif ($domain->status === 'DNS Verified' || $domain->status === 'Verified') {
                                 $statusLabel = 'DNS VERIFIED';
-                                $statusClass = 'badge-status-verified';
-                            } elseif ($domain->status === 'ssl_provisioning') {
-                                $statusLabel = 'SSL PROVISIONING';
-                                $statusClass = 'badge-status-pending';
+                                $statusClass = 'badge-status-blue';
                             }
                         @endphp
                         <tr>
@@ -210,7 +212,7 @@
                             
                             {{-- DNS Status --}}
                             <td class="py-3.5 text-center">
-                                @if($domain->dns_verified)
+                                @if($domain->dns_txt_verified && $domain->dns_a_verified && $domain->dns_cname_verified)
                                     <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
                                         VERIFIED
                                     </span>
@@ -223,13 +225,17 @@
                             
                             {{-- SSL Status --}}
                             <td class="py-3.5 text-center">
-                                @if($domain->ssl_status === 'active')
+                                @if($domain->ssl_status === 'SSL Active' || $domain->ssl_status === 'active')
                                     <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
                                         ACTIVE
                                     </span>
-                                @elseif($domain->ssl_status === 'provisioning')
+                                @elseif($domain->ssl_status === 'SSL Generating' || $domain->ssl_status === 'provisioning')
                                     <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
-                                        PROVISIONING
+                                        GENERATING
+                                    </span>
+                                @elseif($domain->ssl_status === 'SSL Failed')
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
+                                        FAILED
                                     </span>
                                 @else
                                     <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-20 px-2 py-1 small rounded-pill fw-bold" style="font-size: 0.7rem;">
@@ -238,7 +244,7 @@
                                 @endif
                             </td>
                             
-                            {{-- Routing Status --}}
+                            {{-- Overall Status --}}
                             <td class="py-3.5 text-center">
                                 <span class="badge-status {{ $statusClass }}">
                                     {{ $statusLabel }}
@@ -258,37 +264,7 @@
                                         <a href="{{ route('admin.saas.domains.show', $domain->id) }}" class="btn btn-white btn-sm px-3" title="View Domain Details">
                                             <i class="fa-solid fa-eye text-primary"></i>
                                         </a>
- 
-                                        {{-- DNS Check / Verify --}}
-                                        @if(!$domain->dns_verified)
-                                            <form action="{{ route('admin.saas.domains.verify', $domain->id) }}" method="POST" class="d-inline m-0">
-                                                @csrf
-                                                <button type="submit" class="btn btn-white btn-sm px-3" title="Verify DNS Records">
-                                                    <i class="fa-solid fa-arrows-rotate text-success"></i>
-                                                </button>
-                                            </form>
-                                        @endif
- 
-                                        {{-- Activate --}}
-                                        @if($domain->status !== 'active_routing')
-                                            <form action="{{ route('admin.saas.domains.approve', $domain->id) }}" method="POST" class="d-inline m-0">
-                                                @csrf
-                                                <button type="submit" class="btn btn-white btn-sm px-3" title="Activate Domain Routing">
-                                                    <i class="fa-solid fa-circle-play text-success"></i>
-                                                </button>
-                                            </form>
-                                        @endif
- 
-                                        {{-- Suspend --}}
-                                        @if($domain->status === 'active_routing' || $domain->status === 'dns_verified')
-                                            <form action="{{ route('admin.saas.domains.suspend', $domain->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Are you sure you want to suspend this custom domain?');">
-                                                @csrf
-                                                <button type="submit" class="btn btn-white btn-sm px-3" title="Suspend Domain Routing">
-                                                    <i class="fa-solid fa-circle-pause text-warning"></i>
-                                                </button>
-                                            </form>
-                                        @endif
- 
+  
                                         {{-- Delete --}}
                                         <form action="{{ route('admin.saas.domains.destroy', $domain->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Are you sure you want to delete this custom domain mapping record?');">
                                             @csrf

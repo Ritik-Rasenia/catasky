@@ -587,75 +587,88 @@ $demoProducts = [
         </div>
 
         <div class="row g-4 align-items-stretch">
-            <div class="col-md-4 animate-fade-in">
-                <div class="pricing-card">
-                    <div class="pricing-plan-name">Starter</div>
-                    <div class="pricing-price">
-                        <span class="pricing-currency">₹</span>
-                        <span class="pricing-amount" id="starter-price">499</span>
-                        <span class="pricing-period">/mo</span>
+            @foreach($plans as $plan)
+                @php
+                    $isPopular = $plan->slug === 'business';
+                    $isTrial = $plan->is_trial;
+                    $isEnterprise = $plan->slug === 'enterprise';
+                    
+                    $colClass = count($plans) === 3 ? 'col-md-4' : 'col-lg-3 col-md-6';
+                    
+                    $btnClass = 'btn-pricing-outline';
+                    $btnText = 'Get Started Free';
+                    if ($isPopular) {
+                        $btnClass = 'btn-pricing-white';
+                        $btnText = 'Start Business';
+                    } elseif ($isEnterprise) {
+                        $btnClass = 'btn-pricing-primary';
+                        $btnText = 'Contact Sales';
+                    } elseif ($isTrial) {
+                        $btnClass = 'btn-pricing-outline';
+                        $btnText = 'Start Free Trial';
+                    }
+                @endphp
+                <div class="{{ $colClass }} d-flex animate-fade-in">
+                    <div class="pricing-card {{ $isPopular ? 'featured' : '' }} w-100">
+                        @if($isPopular)
+                            <div class="pricing-popular-badge">⚡ Most Popular</div>
+                        @elseif($isTrial)
+                            <div class="pricing-popular-badge" style="background:#10B981; color:white; box-shadow: 0 4px 14px rgba(16,185,129,0.2);">🎁 Free Trial</div>
+                        @endif
+                        
+                        <div class="pricing-plan-name">{{ $plan->name }}</div>
+                        <div class="pricing-price">
+                            @if($plan->price > 0)
+                                <span class="pricing-currency" style="{{ $isPopular ? 'color:rgba(255,255,255,0.7);' : '' }}">₹</span>
+                                <span class="pricing-amount plan-price" 
+                                      style="{{ $isPopular ? 'color:white;' : '' }}" 
+                                      id="{{ $plan->slug }}-price"
+                                      data-monthly="{{ number_format($plan->price, 0, '', '') }}" 
+                                      data-annual="{{ number_format($plan->price * 0.7, 0, '', '') }}">{{ number_format($plan->price, 0) }}</span>
+                                <span class="pricing-period">/mo</span>
+                            @else
+                                <span class="pricing-amount" style="{{ $isPopular ? 'color:white;' : '' }}">Free</span>
+                                @if($isTrial)
+                                    <span class="pricing-period">/{{ $plan->duration_days }} days</span>
+                                @endif
+                            @endif
+                        </div>
+                        <p class="pricing-desc">{{ $plan->description }}</p>
+                        <hr class="pricing-divider">
+                        <ul class="pricing-features">
+                            @if($plan->features)
+                                @foreach($plan->features as $feature)
+                                <li>
+                                    <span class="pricing-check"><i class="bi bi-check-lg"></i></span>
+                                    <span>{{ $feature }}</span>
+                                </li>
+                                @endforeach
+                            @endif
+                            
+                            {{-- Cross features based on plan configuration --}}
+                            @if(!$plan->custom_branding && !$isEnterprise)
+                                <li>
+                                    <span class="pricing-x"><i class="bi bi-x-lg"></i></span>
+                                    <span style="color:#CBD5E1;">Custom Branding</span>
+                                </li>
+                            @endif
+                            @if(!$plan->analytics)
+                                <li>
+                                    <span class="pricing-x"><i class="bi bi-x-lg"></i></span>
+                                    <span style="color:#CBD5E1;">Advanced Analytics</span>
+                                </li>
+                            @endif
+                            @if(!$isEnterprise)
+                                <li>
+                                    <span class="pricing-x"><i class="bi bi-x-lg"></i></span>
+                                    <span style="color:#CBD5E1;">Custom Domain</span>
+                                </li>
+                            @endif
+                        </ul>
+                        <a href="{{ route('subscriber.register') }}?plan={{ $plan->slug }}" class="{{ $btnClass }}">{{ $btnText }}</a>
                     </div>
-                    <p class="pricing-desc">Perfect for small teams and freelancers just getting started with digital catalogues.</p>
-                    <hr class="pricing-divider">
-                    <ul class="pricing-features">
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Up to 50 Products</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 20 Attributes</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 100 Share Links</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> WhatsApp Sharing</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> PDF & Image Sharing</li>
-                        <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">Custom Domain</span></li>
-                        <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">Advanced Analytics</span></li>
-                    </ul>
-                    <a href="{{ route('subscriber.register') }}?plan=starter" class="btn-pricing-outline">Get Started Free</a>
                 </div>
-            </div>
-
-            <div class="col-md-4 animate-fade-in">
-                <div class="pricing-card featured">
-                    <div class="pricing-popular-badge">⚡ Most Popular</div>
-                    <div class="pricing-plan-name">Business</div>
-                    <div class="pricing-price">
-                        <span class="pricing-currency" style="color:rgba(255,255,255,0.7);">₹</span>
-                        <span class="pricing-amount" style="color:white;" id="pro-price">1,299</span>
-                        <span class="pricing-period">/mo</span>
-                    </div>
-                    <p class="pricing-desc">For growing B2B sales teams that need advanced sharing tools and custom branding.</p>
-                    <hr class="pricing-divider">
-                    <ul class="pricing-features">
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Up to 250 Products</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 100 Attributes</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> 500 Share Links</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Custom Branding & Logo</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Analytics Dashboard</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Watermark Removal</li>
-                        <li><span class="pricing-x"><i class="bi bi-x-lg"></i></span> <span style="color:#CBD5E1;">Custom Domain</span></li>
-                    </ul>
-                    <a href="{{ route('subscriber.register') }}?plan=business" class="btn-pricing-white">Start Business</a>
-                </div>
-            </div>
-
-            <div class="col-md-4 animate-fade-in">
-                <div class="pricing-card">
-                    <div class="pricing-plan-name">Enterprise</div>
-                    <div class="pricing-price">
-                        <span class="pricing-currency">₹</span>
-                        <span class="pricing-amount" id="ent-price">3,999</span>
-                        <span class="pricing-period">/mo</span>
-                    </div>
-                    <p class="pricing-desc">For large enterprises needing white-label solutions, custom domains, and dedicated support.</p>
-                    <hr class="pricing-divider">
-                    <ul class="pricing-features">
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Products</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Attributes</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Unlimited Share Links</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Custom Domain Ready</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> REST API Access</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Multi-User + Roles</li>
-                        <li><span class="pricing-check"><i class="bi bi-check-lg"></i></span> Priority Support (24/7)</li>
-                    </ul>
-                    <a href="{{ route('subscriber.register') }}?plan=enterprise" class="btn-pricing-primary">Contact Sales</a>
-                </div>
-            </div>
+            @endforeach
         </div>
 
         <p class="pricing-note">
@@ -756,16 +769,12 @@ $(document).ready(function () {
     document.querySelectorAll('.animate-fade-in').forEach(el => observer.observe(el));
 
     // Pricing toggle
-    const prices = {
-        monthly: { starter: '499', pro: '1,299', ent: '3,999' },
-        annual:  { starter: '349', pro: '899', ent: '2,799' },
-    };
-
     function setPrices(mode) {
-        const p = prices[mode];
-        $('#starter-price').text(p.starter);
-        $('#pro-price').text(p.pro);
-        $('#ent-price').text(p.ent);
+        $('.plan-price').each(function() {
+            const price = $(this).attr('data-' + mode);
+            const formattedPrice = Number(price).toLocaleString('en-IN');
+            $(this).text(formattedPrice);
+        });
     }
 
     $('#monthly-btn').on('click', function () {

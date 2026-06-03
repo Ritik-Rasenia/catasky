@@ -165,7 +165,8 @@ class SubcategoryController extends Controller
             'name' => 'required',
         ]);
 
-        $exists = Subcategory::where('subscriber_id', auth()->id())
+        $exists = Subcategory::whereNull('deleted_at')
+            ->where('subscriber_id', auth()->id())
             ->where('category_id', $request->category_id)
             ->where('name', $request->name)
             ->first();

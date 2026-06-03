@@ -28,7 +28,11 @@ class FrontendController extends Controller
             ->take(8)
             ->get();
             
-        return view('welcome', compact('categories', 'featuredProducts'));
+        $plans = \App\Models\SubscriptionPlan::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+            
+        return view('welcome', compact('categories', 'featuredProducts', 'plans'));
     }
 
     /**
@@ -220,6 +224,8 @@ class FrontendController extends Controller
                     if ($profile->store_status !== 'live') {
                         abort(403, 'This storefront is pending review.');
                     }
+                    // Inject active subscriber ID so layout query scoping works correctly
+                    $request->attributes->set('custom_domain_subscriber_id', $product->user_id);
                 } else {
                     abort(404, 'Subscriber profile not found.');
                 }
@@ -229,6 +235,7 @@ class FrontendController extends Controller
                     $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
                     if ($profile) {
                         $isSubscriberStore = true;
+                        $request->attributes->set('custom_domain_subscriber_id', $profile->user_id);
                     }
                 }
             }
@@ -277,10 +284,33 @@ class FrontendController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('query');
-        $products = Product::where('name', 'like', "%$query%")
-            ->orWhere('short_description', 'like', "%$query%")
-            ->where('status', 1)
-            ->paginate(12);
+        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
+        
+        if (!$subscriberId && $request->filled('company_slug')) {
+            $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
+            if ($profile) {
+                $subscriberId = $profile->user_id;
+                $request->attributes->set('custom_domain_subscriber_id', $subscriberId);
+            }
+        }
+
+        if ($subscriberId) {
+            $products = \App\Models\SubscriberProduct::where('user_id', $subscriberId)
+                ->where('status', 'active')
+                ->where('approval_status', 'approved')
+                ->where(function($q) use ($query) {
+                    $q->where('name', 'like', "%$query%")
+                      ->orWhere('sku', 'like', "%$query%")
+                      ->orWhere('short_description', 'like', "%$query%")
+                      ->orWhere('full_description', 'like', "%$query%");
+                })
+                ->paginate(12);
+        } else {
+            $products = Product::where('name', 'like', "%$query%")
+                ->orWhere('short_description', 'like', "%$query%")
+                ->where('status', 1)
+                ->paginate(12);
+        }
 
         return view('search-results', compact('products', 'query'));
     }
@@ -655,8 +685,9 @@ class FrontendController extends Controller
             return redirect()->to('/');
         }
 
-        // Redirect Enterprise stores with verified custom domains to their own domain
-        if ($profile->custom_domain && $profile->domain_verified) {
+        // Redirect Enterprise stores with verified custom domains to their own domain disabled to keep default URL hamesha active
+        /*
+        if (!$isEnterprise && $profile->custom_domain && $profile->domain_verified) {
             $requestHost = strtolower(trim($request->getHost()));
             $customDomain = strtolower(trim($profile->custom_domain));
             $customDomainClean = preg_replace('/^www\./i', '', $customDomain);
@@ -665,6 +696,7 @@ class FrontendController extends Controller
                 return redirect()->away('https://' . $customDomain, 301);
             }
         }
+        */
         
         // Double-approval check: Account status must be approved/active AND Store status must be live
         if ($profile->status !== 'approved' && $profile->status !== 'active') {

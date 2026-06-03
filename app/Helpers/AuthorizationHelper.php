@@ -15,7 +15,7 @@ class AuthorizationHelper
             return false;
         }
 
-        return Auth::user()->can($permission) || Auth::user()->hasRole('Super Admin');
+        return Auth::user()->can($permission) || Auth::user()->hasAnyRole(['Super Admin', 'Admin']);
     }
 
     /**
@@ -27,7 +27,7 @@ class AuthorizationHelper
             return false;
         }
 
-        if (Auth::user()->hasRole('Super Admin')) {
+        if (Auth::user()->hasAnyRole(['Super Admin', 'Admin'])) {
             return true;
         }
 
@@ -51,7 +51,7 @@ class AuthorizationHelper
             return false;
         }
 
-        if (Auth::user()->hasRole('Super Admin')) {
+        if (Auth::user()->hasAnyRole(['Super Admin', 'Admin'])) {
             return true;
         }
 

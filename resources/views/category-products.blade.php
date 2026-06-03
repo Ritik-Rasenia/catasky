@@ -7,7 +7,7 @@
 @php
     // Fetch all active categories dynamically in the view if not overridden by controller
     if (!isset($allCategories)) {
-        $allCategories = \App\Models\Category::where('status', 1)->get();
+        $allCategories = \App\Models\Category::where('status', 1)->whereNull('subscriber_id')->get();
     }
 @endphp
 
@@ -81,6 +81,42 @@
                         </div>
                     </div>
 
+                    <!-- Brands Group -->
+                    <div class="mb-4">
+                        <label class="small-text fw-bold text-uppercase text-secondary mb-3 d-block">Brands</label>
+                        <div class="d-grid gap-2">
+                            @php
+                                $currentBrand = request()->query('brand');
+                                if (!isset($brands)) {
+                                    if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
+                                        $brandIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
+                                            ->where('status', 'active')
+                                            ->where('approval_status', 'approved')
+                                            ->whereNotNull('brand_id')
+                                            ->pluck('brand_id')
+                                            ->flatten()
+                                            ->filter()
+                                            ->unique();
+                                        $brands = \App\Models\Brand::withoutGlobalScope('tenant')->whereIn('id', $brandIds)->get();
+                                    } else {
+                                        $brands = \App\Models\Brand::where('status', 1)->whereNull('subscriber_id')->get();
+                                    }
+                                }
+                            @endphp
+                            
+                            @forelse($brands as $b)
+                                <a href="javascript:void(0)" onclick="selectBrand('{{ $b->slug }}')" class="btn btn-premium-outline text-start py-2 px-3 small-text d-flex justify-content-between align-items-center {{ $currentBrand == $b->slug ? 'border-primary text-primary fw-bold' : '' }}">
+                                    <span>{{ $b->name }}</span>
+                                    <i class="bi bi-chevron-right fs-6 opacity-50"></i>
+                                </a>
+                            @empty
+                                <div class="text-secondary small py-2 px-3 bg-light rounded-3 text-center">
+                                    No brand specifications.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+
                     <!-- Price Filter -->
                     <div class="mb-4">
                         <label class="small-text fw-bold text-uppercase text-secondary mb-3 d-block">Price Range (INR)</label>
@@ -110,13 +146,9 @@
             <div class="col-lg-9 col-12">
                 <!-- Sorting & Stats Bar -->
                 <div class="row align-items-center g-3 mb-4 animate-fade-in">
-                    <!-- Stats Text Column -->
-                    <div class="col-12 col-md-6 text-start">
-                        <h4 class="fw-bold mb-1 text-dark">Available blueprints</h4>
-                        <p class="text-secondary small mb-0">{{ $products->total() }} matching specifications verified</p>
-                    </div>
+                    <!-- Stats Text Column (Removed per request) -->
                     <!-- Controls Column -->
-                    <div class="col-12 col-md-6 d-flex gap-2 justify-content-start justify-content-md-end">
+                    <div class="col-12 d-flex gap-2 justify-content-start justify-content-md-end">
                         <!-- Mobile Offcanvas Trigger -->
                         <button class="btn btn-premium btn-premium-outline d-block d-md-none flex-fill py-2 px-3 m-0" data-bs-toggle="offcanvas" data-bs-target="#mobileFiltersOffcanvas" aria-controls="mobileFiltersOffcanvas">
                             <i class="bi bi-sliders"></i> Filters
@@ -142,7 +174,7 @@
                             <button class="btn btn-link text-primary text-decoration-none p-0 small fw-bold" onclick="resetFilters()">Reset</button>
                         </div>
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="small-text fw-bold text-secondary text-uppercase mb-2 d-block">Subcategories</label>
                                 <select class="form-select rounded-3 small-text p-2" id="tablet-sub-select">
                                     <option value="">All subcategories</option>
@@ -151,7 +183,16 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label class="small-text fw-bold text-secondary text-uppercase mb-2 d-block">Brands</label>
+                                <select class="form-select rounded-3 small-text p-2" id="tablet-brand-select">
+                                    <option value="">All brands</option>
+                                    @foreach($brands as $b)
+                                        <option value="{{ $b->slug }}" {{ (request()->query('brand') == $b->slug) ? 'selected' : '' }}>{{ $b->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="small-text fw-bold text-secondary text-uppercase mb-2 d-block">Price Range (INR)</label>
                                 <div class="row g-2">
                                     <div class="col-6">
@@ -192,6 +233,19 @@
                                     @foreach($subcategories as $sub)
                                         <a href="javascript:void(0)" onclick="selectSubcategory('{{ $sub->slug }}')" class="btn btn-premium-outline text-start py-2 px-3 small-text d-flex justify-content-between align-items-center {{ $currentSub == $sub->slug ? 'border-primary text-primary fw-bold' : '' }}">
                                             <span>{{ $sub->name }}</span>
+                                            <i class="bi bi-chevron-right fs-6 opacity-50"></i>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <!-- Brands Group -->
+                            <div class="mb-4">
+                                <label class="small-text fw-bold text-uppercase text-secondary mb-3 d-block">Brands</label>
+                                <div class="d-grid gap-2">
+                                    @foreach($brands as $b)
+                                        <a href="javascript:void(0)" onclick="selectBrand('{{ $b->slug }}')" class="btn btn-premium-outline text-start py-2 px-3 small-text d-flex justify-content-between align-items-center {{ $currentBrand == $b->slug ? 'border-primary text-primary fw-bold' : '' }}">
+                                            <span>{{ $b->name }}</span>
                                             <i class="bi bi-chevron-right fs-6 opacity-50"></i>
                                         </a>
                                     @endforeach
@@ -263,14 +317,14 @@
                                 </h6>
                                 
                                 <div class="product-meta mb-1">
-                                    <i class="bi bi-layers me-1 text-primary"></i> {{ $product->part_code ?: 'MOQ: 100 pcs' }}
+                                    <i class="bi bi-layers me-1 text-primary"></i> MOQ: {{ $product->moq ?? 100 }} pcs
                                 </div>
 
                                 <div class="product-price-val mb-3" style="font-size: 0.8rem !important; font-weight: 700 !important; color: var(--primary) !important;">
                                     @if($product->price)
                                         ₹{{ number_format($product->price, 2) }}
                                     @else
-                                        {{ $product->variant ?: 'On Request' }}
+                                        {{ $product->variant ?: '' }}
                                     @endif
                                 </div>
 
@@ -287,7 +341,13 @@
                             <h4 class="fw-bold mt-4 text-dark">No products match selection</h4>
                             <p class="text-secondary mx-auto" style="max-width: 350px;">We couldn't locate any product matching the active subcategory or price tiers.</p>
                             @if(isset($isSubscriberStore) && $isSubscriberStore)
-                                <a href="javascript:void(0)" onclick="resetFilters()" class="btn btn-premium btn-premium-primary mt-3">Reset Catalogue</a>
+                                <a href="javascript:void(0)" onclick="resetFilters()" class="btn btn-premium btn-premium-primary mt-3">
+                                    @if(isset($profile) && $profile->company_slug === 'demo')
+                                        Reset Demo
+                                    @else
+                                        Reset Catalogue
+                                    @endif
+                                </a>
                             @else
                                 <a href="{{ route('catalogue') }}" class="btn btn-premium btn-premium-primary mt-3">Reset Catalogue</a>
                             @endif
@@ -313,7 +373,7 @@
     .product-image-container img {
         width: 100% !important;
         height: 100% !important;
-        object-fit: cover !important;
+        object-fit: contain !important;
     }
 
     /* Desktop Sticky Sidebar styling to prevent overflowing footer & scroll internally */
@@ -418,7 +478,7 @@
             height: auto !important;
         }
         .product-image-container img {
-            object-fit: cover !important;
+            object-fit: contain !important;
         }
         .product-title {
             font-size: 0.85rem !important;
@@ -579,6 +639,17 @@
         }
     }
 
+    function selectBrand(slug) {
+        const url = new URL(window.location.href);
+        const currentBrand = url.searchParams.get('brand');
+        if (currentBrand === slug) {
+            // Toggle off brand if clicked again
+            window.location.href = buildFilterUrl({ brand: null });
+        } else {
+            window.location.href = buildFilterUrl({ brand: slug });
+        }
+    }
+
     // Desktop sidebar filter
     function applyB2BFilters() {
         const min = document.getElementById('filter-price-min').value;
@@ -593,10 +664,12 @@
     // Tablet collapsible filter
     function applyTabletFilters() {
         const sub = document.getElementById('tablet-sub-select').value;
+        const brand = document.getElementById('tablet-brand-select').value;
         const min = document.getElementById('tablet-price-min').value;
         const max = document.getElementById('tablet-price-max').value;
         window.location.href = buildFilterUrl({
             subcategory: sub || null,
+            brand: brand || null,
             min_price: min || null,
             max_price: max || null
         });

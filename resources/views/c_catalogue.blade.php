@@ -345,8 +345,17 @@
         <div class="container d-flex justify-content-between align-items-center">
             @php
                 $settings = \App\Models\Setting::first();
+                $isDemo = false;
+                if (isset($share->subscriber_id)) {
+                    $creator = \App\Models\User::find($share->subscriber_id);
+                    if ($creator && $creator->isDemo()) {
+                        $isDemo = true;
+                    }
+                }
+                $browseUrl = $isDemo ? url('/demo') : url('/catalogue');
+                $browseLabel = $isDemo ? 'Browse Demo' : 'Browse Catalogue';
             @endphp
-            <a href="{{ url('/catalogue') }}" class="d-flex align-items-center text-decoration-none">
+            <a href="{{ $browseUrl }}" class="d-flex align-items-center text-decoration-none">
                 @if($settings && $settings->logo)
                     <img src="{{ asset('uploads/settings/' . $settings->logo) }}" alt="{{ $settings->site_title ?? 'Catasky' }}" style="max-height: 38px; max-width: 120px; object-fit: contain;">
                 @else
@@ -358,8 +367,8 @@
                 <span class="analytics-badge d-none d-sm-inline-flex">
                     <i class="bi bi-check2-all"></i> Delivery Tracked
                 </span>
-                <a href="{{ url('/catalogue') }}" class="btn btn-sm btn-primary rounded-pill py-2 px-3 fw-bold" style="background:var(--primary-gradient);border:none;">
-                    <i class="bi bi-grid-fill me-1"></i><span class="d-none d-sm-inline">Browse Catalogue</span><span class="d-inline d-sm-none">Browse</span>
+                <a href="{{ $browseUrl }}" class="btn btn-sm btn-primary rounded-pill py-2 px-3 fw-bold" style="background:var(--primary-gradient);border:none;">
+                    <i class="bi bi-grid-fill me-1"></i><span class="d-none d-sm-inline">{{ $browseLabel }}</span><span class="d-inline d-sm-none">Browse</span>
                 </a>
                 <a href="tel:{{ preg_replace('/[^0-9+]/', '', $share->customer_phone ?? '+919871376205') }}" class="btn btn-sm btn-outline-secondary rounded-pill py-2 px-3 fw-bold">
                     <i class="bi bi-telephone-outbound me-1"></i><span class="d-none d-sm-inline">Call Support</span><span class="d-inline d-sm-none">Call</span>
@@ -417,14 +426,12 @@
                                     {{ $product->short_description ?? 'Corporate grade customisable item.' }}
                                 </p>
                                 <div class="moq-tag mb-1.5" style="font-size:0.74rem;">
-                                    <i class="bi bi-layers text-primary"></i> {{ $product->part_code ?: 'MOQ: 100 pcs' }}
+                                    <i class="bi bi-layers text-primary"></i> MOQ: {{ $product->moq ?? 100 }} pcs
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
                                     <div class="price-badge">
                                         @if($product->price)
                                             ₹{{ number_format($product->price, 2) }}
-                                        @else
-                                            <span style="font-size:0.8rem;font-weight:600;color:#6B7280;">On Request</span>
                                         @endif
                                     </div>
                                     <button

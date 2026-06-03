@@ -23,9 +23,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
-        // Implicitly grant "Super Admin" role all permissions and dynamically map permissions for other roles
+        // Implicitly grant "Super Admin" and "Admin" roles all permissions and dynamically map permissions for other roles
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
-            if ($user->hasRole('Super Admin')) {
+            if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
                 return true;
             }
 

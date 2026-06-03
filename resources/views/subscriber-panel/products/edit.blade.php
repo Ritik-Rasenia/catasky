@@ -371,11 +371,22 @@
                                 <p class="small text-muted mb-0 mt-1">Click to replace thumbnail</p>
                                 <input type="file" name="thumbnail" class="d-none" accept="image/*" id="thumbnail-input" onchange="previewThumbnail(event)">
                             </div>
-                            <div id="thumbnail-preview" class="text-center">
+                            <div id="thumbnail-preview" class="text-center mt-2">
+                                <input type="hidden" name="remove_thumbnail" id="remove-thumbnail-input" value="0">
                                 @if($product->thumbnail)
-                                    <img id="thumb-img" src="{{ $product->thumbnail_url }}" alt="Thumbnail" style="max-height:110px;border-radius:10px;object-fit:cover;" class="p-1 bg-white border">
+                                    <div id="thumb-container">
+                                        <img id="thumb-img" src="{{ $product->thumbnail_url }}" alt="Thumbnail" style="max-height:110px;border-radius:10px;object-fit:cover;" class="p-1 bg-white border mb-2">
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearThumbnail()">Remove Image</button>
+                                        </div>
+                                    </div>
                                 @else
-                                    <img id="thumb-img" src="" alt="Thumbnail" style="max-height:110px;border-radius:10px;object-fit:cover;display:none;" class="p-1 bg-white border">
+                                    <div id="thumb-container" style="display:none;">
+                                        <img id="thumb-img" src="" alt="Thumbnail" style="max-height:110px;border-radius:10px;object-fit:cover;" class="p-1 bg-white border mb-2">
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearThumbnail()">Remove Image</button>
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -484,18 +495,43 @@
         if (file) {
             const img = document.getElementById('thumb-img');
             img.src = URL.createObjectURL(file);
-            img.style.display = 'block';
+            document.getElementById('thumb-container').style.display = 'block';
+            document.getElementById('remove-thumbnail-input').value = '0';
         }
     }
+
+    function clearThumbnail() {
+        document.getElementById('thumbnail-input').value = '';
+        document.getElementById('thumb-img').src = '';
+        document.getElementById('thumb-container').style.display = 'none';
+        document.getElementById('remove-thumbnail-input').value = '1';
+    }
+    let galleryFiles = [];
+
     function previewImages(e) {
+        galleryFiles = galleryFiles.concat(Array.from(e.target.files));
+        renderGalleryPreview();
+    }
+
+    function removeGalleryFile(index) {
+        galleryFiles.splice(index, 1);
+        renderGalleryPreview();
+    }
+
+    function renderGalleryPreview() {
         const container = document.getElementById('gallery-preview');
+        const input = document.getElementById('gallery-input');
+        const dt = new DataTransfer();
         container.innerHTML = '';
-        Array.from(e.target.files).forEach(file => {
+        galleryFiles.forEach((file, index) => {
+            dt.items.add(file);
             const wrapper = document.createElement('div');
             wrapper.style.cssText = 'position:relative;height:70px;width:70px;';
-            wrapper.innerHTML = `<img src="${URL.createObjectURL(file)}" style="height:70px;width:70px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">`;
+            wrapper.innerHTML = `<img src="${URL.createObjectURL(file)}" style="height:70px;width:70px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">
+                <button type="button" onclick="removeGalleryFile(${index})" style="position:absolute;top:4px;right:4px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;cursor:pointer;"><i class="bi bi-x"></i></button>`;
             container.appendChild(wrapper);
         });
+        input.files = dt.files;
     }
 
     // Delete gallery image

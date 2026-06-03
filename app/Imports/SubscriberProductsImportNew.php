@@ -61,23 +61,37 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         $user = \App\Models\User::find($this->subscriberId);
         $sub = $user?->activeSubscription();
         $limit = $sub?->plan?->product_limit ?? 1000;
-        $currCount = SubscriberProduct::where('user_id', $this->subscriberId)->count();
+        $currCount = SubscriberProduct::whereNull('deleted_at')
+            ->where('user_id', $this->subscriberId)
+            ->count();
         if ($currCount >= $limit) {
             $this->logFailedRow($rowIndex, $sku, $name, "Subscription limit reached. Your plan allows max {$limit} products.", $data);
             return;
         }
  
-        // Duplicate SKU checking in subscriber workspace
+        // Duplicate product checking in subscriber workspace
         if ($sku !== '') {
-            $existingProduct = SubscriberProduct::where('user_id', $this->subscriberId)
-                ->where('sku', $sku)
+            $existingProduct = SubscriberProduct::whereNull('deleted_at')
+                ->where('user_id', $this->subscriberId)
+                ->where(function ($query) use ($sku, $name) {
+                    $query->where('sku', $sku)
+                        ->orWhere('name', $name);
+                })
                 ->first();
-            if ($existingProduct && strcasecmp($existingProduct->name, $name) !== 0) {
-                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate SKU: '{$sku}' already exists in your catalogue.", $data);
+            if ($existingProduct) {
+                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' or SKU '{$sku}' already exists in your catalogue.", $data);
                 return;
             }
         } else {
             $sku = 'SKU-' . strtoupper(Str::random(10));
+            $existingProduct = SubscriberProduct::whereNull('deleted_at')
+                ->where('user_id', $this->subscriberId)
+                ->where('name', $name)
+                ->first();
+            if ($existingProduct) {
+                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' already exists in your catalogue.", $data);
+                return;
+            }
         }
  
         // Resolve categories
@@ -141,12 +155,12 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         }
         $slug = $this->uniqueSlug($slug, $sku);
 
-        // Handle Thumbnail: Column L (Featured Image)
+        // Handle Thumbnail: Column P (Featured Image)
         $thumbnail = null;
         $thumbWarning = null;
 
         // Try pre-extracted cell drawing first
-        $extractedDrawingPath = $this->getExtractedDrawing($rowIndex, 'L');
+        $extractedDrawingPath = $this->getExtractedDrawing($rowIndex, 'P');
         if ($extractedDrawingPath) {
             $thumbnail = $this->copyDrawingToFinal($extractedDrawingPath, $slug, 'thumbnail');
         } else {
@@ -173,7 +187,12 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         // Parse fields
         $mrp = $this->parseNumeric($this->getCell($data, 'mrp'));
         $offerPrice = $this->parseNumeric($this->getCell($data, 'offer_price', 'price'));
+        $moq = (int)$this->parseNumeric($this->getCell($data, 'moq'), 1);
         $stock = (int)$this->parseNumeric($this->getCell($data, 'stock_quantity', 'stock'), 0);
+        $stockStatus = trim($this->getCell($data, 'stock_status'));
+        if ($stockStatus === '') {
+            $stockStatus = $stock > 0 ? 'in_stock' : 'out_of_stock';
+        }
         $status = $this->parseStatus($this->getCell($data, 'status'));
         $featured = $this->parseBool($this->getCell($data, 'featured'));
 
@@ -181,9 +200,11 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         $fullDesc = trim($this->getCell($data, 'full_description', 'description'));
         $tagsStr = trim($this->getCell($data, 'tags'));
         $tagsArray = $tagsStr !== '' ? array_map('trim', explode(',', $tagsStr)) : null;
+        $metaTitle = trim($this->getCell($data, 'meta_title'));
+        $metaDescription = trim($this->getCell($data, 'meta_description'));
 
         try {
-            DB::transaction(function () use ($name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $mrp, $offerPrice, $stock, $shortDesc, $fullDesc, $thumbnail, $status, $featured, $tagsArray, $rowIndex, $data) {
+            DB::transaction(function () use ($name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $firstCategoryId, $mrp, $offerPrice, $moq, $stock, $stockStatus, $shortDesc, $fullDesc, $thumbnail, $status, $featured, $tagsArray, $metaTitle, $metaDescription, $rowIndex, $data) {
                 // Create Subscriber Product
                 $product = SubscriberProduct::create([
                     'user_id'           => $this->subscriberId,
@@ -195,12 +216,18 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                     'sku'               => $sku,
                     'mrp'               => $mrp > 0 ? $mrp : null,
                     'offer_price'       => $offerPrice > 0 ? $offerPrice : null,
+                    'price'             => $offerPrice > 0 ? $offerPrice : ($mrp > 0 ? $mrp : 0.00),
+                    'moq'               => $moq,
+                    'stock'             => $stock,
+                    'stock_status'      => $stockStatus,
                     'thumbnail'         => $thumbnail,
                     'short_description' => $shortDesc,
                     'full_description'  => $fullDesc,
                     'tags'              => $tagsArray,
                     'featured'          => $featured,
                     'status'            => $status,
+                    'meta_title'        => $metaTitle ?: null,
+                    'meta_description'  => $metaDescription ?: null,
                     'approval_status'   => 'approved', // Auto-approved for B2B subscriber
                 ]);
 
@@ -212,9 +239,9 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                     'stock'                 => $stock,
                     'status'                => true,
                 ]);
- 
+
                 // Save dynamic attributes (PIM attributes mapped to subcategory first, falling back to category)
-                $subcatIdToUse = $this->subcategoryId ?: ($subcategory?->id);
+                $subcatIdToUse = $this->subcategoryId ?: ($subcategoryIds[0] ?? null);
                 $attributes = collect();
                 if ($subcatIdToUse) {
                     $subcatAttrs = \App\Models\SubcategoryAttribute::where('subcategory_id', $subcatIdToUse)
@@ -226,7 +253,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                 }
                 
                 if ($attributes->isEmpty()) {
-                    $categoryAttributes = \App\Models\CategoryAttribute::where('category_id', $category->id)
+                    $categoryAttributes = \App\Models\CategoryAttribute::where('category_id', $firstCategoryId)
                         ->with('attribute')
                         ->get();
                     $attributes = $categoryAttributes->pluck('attribute')->filter();
@@ -251,10 +278,10 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                         ]);
                     }
                 }
- 
-                // Handle Gallery Images (Columns M, N, O)
+
+                // Handle Gallery Images (Columns Q, R, S)
                 $galleryImages = [];
-                foreach (['M', 'N', 'O'] as $colIndex => $colLetter) {
+                foreach (['Q', 'R', 'S'] as $colIndex => $colLetter) {
                     $drawingPath = $this->getExtractedDrawing($rowIndex, $colLetter);
                     if ($drawingPath) {
                         $stored = $this->copyDrawingToFinal($drawingPath, $slug, 'gallery_' . ($colIndex + 1));
@@ -263,7 +290,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                         }
                     }
                 }
- 
+
                 // Fallback to gallery URLs
                 foreach (['gallery_image_1', 'gallery_image_2', 'gallery_image_3'] as $colIndex => $key) {
                     $url = trim($this->getCell($data, $key));
@@ -278,7 +305,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                         }
                     }
                 }
- 
+
                 if (!empty($galleryImages)) {
                     foreach ($galleryImages as $index => $gImg) {
                         SubscriberProductImage::create([
@@ -316,6 +343,13 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
  
         if ($matches && count($matches) > 0) {
             return $matches[0];
+        }
+
+        $pattern2 = $dir . DIRECTORY_SEPARATOR . "cell_{$colLetter}{$rowIndex}.*";
+        $matches2 = glob($pattern2);
+
+        if ($matches2 && count($matches2) > 0) {
+            return $matches2[0];
         }
  
         return null;
@@ -402,9 +436,14 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         if (array_key_exists($key, $this->categoryCache)) {
             return $this->categoryCache[$key];
         }
-        $cat = Category::whereRaw('LOWER(name) = ?', [$key])->first();
+        $cat = Category::withoutGlobalScope('tenant')
+            ->whereNull('deleted_at')
+            ->where('subscriber_id', $this->subscriberId)
+            ->whereRaw('LOWER(name) = ?', [$key])
+            ->first();
         if (!$cat) {
             $cat = Category::create([
+                'subscriber_id' => $this->subscriberId,
                 'name'   => $name,
                 'slug'   => Str::slug($name),
                 'status' => 1
@@ -420,11 +459,15 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         if (array_key_exists($key, $this->subcategoryCache)) {
             return $this->subcategoryCache[$key];
         }
-        $sub = Subcategory::where('category_id', $categoryId)
+        $sub = Subcategory::withoutGlobalScope('tenant')
+            ->whereNull('deleted_at')
+            ->where('subscriber_id', $this->subscriberId)
+            ->where('category_id', $categoryId)
             ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
             ->first();
         if (!$sub) {
             $sub = Subcategory::create([
+                'subscriber_id' => $this->subscriberId,
                 'category_id' => $categoryId,
                 'name'        => $name,
                 'slug'        => Str::slug($name),
@@ -478,7 +521,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
     {
         $slug = $base;
         $i = 2;
-        while (SubscriberProduct::where('slug', $slug)->where('sku', '!=', $sku)->exists()) {
+        while (SubscriberProduct::whereNull('deleted_at')->where('user_id', $this->subscriberId)->where('slug', $slug)->where('sku', '!=', $sku)->exists()) {
             $slug = $base . '-' . $i;
             $i++;
         }
@@ -534,9 +577,14 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         if (array_key_exists($key, $this->brandCache)) {
             return $this->brandCache[$key];
         }
-        $brand = \App\Models\Brand::whereRaw('LOWER(name) = ?', [$key])->first();
+        $brand = \App\Models\Brand::withoutGlobalScope('tenant')
+            ->whereNull('deleted_at')
+            ->where('subscriber_id', $this->subscriberId)
+            ->whereRaw('LOWER(name) = ?', [$key])
+            ->first();
         if (!$brand) {
             $brand = \App\Models\Brand::create([
+                'subscriber_id' => $this->subscriberId,
                 'name' => $name,
                 'slug' => Str::slug($name),
                 'status' => 1

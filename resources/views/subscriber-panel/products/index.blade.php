@@ -19,6 +19,8 @@
             <p class="text-muted">Catalogue of all products, inventory, and specifications.</p>
         </div>
         <div class="col-md-6 text-md-end">
+            <div class="d-flex justify-content-md-end gap-2 flex-wrap">
+                @can('manage-subscriber-products')
                 <a href="{{ route('subscriber.products.import') }}" class="btn btn-white">
                     <i class="fa-solid fa-file-import text-primary"></i>
                     <span>Import</span>
@@ -30,6 +32,8 @@
                 <a href="{{ route('subscriber.products.create') }}" class="btn btn-primary">
                     <i class="fa-solid fa-plus"></i>Add Product
                 </a>
+                @endcan
+            </div>
         </div>
     </div>
  

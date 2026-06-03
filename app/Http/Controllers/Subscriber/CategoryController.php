@@ -151,7 +151,8 @@ class CategoryController extends Controller
             'name' => 'required',
         ]);
 
-        $exists = Category::where('subscriber_id', auth()->id())
+        $exists = Category::whereNull('deleted_at')
+            ->where('subscriber_id', auth()->id())
             ->where('name', $request->name)
             ->first();
             

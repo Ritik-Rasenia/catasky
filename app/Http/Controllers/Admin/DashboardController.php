@@ -162,11 +162,20 @@ class DashboardController extends Controller
         $productsCount     = $this->applyDateFilter(Product::query(), $filter)->count();
         $usersCount        = $this->applyDateFilter(User::query(), $filter)->count();
         $rolesCount        = Role::count();
-        $enquiriesCount    = $this->applyDateFilter(Enquiry::query(), $filter)->count();
+        $enquiriesQuery = Enquiry::query();
+        if ($user->isDemo()) {
+            $enquiriesQuery->whereNull('subscriber_product_id');
+        }
+        $enquiriesCount    = $this->applyDateFilter($enquiriesQuery, $filter)->count();
 
         $recentProducts  = Product::latest()->take(5)->get();
         $recentUsers     = User::latest()->take(5)->get();
-        $recentEnquiries = Enquiry::with(['product', 'brand', 'subscriberProduct'])->latest()->take(5)->get();
+
+        $recentEnquiriesQuery = Enquiry::with(['product', 'brand', 'subscriberProduct']);
+        if ($user->isDemo()) {
+            $recentEnquiriesQuery->whereNull('subscriber_product_id');
+        }
+        $recentEnquiries = $recentEnquiriesQuery->latest()->take(5)->get();
 
         // ── Permission flags ─────────────────────────────────────
         $dashboardAccess = [
@@ -211,7 +220,9 @@ class DashboardController extends Controller
         }), $filter)->count();
 
         // ── Top catalogue products by share-link views (real) ────
-        $topProductsQuery = SubscriberProduct::where('approval_status', 'approved')
+        $isDemo = $user && $user->isDemo();
+
+        $topProductsQuery = $isDemo ? collect() : SubscriberProduct::where('approval_status', 'approved')
             ->withCount(['shareLinks as total_views' => function ($q) use ($filter) {
                 $q->select(DB::raw('COALESCE(SUM(view_count),0)'));
                 $this->applyDateFilter($q, $filter);

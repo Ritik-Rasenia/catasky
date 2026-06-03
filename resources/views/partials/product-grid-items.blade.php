@@ -89,7 +89,7 @@
                         @endif
                     @else
                         <div class="product-price-val text-secondary fw-semibold" style="font-size: 0.85rem;">
-                            {{ $product->variant ?: 'On Request' }}
+                            {{ $product->variant ?: '' }}
                         </div>
                     @endif
                 </div>

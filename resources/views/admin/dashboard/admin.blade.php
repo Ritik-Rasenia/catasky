@@ -24,6 +24,17 @@
             <p class="text-muted mb-0 small">Real-time performance metrics and catalogue engagement statistics.</p>
         </div>
         <div class="col-sm-auto d-flex align-items-center gap-2">
+            @can('import-products')
+            <a href="{{ route('admin.products.import') }}" class="btn btn-sm btn-white border rounded-pill px-3 d-flex align-items-center gap-1" style="height: 36px; font-size: 0.8rem;">
+                <i class="bi bi-file-earmark-arrow-up text-primary"></i> Import
+            </a>
+            @endcan
+            @can('export-products')
+            <a href="{{ route('admin.products.export') }}" class="btn btn-sm btn-white border rounded-pill px-3 d-flex align-items-center gap-1" style="height: 36px; font-size: 0.8rem;">
+                <i class="bi bi-file-earmark-spreadsheet text-success"></i> Export
+            </a>
+            @endcan
+
             <form method="GET" id="filterForm" class="d-inline-block m-0">
                 <select name="filter" class="form-select form-select-sm border shadow-sm rounded-pill px-3" onchange="this.form.submit()" style="background-color: var(--surface-color); color: var(--text-primary); font-size: 0.8rem; height: 36px; min-width: 140px; cursor: pointer; border-color: var(--border) !important;">
                     <option value="all_time" {{ $currentFilter === 'all_time' ? 'selected' : '' }}>All Time</option>

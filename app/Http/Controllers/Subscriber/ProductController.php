@@ -10,6 +10,7 @@ use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\Subcategory;
 use App\Models\SubscriberActivityLog;
+use App\Models\ProductImportLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -56,19 +57,27 @@ class ProductController extends Controller
         $request->validate([
             'name'              => [
                 'required', 'string', 'max:255',
-                \Illuminate\Validation\Rule::unique('subscriber_products', 'name')->where('user_id', auth()->id())->whereNull('deleted_at')
+                \Illuminate\Validation\Rule::unique('subscriber_products', 'name')
+                    ->where(fn ($query) => $query->where('user_id', auth()->id())->whereNull('deleted_at'))
             ],
             'sku'               => [
                 'required', 'string', 'max:255',
-                \Illuminate\Validation\Rule::unique('subscriber_products', 'sku')->where('user_id', auth()->id())->whereNull('deleted_at')
+                \Illuminate\Validation\Rule::unique('subscriber_products', 'sku')
+                    ->where(fn ($query) => $query->where('user_id', auth()->id())->whereNull('deleted_at'))
             ],
             'category_id'       => 'nullable|array',
-            'category_id.*'     => 'exists:categories,id',
+            'category_id.*'     => [
+                \Illuminate\Validation\Rule::exists('categories', 'id')->where('subscriber_id', auth()->id()),
+            ],
             'subcategory_id'    => 'nullable|array',
-            'subcategory_id.*'  => 'exists:subcategories,id',
+            'subcategory_id.*'  => [
+                \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('subscriber_id', auth()->id()),
+            ],
             'child_category_id' => 'nullable|exists:child_categories,id',
             'brand_id'          => 'nullable|array',
-            'brand_id.*'        => 'exists:brands,id',
+            'brand_id.*'        => [
+                \Illuminate\Validation\Rule::exists('brands', 'id')->where('subscriber_id', auth()->id()),
+            ],
             'status'            => 'nullable|in:active,inactive,draft',
             'mrp'               => 'nullable|numeric|min:0',
             'offer_price'       => 'nullable|numeric|min:0',
@@ -85,6 +94,15 @@ class ProductController extends Controller
         ]);
 
         $user = auth()->user();
+
+        if ($duplicate = $this->findDuplicateForSubscriber($user->id, $request->input('name'), $request->input('sku'))) {
+            $field = strcasecmp(trim($duplicate->name), trim($request->input('name'))) === 0 ? 'name' : 'sku';
+
+            return back()
+                ->withErrors([$field => "Product '{$duplicate->name}' already exists in your catalogue."])
+                ->withInput();
+        }
+
         $data = $request->except(['_token', 'thumbnail', 'images', 'attributes']);
         $data['user_id'] = $user->id;
         $data['slug'] = Str::slug($request->name) . '-' . Str::random(6);
@@ -183,23 +201,27 @@ class ProductController extends Controller
                 'required', 'string', 'max:255',
                 \Illuminate\Validation\Rule::unique('subscriber_products', 'name')
                     ->ignore($product->id)
-                    ->where('user_id', auth()->id())
-                    ->whereNull('deleted_at')
+                    ->where(fn ($query) => $query->where('user_id', auth()->id())->whereNull('deleted_at'))
             ],
             'sku'               => [
                 'required', 'string', 'max:255',
                 \Illuminate\Validation\Rule::unique('subscriber_products', 'sku')
                     ->ignore($product->id)
-                    ->where('user_id', auth()->id())
-                    ->whereNull('deleted_at')
+                    ->where(fn ($query) => $query->where('user_id', auth()->id())->whereNull('deleted_at'))
             ],
             'category_id'       => 'nullable|array',
-            'category_id.*'     => 'exists:categories,id',
+            'category_id.*'     => [
+                \Illuminate\Validation\Rule::exists('categories', 'id')->where('subscriber_id', auth()->id()),
+            ],
             'subcategory_id'    => 'nullable|array',
-            'subcategory_id.*'  => 'exists:subcategories,id',
+            'subcategory_id.*'  => [
+                \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('subscriber_id', auth()->id()),
+            ],
             'child_category_id' => 'nullable|exists:child_categories,id',
             'brand_id'          => 'nullable|array',
-            'brand_id.*'        => 'exists:brands,id',
+            'brand_id.*'        => [
+                \Illuminate\Validation\Rule::exists('brands', 'id')->where('subscriber_id', auth()->id()),
+            ],
             'status'            => 'nullable|in:active,inactive,draft',
             'mrp'               => 'nullable|numeric|min:0',
             'offer_price'       => 'nullable|numeric|min:0',
@@ -214,6 +236,14 @@ class ProductController extends Controller
             'thumbnail'         => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'images.*'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+
+        if ($duplicate = $this->findDuplicateForSubscriber(auth()->id(), $request->input('name'), $request->input('sku'), $product->id)) {
+            $field = strcasecmp(trim($duplicate->name), trim($request->input('name'))) === 0 ? 'name' : 'sku';
+
+            return back()
+                ->withErrors([$field => "Product '{$duplicate->name}' already exists in your catalogue."])
+                ->withInput();
+        }
 
         $data = $request->except(['_token', '_method', 'thumbnail', 'images', 'attributes']);
         $data['tags'] = $request->tags ? array_map('trim', explode(',', $request->tags)) : null;
@@ -241,7 +271,13 @@ class ProductController extends Controller
         $data['share_show_description'] = $request->boolean('share_show_description');
         $data['share_show_attributes'] = $request->boolean('share_show_attributes');
 
+        if ($request->boolean('remove_thumbnail')) {
+            $this->deleteSubscriberProductFile($product->thumbnail);
+            $data['thumbnail'] = null;
+        }
+
         if ($request->hasFile('thumbnail')) {
+            $this->deleteSubscriberProductFile($product->thumbnail);
             $data['thumbnail'] = $this->uploadImage($request->file('thumbnail'), 'subscriber-products');
         }
 
@@ -275,6 +311,11 @@ class ProductController extends Controller
     {
         $this->authorizeSubscriberProduct($product);
         SubscriberActivityLog::log('deleted', 'Deleted product: ' . $product->name, $product);
+        $this->deleteSubscriberProductFile($product->thumbnail);
+        foreach ($product->images as $image) {
+            $this->deleteSubscriberProductFile($image->image_path);
+            $image->delete();
+        }
         $product->delete();
         return back()->with('success', 'Product deleted.');
     }
@@ -285,6 +326,7 @@ class ProductController extends Controller
         if ($image->product->user_id !== auth()->id()) {
             abort(403);
         }
+        $this->deleteSubscriberProductFile($image->image_path);
         $image->delete();
         return response()->json(['success' => true]);
     }
@@ -298,11 +340,45 @@ class ProductController extends Controller
         }
     }
 
+    private function findDuplicateForSubscriber(int $userId, ?string $name, ?string $sku, ?int $ignoreId = null): ?SubscriberProduct
+    {
+        $name = trim((string) $name);
+        $sku = trim((string) $sku);
+
+        return SubscriberProduct::whereNull('deleted_at')
+            ->where('user_id', $userId)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->where(function ($query) use ($name, $sku) {
+                $query->whereRaw('LOWER(name) = ?', [strtolower($name)]);
+
+                if ($sku !== '') {
+                    $query->orWhereRaw('LOWER(sku) = ?', [strtolower($sku)]);
+                }
+            })
+            ->first();
+    }
+
     private function uploadImage($file, string $folder): string
     {
         $filename = Str::random(20) . '.' . $file->getClientOriginalExtension();
         $file->move(public_path('uploads/' . $folder), $filename);
         return $filename;
+    }
+
+    private function deleteSubscriberProductFile(?string $filename): void
+    {
+        if (! $filename || filter_var($filename, FILTER_VALIDATE_URL)) {
+            return;
+        }
+
+        $relative = str_starts_with($filename, 'uploads/')
+            ? $filename
+            : 'uploads/subscriber-products/' . $filename;
+        $path = public_path($relative);
+
+        if (is_file($path)) {
+            @unlink($path);
+        }
     }
 
     private function saveAttributeValues(SubscriberProduct $product, Request $request): void
@@ -559,7 +635,7 @@ class ProductController extends Controller
         $fileName = 'import_' . \Illuminate\Support\Str::random(10) . '.' . $extension;
         $file->storeAs('imports/temp', $fileName, 'local');
         $storedFilePath = 'imports/temp/' . $fileName;
-        $absoluteFilePath = storage_path('app/' . $storedFilePath);
+        $absoluteFilePath = \Illuminate\Support\Facades\Storage::disk('local')->path($storedFilePath);
  
         $extractedImages = [];
         if ($extension === 'xlsx') {
@@ -593,7 +669,9 @@ class ProductController extends Controller
         $user = auth()->user();
         $sub = $user?->activeSubscription();
         $limit = $sub?->plan?->product_limit ?? 1000;
-        $currCount = SubscriberProduct::where('user_id', $user->id)->count();
+        $currCount = SubscriberProduct::whereNull('deleted_at')
+            ->where('user_id', $user->id)
+            ->count();
  
         $firstRow = true;
         foreach ($rows as $rowIndex => $row) {
@@ -612,31 +690,37 @@ class ProductController extends Controller
             $name = trim($row['A'] ?? '');
             $sku = trim($row['B'] ?? '');
             $slug = trim($row['C'] ?? '');
-            $category = trim($row['D'] ?? '');
-            $subcategory = trim($row['E'] ?? '');
-            $mrpVal = trim($row['F'] ?? '');
-            $offerPriceVal = trim($row['G'] ?? '');
-            $shortDesc = trim($row['H'] ?? '');
-            $fullDesc = trim($row['I'] ?? '');
-            $statusVal = trim($row['J'] ?? '');
-            $featuredVal = trim($row['K'] ?? '');
-            $featuredImageVal = trim($row['L'] ?? '');
-            $gallery1Val = trim($row['M'] ?? '');
-            $gallery2Val = trim($row['N'] ?? '');
-            $gallery3Val = trim($row['O'] ?? '');
-            $tags = trim($row['P'] ?? '');
+            $brand = trim($row['D'] ?? '');
+            $category = trim($row['E'] ?? '');
+            $subcategory = trim($row['F'] ?? '');
+            $mrpVal = trim($row['G'] ?? '');
+            $offerPriceVal = trim($row['H'] ?? '');
+            $moqVal = trim($row['I'] ?? '');
+            $stockVal = trim($row['J'] ?? '');
+            $stockStatusVal = trim($row['K'] ?? '');
+            $shortDesc = trim($row['L'] ?? '');
+            $fullDesc = trim($row['M'] ?? '');
+            $statusVal = trim($row['N'] ?? '');
+            $featuredVal = trim($row['O'] ?? '');
+            $featuredImageVal = trim($row['P'] ?? '');
+            $gallery1Val = trim($row['Q'] ?? '');
+            $gallery2Val = trim($row['R'] ?? '');
+            $gallery3Val = trim($row['S'] ?? '');
+            $tags = trim($row['T'] ?? '');
+            $metaTitle = trim($row['U'] ?? '');
+            $metaDescription = trim($row['V'] ?? '');
  
             // Row drawing checks (Embedded cell images)
             $featuredImageSrc = '';
-            if (isset($extractedImages["L_{$rowIndex}"])) {
-                $featuredImageSrc = asset('storage/' . $tempDirName . '/' . $extractedImages["L_{$rowIndex}"]);
+            if (isset($extractedImages["P_{$rowIndex}"])) {
+                $featuredImageSrc = asset('storage/' . $tempDirName . '/' . $extractedImages["P_{$rowIndex}"]);
             } elseif ($featuredImageVal !== '') {
                 $featuredImageSrc = $featuredImageVal;
             }
  
             // Gallery images preview sources
             $gallerySrcs = [];
-            foreach (['M', 'N', 'O'] as $col) {
+            foreach (['Q', 'R', 'S'] as $col) {
                 if (isset($extractedImages["{$col}_{$rowIndex}"])) {
                     $gallerySrcs[] = asset('storage/' . $tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
                 }
@@ -659,10 +743,18 @@ class ProductController extends Controller
             }
  
             if ($sku !== '') {
-                $exists = SubscriberProduct::where('user_id', $user->id)->where('sku', $sku)->first();
-                if ($exists && strcasecmp($exists->name, $name) !== 0) {
-                    $errors[] = "SKU '{$sku}' already exists for product: '{$exists->name}'.";
+                $exists = SubscriberProduct::whereNull('deleted_at')
+                    ->where('user_id', $user->id)
+                    ->where(function ($query) use ($sku, $name) {
+                        $query->where('sku', $sku)
+                            ->orWhere('name', $name);
+                    })
+                    ->first();
+                if ($exists) {
+                    $errors[] = "Product name or SKU already exists for product: '{$exists->name}'.";
                 }
+            } elseif ($name !== '' && SubscriberProduct::whereNull('deleted_at')->where('user_id', $user->id)->where('name', $name)->exists()) {
+                $errors[] = "Product '{$name}' already exists.";
             }
  
             $mrp = null;
@@ -684,6 +776,26 @@ class ProductController extends Controller
                     $offerPrice = (float)$opClean;
                 }
             }
+
+            $moq = 1;
+            if ($moqVal !== '') {
+                $moqClean = preg_replace('/[^0-9]/', '', $moqVal);
+                if (!is_numeric($moqClean)) {
+                    $errors[] = 'MOQ must be an integer.';
+                } else {
+                    $moq = (int)$moqClean;
+                }
+            }
+
+            $stock = 0;
+            if ($stockVal !== '') {
+                $stockClean = preg_replace('/[^0-9]/', '', $stockVal);
+                if (!is_numeric($stockClean)) {
+                    $errors[] = 'Stock Quantity must be an integer.';
+                } else {
+                    $stock = (int)$stockClean;
+                }
+            }
  
             $hasError = count($errors) > 0;
             $summary['total']++;
@@ -698,23 +810,30 @@ class ProductController extends Controller
                 'name' => $name,
                 'sku' => $sku,
                 'slug' => $slug ?: \Illuminate\Support\Str::slug($name),
-                'brand' => '',
+                'brand' => $brand,
                 'category' => $category,
                 'subcategory' => $subcategory,
+                'mrp' => $mrp,
+                'offer_price' => $offerPrice,
                 'price' => $offerPrice ?: $mrp,
                 'discount_price' => $offerPrice,
+                'moq' => $moq,
+                'stock' => $stock,
+                'stock_status' => $stockStatusVal,
                 'tax_type' => '',
                 'tax_percentage' => null,
-                'stock' => 0,
                 'weight' => '',
                 'short_description' => $shortDesc,
                 'full_description' => $fullDesc,
                 'status' => $statusVal,
+                'featured' => $featuredVal,
                 'featured_image' => $featuredImageSrc,
                 'gallery_images' => $gallerySrcs,
                 'colors' => '',
                 'sizes' => '',
                 'tags' => $tags,
+                'meta_title' => $metaTitle,
+                'meta_description' => $metaDescription,
                 'errors' => $errors,
                 'is_valid' => !$hasError,
             ];
@@ -748,6 +867,8 @@ class ProductController extends Controller
  
         // Create import log
         $log = ProductImportLog::create([
+            'user_id' => auth()->id(),
+            'scope' => 'subscriber',
             'filename' => basename($storedFilePath),
             'status' => 'pending',
             'errors' => [],
@@ -779,10 +900,22 @@ class ProductController extends Controller
  
         // Automatically start a background worker to process the job
         $artisanPath = base_path('artisan');
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            pclose(popen("start /B php \"$artisanPath\" queue:work --stop-when-empty", "r"));
-        } else {
-            exec("php \"$artisanPath\" queue:work --stop-when-empty > /dev/null 2>&1 &");
+        try {
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                if (function_exists('popen')) {
+                    @pclose(@popen("start /B php \"$artisanPath\" queue:work --stop-when-empty", "r"));
+                } else {
+                    \Illuminate\Support\Facades\Artisan::call('queue:work', ['--stop-when-empty' => true]);
+                }
+            } else {
+                if (function_exists('exec')) {
+                    @exec("php \"$artisanPath\" queue:work --stop-when-empty > /dev/null 2>&1 &");
+                } else {
+                    \Illuminate\Support\Facades\Artisan::call('queue:work', ['--stop-when-empty' => true]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Artisan queue worker failed to start: ' . $e->getMessage());
         }
  
         return response()->json([
@@ -793,7 +926,7 @@ class ProductController extends Controller
  
     public function importStatus(string $id)
     {
-        $log = ProductImportLog::findOrFail($id);
+        $log = $this->importLogQuery()->findOrFail($id);
         $processed = $log->imported_rows + $log->skipped_rows + ($log->failed_rows ?? 0);
         $percent = $log->total_rows > 0
             ? (int) min(100, round(($processed / $log->total_rows) * 100))
@@ -817,13 +950,13 @@ class ProductController extends Controller
  
     public function importLogs()
     {
-        $logs = ProductImportLog::latest()->paginate(15);
+        $logs = $this->importLogQuery()->latest()->paginate(15);
         return view('subscriber-panel.products.import_logs', compact('logs'));
     }
- 
+
     public function importLogShow($id)
     {
-        $log = ProductImportLog::findOrFail($id);
+        $log = $this->importLogQuery()->findOrFail($id);
         return view('subscriber-panel.products.import_log_show', compact('log'));
     }
  
@@ -836,10 +969,14 @@ class ProductController extends Controller
             'Product Name',
             'SKU',
             'Slug',
+            'Brand',
             'Category',
             'Subcategory',
             'MRP',
             'Offer Price',
+            'MOQ',
+            'Stock Quantity',
+            'Stock Status',
             'Short Description',
             'Full Description',
             'Status',
@@ -849,31 +986,257 @@ class ProductController extends Controller
             'Gallery Image 2',
             'Gallery Image 3',
             'Tags',
+            'Meta Title',
+            'Meta Description',
         ];
  
-        $sample = [
-            'Premium Smart Switch',
-            'SMART-SW-001',
-            'premium-smart-switch',
-            'Home Automation',
-            'Smart Switches',
-            2499.00,
-            1999.00,
-            'Sleek, touch-sensitive smart switch with Wi-Fi control.',
-            'Upgrade your home lighting with the Premium Smart Switch. Features glass panel, LED backlit touch buttons, remote control via mobile app, and integration with Alexa & Google Assistant.',
-            'active',
-            'yes',
-            'paste_image_or_url_here',
-            '',
-            '',
-            '',
-            'smart home, switches, electrical, iot',
+        $samples = [
+            [
+                'Elite Leather Watch',
+                'ELITE-WATCH-01',
+                'elite-leather-watch',
+                'Titan',
+                'Fashion Accessories',
+                'Watches',
+                5000.00,
+                4500.00,
+                2,
+                150,
+                'in_stock',
+                'Classic leather strap analogue watch.',
+                'A premium classic watch featuring a genuine leather strap, quartz movement, and water resistance up to 50 meters.',
+                'active',
+                'yes',
+                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                'watch, leather, premium, accessories',
+                'Elite Leather Watch - Premium Accessories',
+                'Shop elite leather watches online at the best prices.'
+            ],
+            [
+                'Ergonomic Office Chair',
+                'ERG-CHAIR-02',
+                'ergonomic-office-chair',
+                'Featherlite, Steelcase',
+                'Furniture',
+                'Chairs',
+                12000.00,
+                9999.00,
+                5,
+                80,
+                'in_stock',
+                'Comfortable ergonomic office chair.',
+                'High-back ergonomic office chair with adjustable lumbar support, armrests, and synchro-tilt mechanism.',
+                'active',
+                'no',
+                'https://images.unsplash.com/photo-1505797149-43b0069ec26b?auto=format&fit=crop&w=600&q=80',
+                'https://images.unsplash.com/photo-1580481072645-022f9a6dbf27?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                'chair, office, ergonomic, furniture',
+                'Ergonomic Office Chair - Dual Brand',
+                'Premium ergonomic chairs from top brands like Featherlite and Steelcase.'
+            ],
+            [
+                'Noise Cancelling Headphones',
+                'ANC-HEAD-03',
+                'noise-cancelling-headphones',
+                'Sony, Bose',
+                'Electronics, Audio Devices',
+                'Headphones',
+                29999.00,
+                24999.00,
+                1,
+                120,
+                'in_stock',
+                'Wireless ANC over-ear headphones.',
+                'Industry-leading noise cancelling wireless headphones with 30-hour battery life and quick charging.',
+                'active',
+                'yes',
+                'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                'headphones, noise cancelling, electronics, audio',
+                'Noise Cancelling Headphones - Electronics',
+                'Discover top noise cancelling headphones from Sony and Bose.'
+            ],
+            [
+                'Professional Sports Duffel Bag',
+                'SPORT-DUF-04',
+                'professional-sports-duffel-bag',
+                'Nike, Adidas',
+                'Sports Equipment, Travel Gear',
+                'Gym Bags, Travel Duffle Bags',
+                3500.00,
+                2900.00,
+                10,
+                250,
+                'in_stock',
+                'Durable water-resistant sports duffel.',
+                'Large capacity gym and travel bag with dedicated shoe compartment and wet pocket.',
+                'active',
+                'yes',
+                'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                'duffel, gym bag, travel bag, nike, adidas',
+                'Professional Sports Duffel Bag',
+                'High-grade sports and travel duffel bags from Nike and Adidas.'
+            ],
+            [
+                'Smart Fitness Tracker',
+                'FIT-TRACK-05',
+                'smart-fitness-tracker',
+                'Fitbit',
+                'Electronics',
+                'Wearables',
+                '',
+                4999.00,
+                5,
+                300,
+                'in_stock',
+                'Heart rate and sleep tracking smart band.',
+                'Waterproof fitness tracker with continuous heart rate monitoring, sleep analysis, and 7-day battery life.',
+                'active',
+                'no',
+                'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                'fitness, tracker, band, wearable',
+                'Smart Fitness Tracker',
+                'Stay active with the latest smart fitness tracker.'
+            ],
+            [
+                'Gourmet Coffee Blend',
+                'COFFEE-BLEND-06',
+                'gourmet-coffee-blend',
+                'Blue Tokai',
+                'Beverages',
+                'Coffee',
+                650.00,
+                '',
+                20,
+                500,
+                'in_stock',
+                'Medium roast 100% Arabica ground coffee.',
+                'Freshly roasted single-origin Arabica coffee beans with chocolate and caramel tasting notes.',
+                'active',
+                'yes',
+                'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                'coffee, arabica, beverage, fresh roast',
+                'Gourmet Coffee Blend - Blue Tokai',
+                'Experience the finest medium roast Arabica coffee beans.'
+            ],
+            [
+                'Stainless Steel Water Bottle',
+                'STEEL-BOTTLE-07',
+                'stainless-steel-water-bottle',
+                'Milton',
+                'Kitchenware',
+                'Bottles',
+                999.00,
+                850.00,
+                50,
+                1000,
+                'in_stock',
+                'Double-walled vacuum insulated bottle.',
+                '',
+                'active',
+                'no',
+                'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                'bottle, stainless steel, kitchenware',
+                'Stainless Steel Water Bottle',
+                'Keep your drinks hot or cold for 24 hours.'
+            ],
+            [
+                'Minimalist Wireless Mouse',
+                'WIRELESS-MOUSE-08',
+                'minimalist-wireless-mouse',
+                'Logitech',
+                'Electronics',
+                'Computer Accessories',
+                1299.00,
+                999.00,
+                10,
+                450,
+                'in_stock',
+                'Ultra-quiet slim wireless optical mouse.',
+                'Sleek and compact wireless mouse with silent clicking, high precision tracking, and Bluetooth/USB receiver connectivity.',
+                'active',
+                'no',
+                '',
+                '',
+                '',
+                '',
+                'mouse, wireless, computer accessories, logitech',
+                'Minimalist Wireless Mouse',
+                'Silent wireless mouse with comfortable design.'
+            ],
+            [
+                'Organic Cotton T-Shirt',
+                'COTTON-TEE-09',
+                'organic-cotton-t-shirt',
+                'Zara',
+                'Apparel',
+                'T-Shirts',
+                1499.00,
+                1199.00,
+                15,
+                200,
+                'in_stock',
+                'Eco-friendly organic cotton tee.',
+                'Crafted from 100% certified organic cotton. Features a relaxed fit, crew neck, and breathable fabric ideal for daily wear.',
+                'active',
+                'no',
+                'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
+                '',
+                '',
+                '',
+                '',
+                'Organic Cotton T-Shirt - Zara',
+                'Eco-friendly premium organic cotton tees.'
+            ],
+            [
+                'Portable Power Bank',
+                'PORT-POWER-10',
+                '',
+                'Xiaomi',
+                'Electronics',
+                '',
+                1999.00,
+                '',
+                5,
+                0,
+                'out_of_stock',
+                '',
+                '10000mAh high capacity fast charging power bank with dual USB outputs.',
+                'active',
+                'yes',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ]
         ];
  
         $sheet->fromArray([$headers], null, 'A1');
-        $sheet->fromArray([$sample], null, 'A2');
+        $sheet->fromArray($samples, null, 'A2');
  
-        $lastCol = 'P';
+        $lastCol = 'V';
         $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
@@ -882,15 +1245,16 @@ class ProductController extends Controller
             ],
         ]);
  
-        $sheet->getStyle('L1:O1')->applyFromArray([
+        $sheet->getStyle('P1:S1')->applyFromArray([
             'fill' => [
                 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '06B6D4'],
             ],
         ]);
  
-        foreach (range('A', $lastCol) as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+        for ($col = 1; $col <= 22; $col++) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
  
         $path = tempnam(sys_get_temp_dir(), 'product-import-template');
@@ -911,5 +1275,11 @@ class ProductController extends Controller
     {
         $filename = 'products-export-'.date('Y-m-d-His').'.xlsx';
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SubscriberProductsExport, $filename);
+    }
+
+    private function importLogQuery()
+    {
+        return ProductImportLog::where('scope', 'subscriber')
+            ->where('user_id', auth()->id());
     }
 }

@@ -57,7 +57,9 @@ class SubscriberProductsImport implements OnEachRow, WithChunkReading, SkipsEmpt
         $user = \App\Models\User::find($this->subscriberId);
         $sub = $user?->activeSubscription();
         $limit = $sub?->plan?->product_limit ?? 1000;
-        $currCount = SubscriberProduct::where('user_id', $this->subscriberId)->count();
+        $currCount = SubscriberProduct::whereNull('deleted_at')
+            ->where('user_id', $this->subscriberId)
+            ->count();
         if ($currCount >= $limit) {
             $this->logFailedRow($rowIndex, $sku, $name, "Subscription limit reached. Your plan allows max {$limit} products.");
             return;
@@ -68,7 +70,8 @@ class SubscriberProductsImport implements OnEachRow, WithChunkReading, SkipsEmpt
         }
 
         // Check for duplicates in Subscriber's workspace
-        $exists = SubscriberProduct::where('user_id', $this->subscriberId)
+        $exists = SubscriberProduct::whereNull('deleted_at')
+            ->where('user_id', $this->subscriberId)
             ->where(function($q) use ($name, $sku) {
                 $q->where('name', $name)->orWhere('sku', $sku);
             })->first();
@@ -81,7 +84,8 @@ class SubscriberProductsImport implements OnEachRow, WithChunkReading, SkipsEmpt
         $subcategoryName = trim($data['subcategory'] ?? $data['sub_category'] ?? '');
         $subcategory = null;
         if ($subcategoryName !== '') {
-            $subcategory = Subcategory::where('category_id', $this->categoryId)
+            $subcategory = Subcategory::whereNull('deleted_at')
+                ->where('category_id', $this->categoryId)
                 ->where('name', 'like', '%' . $subcategoryName . '%')
                 ->first();
         }

@@ -29,6 +29,7 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
     public function __construct(
         private int $importLogId,
         private string $imagesExtractPath,
+        private ?int $tenantId = null,
     ) {}
 
     public function chunkSize(): int
@@ -57,13 +58,25 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
 
         // Uniqueness validation
         if ($sku !== '') {
-            $existingProduct = Product::where('sku', $sku)->first();
-            if ($existingProduct && strcasecmp($existingProduct->name, $name) !== 0) {
-                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate SKU: '{$sku}' already exists for another product.", $data);
+            $existingProduct = $this->productQuery()
+                ->where(function ($query) use ($sku, $name) {
+                    $query->where('sku', $sku)
+                        ->orWhere('name', $name);
+                })
+                ->first();
+            if ($existingProduct) {
+                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' or SKU '{$sku}' already exists.", $data);
                 return;
             }
         } else {
             $sku = 'SKU-' . strtoupper(Str::random(10));
+            $existingProduct = $this->productQuery()
+                ->where('name', $name)
+                ->first();
+            if ($existingProduct) {
+                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' already exists.", $data);
+                return;
+            }
         }
 
         // Resolve categories
@@ -127,7 +140,7 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         }
         $slug = $this->uniqueSlug($slug, $sku);
 
-        // Handle Image Fields: Featured Image (P)
+        // Handle Image Fields: Featured Image (R)
         $featuredImage = null;
         $featuredWarning = null;
 
@@ -157,61 +170,63 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         }
 
         // Resolve fields
-        $price = $this->parseNumeric($this->getCell($data, 'price'));
-        $salePrice = $this->parseNumeric($this->getCell($data, 'discount_price', 'sale_price'));
-        $tax = $this->parseNumeric($this->getCell($data, 'tax_percentage', 'tax'));
+        $mrp = $this->parseNumeric($this->getCell($data, 'mrp'));
+        $offerPrice = $this->parseNumeric($this->getCell($data, 'offer_price'));
+        $moq = (int)$this->parseNumeric($this->getCell($data, 'moq'), 1);
         $stock = (int)$this->parseNumeric($this->getCell($data, 'stock_quantity', 'stock'), 0);
         $status = $this->parseBoolStatus($this->getCell($data, 'status'), 1);
         $featured = $this->parseBoolStatus($this->getCell($data, 'featured'), 0);
 
+        $partCode = trim($this->getCell($data, 'part_code'));
+        $partNumber = trim($this->getCell($data, 'part_number'));
         $shortDesc = trim($this->getCell($data, 'short_description'));
         $fullDesc = trim($this->getCell($data, 'full_description', 'description'));
         $tags = trim($this->getCell($data, 'tags'));
         $colors = trim($this->getCell($data, 'colors'));
         $sizes = trim($this->getCell($data, 'sizes'));
+        $metaTitle = trim($this->getCell($data, 'meta_title'));
+        $metaDescription = trim($this->getCell($data, 'meta_description'));
+        $metaKeywords = trim($this->getCell($data, 'meta_keywords'));
 
-        // Compile weight, colors, sizes into additional info or specifications
+        // Compile specifications
         $specifications = [];
         if ($colors !== '') $specifications['Colors'] = $colors;
         if ($sizes !== '') $specifications['Sizes'] = $sizes;
         if (trim($this->getCell($data, 'weight')) !== '') $specifications['Weight'] = trim($this->getCell($data, 'weight'));
-        if (trim($this->getCell($data, 'tax_type')) !== '') $specifications['Tax Type'] = trim($this->getCell($data, 'tax_type'));
 
         try {
-            DB::transaction(function () use ($name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $price, $salePrice, $tax, $stock, $shortDesc, $fullDesc, $featuredImage, $status, $featured, $specifications, $tags, $rowIndex) {
-                // Find existing product by SKU or name
-                $product = Product::where('sku', $sku)
-                    ->orWhere('name', $name)
-                    ->first();
-
+            DB::transaction(function () use ($name, $slug, $sku, $partCode, $partNumber, $brandIds, $categoryIds, $subcategoryIds, $mrp, $offerPrice, $moq, $stock, $shortDesc, $fullDesc, $featuredImage, $status, $featured, $specifications, $tags, $metaTitle, $metaDescription, $metaKeywords, $rowIndex, $data) {
                 $attributes = [
+                    'subscriber_id' => $this->tenantId,
                     'brand_id' => $brandIds,
                     'category_id' => $categoryIds,
                     'subcategory_id' => $subcategoryIds,
                     'name' => $name,
-                    'slug' => $product ? $product->slug : $slug,
+                    'slug' => $slug,
                     'sku' => $sku,
-                    'part_code' => $sku, // backward compatibility
-                    'price' => $price,
-                    'sale_price' => $salePrice,
-                    'tax' => $tax,
+                    'part_code' => $partCode ?: $sku,
+                    'part_number' => $partNumber ?: null,
+                    'mrp' => $mrp > 0 ? $mrp : null,
+                    'offer_price' => $offerPrice > 0 ? $offerPrice : null,
+                    'price' => $offerPrice > 0 ? $offerPrice : ($mrp > 0 ? $mrp : 0),
+                    'moq' => $moq,
                     'stock' => $stock,
-                    'short_description' => $shortDesc ?: ($product?->short_description ?? ''),
-                    'description' => $fullDesc ?: ($product?->description ?? ''),
-                    'full_description' => $fullDesc ?: ($product?->full_description ?? ''),
-                    'featured_image' => $featuredImage ?: ($product?->featured_image ?? null),
-                    'thumbnail' => $featuredImage ?: ($product?->thumbnail ?? null),
+                    'short_description' => $shortDesc,
+                    'description' => $fullDesc,
+                    'additional_info' => $fullDesc,
+                    'full_description' => $fullDesc,
+                    'featured_image' => $featuredImage,
+                    'thumbnail' => $featuredImage,
                     'status' => $status,
                     'featured' => $featured,
                     'specifications' => !empty($specifications) ? json_encode($specifications) : null,
                     'tags' => $tags,
+                    'meta_title' => $metaTitle ?: null,
+                    'meta_description' => $metaDescription ?: null,
+                    'meta_keywords' => $metaKeywords ?: null,
                 ];
 
-                if ($product) {
-                    $product->update($attributes);
-                } else {
-                    $product = Product::create($attributes);
-                }
+                $product = Product::create($attributes);
 
                 // Handle Gallery Images (Q, R, S)
                 $galleryImages = [];
@@ -278,6 +293,13 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
 
         if ($matches && count($matches) > 0) {
             return $matches[0];
+        }
+
+        $pattern2 = $dir . DIRECTORY_SEPARATOR . "cell_{$colLetter}{$rowIndex}.*";
+        $matches2 = glob($pattern2);
+
+        if ($matches2 && count($matches2) > 0) {
+            return $matches2[0];
         }
 
         return null;
@@ -364,9 +386,12 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         if (array_key_exists($key, $this->brandCache)) {
             return $this->brandCache[$key];
         }
-        $brand = Brand::whereRaw('LOWER(name) = ?', [$key])->first();
+        $brand = $this->tenantQuery(Brand::withoutGlobalScope('tenant'))
+            ->whereRaw('LOWER(name) = ?', [$key])
+            ->first();
         if (!$brand) {
             $brand = Brand::create([
+                'subscriber_id' => $this->tenantId,
                 'name' => $name,
                 'slug' => Str::slug($name),
                 'status' => 1
@@ -384,9 +409,12 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         if (array_key_exists($key, $this->categoryCache)) {
             return $this->categoryCache[$key];
         }
-        $cat = Category::whereRaw('LOWER(name) = ?', [$key])->first();
+        $cat = $this->tenantQuery(Category::withoutGlobalScope('tenant'))
+            ->whereRaw('LOWER(name) = ?', [$key])
+            ->first();
         if (!$cat) {
             $cat = Category::create([
+                'subscriber_id' => $this->tenantId,
                 'name' => $name,
                 'slug' => Str::slug($name),
                 'status' => 1
@@ -403,11 +431,13 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         if (array_key_exists($key, $this->subcategoryCache)) {
             return $this->subcategoryCache[$key];
         }
-        $sub = Subcategory::where('category_id', $categoryId)
+        $sub = $this->tenantQuery(Subcategory::withoutGlobalScope('tenant'))
+            ->where('category_id', $categoryId)
             ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
             ->first();
         if (!$sub) {
             $sub = Subcategory::create([
+                'subscriber_id' => $this->tenantId,
                 'category_id' => $categoryId,
                 'name' => $name,
                 'slug' => Str::slug($name),
@@ -463,12 +493,26 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
     {
         $slug = $base;
         $i = 2;
-        while (Product::where('slug', $slug)->where('sku', '!=', $sku)->exists()) {
+        while ($this->productQuery()->where('slug', $slug)->where('sku', '!=', $sku)->exists()) {
             $slug = $base . '-' . $i;
             $i++;
         }
 
         return $slug;
+    }
+
+    private function productQuery()
+    {
+        return $this->tenantQuery(Product::withoutGlobalScope('tenant'));
+    }
+
+    private function tenantQuery($query)
+    {
+        $query->whereNull('deleted_at');
+
+        return $this->tenantId === null
+            ? $query->whereNull('subscriber_id')
+            : $query->where('subscriber_id', $this->tenantId);
     }
 
     private function parseNumeric(mixed $val, float $default = 0): float

@@ -137,6 +137,21 @@
 
 @section('content')
 <div class="container-fluid py-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div></div>
+        <div class="d-flex gap-2">
+            @can('import-products')
+            <a href="{{ route('admin.products.import') }}" class="btn btn-white border">
+                <i class="fa-solid fa-file-import me-1 text-primary"></i> Import Products
+            </a>
+            @endcan
+            @can('export-products')
+            <a href="{{ route('admin.products.export') }}" class="btn btn-white border">
+                <i class="fa-solid fa-file-excel me-1 text-success"></i> Export Products
+            </a>
+            @endcan
+        </div>
+    </div>
     <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" id="product-form" novalidate>
         @csrf
         <div class="row g-4">
@@ -382,6 +397,9 @@
                             <div id="thumbnail-preview" class="mt-2 text-center" style="display:none;">
                                 <img id="thumb-img" src="" alt="Thumbnail"
                                      style="max-height:110px;border-radius:10px;object-fit:cover;border:1px solid #E2E8F0;" class="p-1 bg-white">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearThumbnail()">Remove Image</button>
+                                </div>
                             </div>
                         </div>
                         <div>
@@ -456,6 +474,8 @@
         }
     }
 
+    let galleryFiles = [];
+
     function previewThumbnail(e) {
         const file = e.target.files[0];
         if (file) {
@@ -463,15 +483,37 @@
             document.getElementById('thumbnail-preview').style.display = 'block';
         }
     }
+
+    function clearThumbnail() {
+        document.getElementById('thumbnail-input').value = '';
+        document.getElementById('thumb-img').src = '';
+        document.getElementById('thumbnail-preview').style.display = 'none';
+    }
+
     function previewImages(e) {
+        galleryFiles = galleryFiles.concat(Array.from(e.target.files));
+        renderGalleryPreview();
+    }
+
+    function removeGalleryFile(index) {
+        galleryFiles.splice(index, 1);
+        renderGalleryPreview();
+    }
+
+    function renderGalleryPreview() {
         const container = document.getElementById('gallery-preview');
+        const input = document.getElementById('gallery-input');
+        const dt = new DataTransfer();
         container.innerHTML = '';
-        Array.from(e.target.files).forEach(file => {
+        galleryFiles.forEach((file, index) => {
+            dt.items.add(file);
             const w = document.createElement('div');
-            w.style.cssText = 'height:70px;width:70px;';
-            w.innerHTML = `<img src="${URL.createObjectURL(file)}" style="height:70px;width:70px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">`;
+            w.style.cssText = 'position:relative;height:70px;width:70px;';
+            w.innerHTML = `<img src="${URL.createObjectURL(file)}" style="height:70px;width:70px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">
+                <button type="button" onclick="removeGalleryFile(${index})" style="position:absolute;top:4px;right:4px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;cursor:pointer;"><i class="bi bi-x"></i></button>`;
             container.appendChild(w);
         });
+        input.files = dt.files;
     }
 
     $(document).ready(function() {

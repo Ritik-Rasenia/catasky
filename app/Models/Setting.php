@@ -31,4 +31,28 @@ class Setting extends Model
         'pdf_cover_style',
         'meta_keywords',
     ];
+
+    public function getLogoAttribute($value)
+    {
+        if (empty($value)) return $value;
+        return str_starts_with($value, 'uploads/settings/') ? substr($value, 17) : $value;
+    }
+
+    public function getFooterLogoAttribute($value)
+    {
+        if (empty($value)) return $value;
+        return str_starts_with($value, 'uploads/settings/') ? substr($value, 17) : $value;
+    }
+
+    public function getFaviconAttribute($value)
+    {
+        if (empty($value)) return $value;
+        return str_starts_with($value, 'uploads/settings/') ? substr($value, 17) : $value;
+    }
+
+    public function getWatermarkAttribute($value)
+    {
+        if (empty($value)) return $value;
+        return str_starts_with($value, 'uploads/settings/') ? substr($value, 17) : $value;
+    }
 }

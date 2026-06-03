@@ -169,7 +169,7 @@
                         @endif
                     </div>
                 @else
-                    <div class="price-value" style="color: #64748b; font-size: 16px;">{{ $product->variant ?: 'On Request' }}</div>
+                    <div class="price-value" style="color: #64748b; font-size: 16px;">{{ $product->variant ?: '' }}</div>
                 @endif
                 <div style="font-size: 11px; color:#64748b; margin-top:5px;">
                     @if($product->tax)

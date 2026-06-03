@@ -12,6 +12,15 @@
 @endsection
 
 @section('content')
+@php
+    $user = auth()->user();
+    $isDemo = $user && (
+        $user->email === 'demo' || 
+        $user->email === 'demo@catasky.com' || 
+        str_contains(strtolower($user->email), 'demo') || 
+        str_contains(strtolower($user->name), 'demo')
+    );
+@endphp
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-md-6">
@@ -48,11 +57,13 @@
                 <i class="fa-solid fa-box me-2"></i>Master Catalogue
             </button>
         </li>
+        @if(!$isDemo)
         <li class="nav-item" role="presentation">
             <button class="nav-link rounded-pill px-4 py-2 shadow-sm" id="subscriber-tab" data-bs-toggle="tab" data-bs-target="#subscriber-pane" type="button" role="tab" aria-controls="subscriber-pane" aria-selected="false" style="font-family:'Outfit',sans-serif; font-weight:700;">
                 <i class="fa-solid fa-people-carry-box me-2"></i>Subscriber Products
             </button>
         </li>
+        @endif
     </ul>
 
     <div class="tab-content" id="productTabsContent">
@@ -141,6 +152,7 @@
             </div>
         </div>
 
+        @if(!$isDemo)
         <!-- Subscriber Products Tab Pane -->
         <div class="tab-pane fade" id="subscriber-pane" role="tabpanel" aria-labelledby="subscriber-tab" tabindex="0">
             <div class="card border-0 rounded-4 shadow-sm">
@@ -239,6 +251,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 </div>
 

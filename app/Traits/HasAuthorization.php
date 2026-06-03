@@ -13,7 +13,7 @@ trait HasAuthorization
             return false;
         }
 
-        return auth()->user()->can($permission) || auth()->user()->hasRole('Super Admin');
+        return auth()->user()->can($permission) || auth()->user()->hasAnyRole(['Super Admin', 'Admin']);
     }
 
     /**
@@ -61,7 +61,7 @@ trait HasAuthorization
             return false;
         }
 
-        return auth()->user()->can($permission) || auth()->user()->hasRole('Super Admin');
+        return auth()->user()->can($permission) || auth()->user()->hasAnyRole(['Super Admin', 'Admin']);
     }
 
     /**
@@ -73,7 +73,7 @@ trait HasAuthorization
             return false;
         }
 
-        return auth()->user()->hasAnyPermission($permissions) || auth()->user()->hasRole('Super Admin');
+        return auth()->user()->hasAnyPermission($permissions) || auth()->user()->hasAnyRole(['Super Admin', 'Admin']);
     }
 
     /**
@@ -85,6 +85,6 @@ trait HasAuthorization
             return false;
         }
 
-        return auth()->user()->hasAllPermissions($permissions) || auth()->user()->hasRole('Super Admin');
+        return auth()->user()->hasAllPermissions($permissions) || auth()->user()->hasAnyRole(['Super Admin', 'Admin']);
     }
 }

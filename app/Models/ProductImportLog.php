@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class ProductImportLog extends Model
 {
     protected $fillable = [
+        'user_id',
+        'scope',
         'filename',
         'total_rows',
         'imported_rows',

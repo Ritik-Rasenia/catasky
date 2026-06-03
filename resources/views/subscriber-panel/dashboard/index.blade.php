@@ -76,6 +76,17 @@
                     <i class="bi bi-plus-circle-fill"></i> Add Product
                 </a>
 
+                @can('manage-subscriber-products')
+                <div class="d-flex gap-2">
+                    <a href="{{ route('subscriber.products.import') }}" class="btn btn-workspace-light flex-grow-1">
+                        <i class="bi bi-file-earmark-arrow-up text-primary"></i> Import
+                    </a>
+                    <a href="{{ route('subscriber.products.export') }}" class="btn btn-workspace-light flex-grow-1">
+                        <i class="bi bi-file-earmark-spreadsheet text-success"></i> Export
+                    </a>
+                </div>
+                @endcan
+
                 <a href="{{ route('subscriber.profile.edit') }}" class="btn btn-workspace-secondary btn-go-store">
                     <i class="bi bi-shop"></i> Go to Store <i class="bi bi-chevron-right ms-1 small-arrow" style="font-size:0.75rem;"></i>
                 </a>
