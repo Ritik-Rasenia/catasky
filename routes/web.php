@@ -80,6 +80,7 @@ Route::get('/api/products-details', [FrontendController::class, 'apiProductsDeta
 Route::get('/api/product-details/{id}', [FrontendController::class, 'apiProductDetails']);
 Route::get('/product/{id}/details', [FrontendController::class, 'productQuickView'])->name('product.quickview');
 Route::get('/pricing', [FrontendController::class, 'pricing'])->name('pricing');
+Route::get('/manifest.json', [FrontendController::class, 'storeManifest'])->name('main.manifest');
 Route::get('/store/{company_slug}/manifest.json', [FrontendController::class, 'storeManifest'])->name('store.manifest');
 Route::get('/store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('store.catalog');
 Route::get('/subscriber_store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('subscriber_store');
@@ -325,8 +326,9 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
             Route::get('/admin/products-ops/import/status/{id}', [AdminProductController::class, 'importStatus'])->name('products.import.status');
             Route::get('/admin/products-ops/import-logs', [AdminProductController::class, 'importLogs'])->name('products.import-logs');
             Route::get('/admin/products-ops/import-logs/{id}', [AdminProductController::class, 'importLogShow'])->name('products.import-logs.show');
+            Route::get('/admin/products-ops/import-logs/{id}/download-errors', [AdminProductController::class, 'downloadImportErrors'])->name('products.import-logs.download-errors');
             Route::get('/admin/products-ops/export', [AdminProductController::class, 'export'])->name('products.export');
-            Route::delete('/admin/product-images/{image}', [AdminProductController::class, 'deleteImage'])->name('admin.product-images.destroy');
+            Route::delete('/admin/product-images/{image}', [AdminProductController::class, 'deleteImage'])->name('product-images.destroy');
         });
 
         Route::group(['middleware' => ['permission:delete-products']], function () {
@@ -475,6 +477,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/products-ops/import/status/{id}', [SubscriberProductController::class, 'importStatus'])->name('products.import.status');
         Route::get('/products-ops/import-logs', [SubscriberProductController::class, 'importLogs'])->name('products.import-logs');
         Route::get('/products-ops/import-logs/{id}', [SubscriberProductController::class, 'importLogShow'])->name('products.import-logs.show');
+        Route::get('/products-ops/import-logs/{id}/download-errors', [SubscriberProductController::class, 'downloadImportErrors'])->name('products.import-logs.download-errors');
         Route::get('/products-ops/export', [SubscriberProductController::class, 'export'])->name('products.export');
 
         // Variants

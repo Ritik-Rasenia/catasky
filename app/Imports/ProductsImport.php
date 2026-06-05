@@ -56,7 +56,8 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
             return;
         }
 
-        // Uniqueness validation
+        // Uniqueness validation (Upsert mode)
+        $existingProduct = null;
         if ($sku !== '') {
             $existingProduct = $this->productQuery()
                 ->where(function ($query) use ($sku, $name) {
@@ -64,19 +65,11 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
                         ->orWhere('name', $name);
                 })
                 ->first();
-            if ($existingProduct) {
-                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' or SKU '{$sku}' already exists.", $data);
-                return;
-            }
         } else {
             $sku = 'SKU-' . strtoupper(Str::random(10));
             $existingProduct = $this->productQuery()
                 ->where('name', $name)
                 ->first();
-            if ($existingProduct) {
-                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' already exists.", $data);
-                return;
-            }
         }
 
         // Resolve categories
@@ -145,7 +138,7 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         $featuredWarning = null;
 
         // Try pre-extracted cell drawing first
-        $extractedDrawingPath = $this->getExtractedDrawing($rowIndex, 'P');
+        $extractedDrawingPath = $this->getExtractedDrawing($rowIndex, 'R');
         if ($extractedDrawingPath) {
             $featuredImage = $this->copyDrawingToFinal($extractedDrawingPath, $slug, 'featured');
         } else {
@@ -195,7 +188,7 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         if (trim($this->getCell($data, 'weight')) !== '') $specifications['Weight'] = trim($this->getCell($data, 'weight'));
 
         try {
-            DB::transaction(function () use ($name, $slug, $sku, $partCode, $partNumber, $brandIds, $categoryIds, $subcategoryIds, $mrp, $offerPrice, $moq, $stock, $shortDesc, $fullDesc, $featuredImage, $status, $featured, $specifications, $tags, $metaTitle, $metaDescription, $metaKeywords, $rowIndex, $data) {
+            DB::transaction(function () use ($existingProduct, $name, $slug, $sku, $partCode, $partNumber, $brandIds, $categoryIds, $subcategoryIds, $mrp, $offerPrice, $moq, $stock, $shortDesc, $fullDesc, $featuredImage, $status, $featured, $specifications, $tags, $metaTitle, $metaDescription, $metaKeywords, $rowIndex, $data) {
                 $attributes = [
                     'subscriber_id' => $this->tenantId,
                     'brand_id' => $brandIds,
@@ -215,8 +208,6 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
                     'description' => $fullDesc,
                     'additional_info' => $fullDesc,
                     'full_description' => $fullDesc,
-                    'featured_image' => $featuredImage,
-                    'thumbnail' => $featuredImage,
                     'status' => $status,
                     'featured' => $featured,
                     'specifications' => !empty($specifications) ? json_encode($specifications) : null,
@@ -226,11 +217,21 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
                     'meta_keywords' => $metaKeywords ?: null,
                 ];
 
-                $product = Product::create($attributes);
+                if ($featuredImage) {
+                    $attributes['featured_image'] = $featuredImage;
+                    $attributes['thumbnail'] = $featuredImage;
+                }
 
-                // Handle Gallery Images (Q, R, S)
+                if ($existingProduct) {
+                    $existingProduct->update($attributes);
+                    $product = $existingProduct;
+                } else {
+                    $product = Product::create($attributes);
+                }
+
+                // Handle Gallery Images (S, T, U)
                 $galleryImages = [];
-                foreach (['Q', 'R', 'S'] as $colIndex => $colLetter) {
+                foreach (['S', 'T', 'U'] as $colIndex => $colLetter) {
                     $drawingPath = $this->getExtractedDrawing($rowIndex, $colLetter);
                     if ($drawingPath) {
                         $stored = $this->copyDrawingToFinal($drawingPath, $slug, 'gallery_' . ($colIndex + 1));
@@ -256,6 +257,15 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
                 }
 
                 if (!empty($galleryImages)) {
+                    if ($existingProduct) {
+                        foreach ($product->images as $prevImg) {
+                            $prevPath = storage_path('app/public/products/' . $prevImg->image);
+                            if (is_file($prevPath)) {
+                                @unlink($prevPath);
+                            }
+                            $prevImg->delete();
+                        }
+                    }
                     foreach ($galleryImages as $gImg) {
                         // Avoid duplicates
                         if (!ProductImage::where('product_id', $product->id)->where('image', $gImg)->exists()) {
@@ -269,13 +279,21 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
             });
 
             // Log detailed row
-            $this->logDetailedRow($rowIndex, $sku, $name, 'imported', 'Product imported successfully.', $data);
+            if ($existingProduct) {
+                $this->logDetailedRow($rowIndex, $sku, $name, 'updated', 'Product updated successfully.', $data);
+            } else {
+                $this->logDetailedRow($rowIndex, $sku, $name, 'imported', 'Product imported successfully.', $data);
+            }
 
             if ($featuredWarning) {
                 $this->logWarningRow($rowIndex, $sku, $name, $featuredWarning, $data);
             }
 
-            $this->applyLogDelta(1, 0, 0, $featuredWarning ? 1 : 0);
+            if ($existingProduct) {
+                $this->applyLogDelta(0, 1, 0, 0, $featuredWarning ? 1 : 0);
+            } else {
+                $this->applyLogDelta(1, 0, 0, 0, $featuredWarning ? 1 : 0);
+            }
         } catch (\Throwable $e) {
             $this->logFailedRow($rowIndex, $sku, $name, 'Database error: ' . $e->getMessage(), $data);
         }
@@ -330,19 +348,19 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
     private function logSkippedRow(int $rowIndex, string $sku, string $name, string $message, array $row = []): void
     {
         $this->logDetailedRow($rowIndex, $sku, $name, 'skipped', $message, $row);
-        $this->applyLogDelta(0, 1, 0, 0);
+        $this->applyLogDelta(0, 0, 1, 0, 0);
     }
 
     private function logFailedRow(int $rowIndex, string $sku, string $name, string $message, array $row = []): void
     {
         $this->logDetailedRow($rowIndex, $sku, $name, 'failed', $message, $row);
-        $this->applyLogDelta(0, 0, 1, 0);
+        $this->applyLogDelta(0, 0, 0, 1, 0);
     }
 
     private function logWarningRow(int $rowIndex, string $sku, string $name, string $message, array $row = []): void
     {
         $this->logDetailedRow($rowIndex, $sku, $name, 'warning', $message, $row);
-        $this->applyLogDelta(0, 0, 0, 1);
+        $this->applyLogDelta(0, 0, 0, 0, 1);
     }
 
     private function logDetailedRow(int $rowIndex, string $sku, string $productName, string $status, string $message, array $row = []): void
@@ -367,13 +385,14 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
         $log->update(['detailed_logs' => $existingLogs]);
     }
 
-    private function applyLogDelta(int $imported, int $skipped, int $failed, int $warning): void
+    private function applyLogDelta(int $imported, int $updated, int $skipped, int $failed, int $warning): void
     {
         $log = ProductImportLog::find($this->importLogId);
         if (!$log) return;
 
         $log->update([
             'imported_rows' => $log->imported_rows + $imported,
+            'updated_rows' => ($log->updated_rows ?? 0) + $updated,
             'skipped_rows' => $log->skipped_rows + $skipped,
             'failed_rows' => ($log->failed_rows ?? 0) + $failed,
             'warning_rows' => ($log->warning_rows ?? 0) + $warning,
@@ -510,9 +529,13 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
     {
         $query->whereNull('deleted_at');
 
-        return $this->tenantId === null
-            ? $query->whereNull('subscriber_id')
-            : $query->where('subscriber_id', $this->tenantId);
+        if ($this->tenantId === null) {
+            // Only Super Admin can import with tenantId = null. So check all products.
+            return $query;
+        }
+
+        // Other users check only products owned by them
+        return $query->where('subscriber_id', $this->tenantId);
     }
 
     private function parseNumeric(mixed $val, float $default = 0): float

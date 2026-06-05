@@ -378,8 +378,8 @@ class ProductController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         
         $tempId = Str::random(12);
-        $tempDirName = 'products/temp/' . $tempId;
-        $tempPath = storage_path('app/public/' . $tempDirName);
+        $tempDirName = 'uploads/temp/products/' . $tempId;
+        $tempPath = public_path($tempDirName);
         File::ensureDirectoryExists($tempPath);
 
         // Store file temporarily
@@ -433,39 +433,45 @@ class ProductController extends Controller
             $name = trim($row['A'] ?? '');
             $sku = trim($row['B'] ?? '');
             $slug = trim($row['C'] ?? '');
-            $brand = trim($row['D'] ?? '');
-            $category = trim($row['E'] ?? '');
-            $subcategory = trim($row['F'] ?? '');
-            $mrpVal = trim($row['G'] ?? '');
-            $offerPriceVal = trim($row['H'] ?? '');
-            $moqVal = trim($row['I'] ?? '');
-            $stockVal = trim($row['J'] ?? '');
-            $stockStatusVal = trim($row['K'] ?? '');
-            $shortDesc = trim($row['L'] ?? '');
-            $fullDesc = trim($row['M'] ?? '');
-            $statusVal = trim($row['N'] ?? '');
-            $featuredVal = trim($row['O'] ?? '');
-            $featuredImageVal = trim($row['P'] ?? '');
-            $gallery1Val = trim($row['Q'] ?? '');
-            $gallery2Val = trim($row['R'] ?? '');
-            $gallery3Val = trim($row['S'] ?? '');
-            $tags = trim($row['T'] ?? '');
-            $metaTitle = trim($row['U'] ?? '');
-            $metaDescription = trim($row['V'] ?? '');
+            $partCode = trim($row['D'] ?? '');
+            $partNumber = trim($row['E'] ?? '');
+            $brand = trim($row['F'] ?? '');
+            $category = trim($row['G'] ?? '');
+            $subcategory = trim($row['H'] ?? '');
+            $mrpVal = trim($row['I'] ?? '');
+            $offerPriceVal = trim($row['J'] ?? '');
+            $moqVal = trim($row['K'] ?? '');
+            $stockVal = trim($row['L'] ?? '');
+            $stockStatusVal = trim($row['M'] ?? '');
+            $shortDesc = trim($row['N'] ?? '');
+            $fullDesc = trim($row['O'] ?? '');
+            $statusVal = trim($row['P'] ?? '');
+            $featuredVal = trim($row['Q'] ?? '');
+            $featuredImageVal = trim($row['R'] ?? '');
+            $gallery1Val = trim($row['S'] ?? '');
+            $gallery2Val = trim($row['T'] ?? '');
+            $gallery3Val = trim($row['U'] ?? '');
+            $tags = trim($row['V'] ?? '');
+            $weightVal = trim($row['W'] ?? '');
+            $colorsVal = trim($row['X'] ?? '');
+            $sizesVal = trim($row['Y'] ?? '');
+            $metaTitle = trim($row['Z'] ?? '');
+            $metaDescription = trim($row['AA'] ?? '');
+            $metaKeywords = trim($row['AB'] ?? '');
 
             // Row drawing checks (Embedded cell images)
             $featuredImageSrc = '';
-            if (isset($extractedImages["P_{$rowIndex}"])) {
-                $featuredImageSrc = asset('storage/' . $tempDirName . '/' . $extractedImages["P_{$rowIndex}"]);
+            if (isset($extractedImages["R_{$rowIndex}"])) {
+                $featuredImageSrc = asset($tempDirName . '/' . $extractedImages["R_{$rowIndex}"]);
             } elseif ($featuredImageVal !== '') {
                 $featuredImageSrc = $featuredImageVal;
             }
 
             // Gallery images preview sources
             $gallerySrcs = [];
-            foreach (['Q', 'R', 'S'] as $col) {
+            foreach (['S', 'T', 'U'] as $col) {
                 if (isset($extractedImages["{$col}_{$rowIndex}"])) {
-                    $gallerySrcs[] = asset('storage/' . $tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
+                    $gallerySrcs[] = asset($tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
                 }
             }
             foreach ([$gallery1Val, $gallery2Val, $gallery3Val] as $gVal) {
@@ -481,6 +487,7 @@ class ProductController extends Controller
                 $errors[] = 'Product Name is required.';
             }
 
+            $action = 'Insert';
             if ($sku !== '') {
                 $exists = $this->productTenantQuery()
                     ->where(function ($query) use ($sku, $name) {
@@ -489,10 +496,15 @@ class ProductController extends Controller
                     })
                     ->first();
                 if ($exists) {
-                    $errors[] = "Product name or SKU already exists for product: '{$exists->name}'.";
+                    $action = 'Update';
                 }
-            } elseif ($name !== '' && $this->productTenantQuery()->where('name', $name)->exists()) {
-                $errors[] = "Product '{$name}' already exists.";
+            } elseif ($name !== '') {
+                $exists = $this->productTenantQuery()
+                    ->where('name', $name)
+                    ->first();
+                if ($exists) {
+                    $action = 'Update';
+                }
             }
 
             $mrp = null;
@@ -548,8 +560,8 @@ class ProductController extends Controller
                 'name' => $name,
                 'sku' => $sku,
                 'slug' => $slug ?: Str::slug($name),
-                'part_code' => $sku,
-                'part_number' => null,
+                'part_code' => $partCode ?: $sku,
+                'part_number' => $partNumber ?: null,
                 'brand' => $brand,
                 'category' => $category,
                 'subcategory' => $subcategory,
@@ -559,21 +571,22 @@ class ProductController extends Controller
                 'moq' => $moq,
                 'stock' => $stock,
                 'stock_status' => $stockStatusVal,
-                'weight' => '',
+                'weight' => $weightVal,
                 'short_description' => $shortDesc,
                 'full_description' => $fullDesc,
                 'status' => $statusVal,
                 'featured' => $featuredVal,
                 'featured_image' => $featuredImageSrc,
                 'gallery_images' => $gallerySrcs,
-                'colors' => '',
-                'sizes' => '',
+                'colors' => $colorsVal,
+                'sizes' => $sizesVal,
                 'tags' => $tags,
                 'meta_title' => $metaTitle,
                 'meta_description' => $metaDescription,
-                'meta_keywords' => '',
+                'meta_keywords' => $metaKeywords,
                 'errors' => $errors,
                 'is_valid' => !$hasError,
+                'action' => $action,
             ];
         }
 
@@ -618,7 +631,7 @@ class ProductController extends Controller
         Storage::disk('local')->copy($storedFilePath, $base . '/products.xlsx');
 
         // Copy drawings to job images folder
-        $tempPath = storage_path('app/public/products/temp/' . $tempId);
+        $tempPath = public_path('uploads/temp/products/' . $tempId);
         $jobImagesPath = Storage::disk('local')->path($base . '/images');
         File::ensureDirectoryExists($jobImagesPath);
 
@@ -665,16 +678,17 @@ class ProductController extends Controller
     public function importStatus(string $id)
     {
         $log = $this->importLogQuery()->findOrFail($id);
-        $processed = $log->imported_rows + $log->skipped_rows + ($log->failed_rows ?? 0);
+        $processed = $log->imported_rows + ($log->updated_rows ?? 0) + $log->skipped_rows + ($log->failed_rows ?? 0);
         $percent = $log->total_rows > 0
             ? (int) min(100, round(($processed / $log->total_rows) * 100))
             : null;
-
+ 
         return response()->json([
             'id' => $log->id,
             'status' => $log->status,
             'total_rows' => $log->total_rows,
             'imported_rows' => $log->imported_rows,
+            'updated_rows' => $log->updated_rows ?? 0,
             'skipped_rows' => $log->skipped_rows,
             'failed_rows' => $log->failed_rows ?? 0,
             'warning_rows' => $log->warning_rows ?? 0,
@@ -685,17 +699,58 @@ class ProductController extends Controller
             'completed_at' => $log->completed_at,
         ]);
     }
-
+ 
     public function importLogs()
     {
         $logs = $this->importLogQuery()->latest()->paginate(15);
         return view('admin.products.import_logs', compact('logs'));
     }
-
+ 
     public function importLogShow($id)
     {
         $log = $this->importLogQuery()->findOrFail($id);
         return view('admin.products.import_log_show', compact('log'));
+    }
+
+    public function downloadImportErrors($id)
+    {
+        $log = $this->importLogQuery()->findOrFail($id);
+        $detailedLogs = is_array($log->detailed_logs) ? $log->detailed_logs : json_decode($log->detailed_logs, true) ?? [];
+        
+        $failedRows = array_filter($detailedLogs, function($item) {
+            return ($item['status'] ?? '') === 'failed';
+        });
+
+        if (empty($failedRows)) {
+            return back()->with('error', 'No failed records found in this import log.');
+        }
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="import_errors_' . $log->id . '_' . date('Ymd_His') . '.csv"',
+        ];
+
+        $callback = function() use ($failedRows) {
+            $file = fopen('php://output', 'w');
+            
+            // Header row
+            fputcsv($file, ['Row Number', 'SKU', 'Product Name', 'Category', 'Subcategory', 'Failure Reason']);
+            
+            foreach ($failedRows as $row) {
+                fputcsv($file, [
+                    $row['row'] ?? '',
+                    $row['part_code'] ?? '',
+                    $row['product_name'] ?? '',
+                    $row['category'] ?? '',
+                    $row['subcategory'] ?? '',
+                    $row['message'] ?? '',
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function downloadTemplate()
@@ -707,6 +762,8 @@ class ProductController extends Controller
             'Product Name',
             'SKU',
             'Slug',
+            'Part Code',
+            'Part Number',
             'Brand',
             'Category',
             'Subcategory',
@@ -724,8 +781,12 @@ class ProductController extends Controller
             'Gallery Image 2',
             'Gallery Image 3',
             'Tags',
+            'Weight',
+            'Colors',
+            'Sizes',
             'Meta Title',
             'Meta Description',
+            'Meta Keywords',
         ];
 
         $samples = [
@@ -733,6 +794,8 @@ class ProductController extends Controller
                 'Elite Leather Watch',
                 'ELITE-WATCH-01',
                 'elite-leather-watch',
+                'ELITE-WATCH-01',
+                'EL-WATCH-PART',
                 'Titan',
                 'Fashion Accessories',
                 'Watches',
@@ -750,13 +813,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'watch, leather, premium, accessories',
+                '250g',
+                'Black, Brown',
+                'Medium, Large',
                 'Elite Leather Watch - Premium Accessories',
-                'Shop elite leather watches online at the best prices.'
+                'Shop elite leather watches online at the best prices.',
+                'watch, leather watch, elite watch'
             ],
             [
                 'Ergonomic Office Chair',
                 'ERG-CHAIR-02',
                 'ergonomic-office-chair',
+                'ERG-CHAIR-02',
+                'CHAIR-PART-02',
                 'Featherlite, Steelcase',
                 'Furniture',
                 'Chairs',
@@ -774,13 +843,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'chair, office, ergonomic, furniture',
+                '15kg',
+                'Black, Grey',
+                'Standard',
                 'Ergonomic Office Chair - Dual Brand',
-                'Premium ergonomic chairs from top brands like Featherlite and Steelcase.'
+                'Premium ergonomic chairs from top brands like Featherlite and Steelcase.',
+                'chair, office chair, ergonomic'
             ],
             [
                 'Noise Cancelling Headphones',
                 'ANC-HEAD-03',
                 'noise-cancelling-headphones',
+                'ANC-HEAD-03',
+                'ANC-PART-03',
                 'Sony, Bose',
                 'Electronics, Audio Devices',
                 'Headphones',
@@ -798,13 +873,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'headphones, noise cancelling, electronics, audio',
+                '350g',
+                'Black, Silver',
+                'Adjustable',
                 'Noise Cancelling Headphones - Electronics',
-                'Discover top noise cancelling headphones from Sony and Bose.'
+                'Discover top noise cancelling headphones from Sony and Bose.',
+                'headphones, noise cancelling, sony'
             ],
             [
                 'Professional Sports Duffel Bag',
                 'SPORT-DUF-04',
                 'professional-sports-duffel-bag',
+                'SPORT-DUF-04',
+                'SPORT-PART-04',
                 'Nike, Adidas',
                 'Sports Equipment, Travel Gear',
                 'Gym Bags, Travel Duffle Bags',
@@ -822,13 +903,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'duffel, gym bag, travel bag, nike, adidas',
+                '800g',
+                'Red, Blue, Black',
+                '30L, 50L',
                 'Professional Sports Duffel Bag',
-                'High-grade sports and travel duffel bags from Nike and Adidas.'
+                'High-grade sports and travel duffel bags from Nike and Adidas.',
+                'duffel bag, sports bag, gym bag'
             ],
             [
                 'Smart Fitness Tracker',
                 'FIT-TRACK-05',
                 'smart-fitness-tracker',
+                'FIT-TRACK-05',
+                'FIT-PART-05',
                 'Fitbit',
                 'Electronics',
                 'Wearables',
@@ -846,13 +933,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'fitness, tracker, band, wearable',
+                '50g',
+                'Black, Blue, Pink',
+                'Small, Large',
                 'Smart Fitness Tracker',
-                'Stay active with the latest smart fitness tracker.'
+                'Stay active with the latest smart fitness tracker.',
+                'fitness tracker, smart band'
             ],
             [
                 'Gourmet Coffee Blend',
                 'COFFEE-BLEND-06',
                 'gourmet-coffee-blend',
+                'COFFEE-BLEND-06',
+                'COFFEE-PART-06',
                 'Blue Tokai',
                 'Beverages',
                 'Coffee',
@@ -870,13 +963,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'coffee, arabica, beverage, fresh roast',
+                '250g',
+                'Brown',
+                'Ground, Whole Beans',
                 'Gourmet Coffee Blend - Blue Tokai',
-                'Experience the finest medium roast Arabica coffee beans.'
+                'Experience the finest medium roast Arabica coffee beans.',
+                'coffee, blue tokai, arabica'
             ],
             [
                 'Stainless Steel Water Bottle',
                 'STEEL-BOTTLE-07',
                 'stainless-steel-water-bottle',
+                'STEEL-BOTTLE-07',
+                'STEEL-PART-07',
                 'Milton',
                 'Kitchenware',
                 'Bottles',
@@ -886,7 +985,7 @@ class ProductController extends Controller
                 1000,
                 'in_stock',
                 'Double-walled vacuum insulated bottle.',
-                '',
+                'Double-walled vacuum insulated stainless steel water bottle.',
                 'active',
                 'no',
                 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80',
@@ -894,13 +993,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'bottle, stainless steel, kitchenware',
+                '400g',
+                'Silver, Black',
+                '750ml, 1L',
                 'Stainless Steel Water Bottle',
-                'Keep your drinks hot or cold for 24 hours.'
+                'Keep your drinks hot or cold for 24 hours.',
+                'water bottle, stainless steel'
             ],
             [
                 'Minimalist Wireless Mouse',
                 'WIRELESS-MOUSE-08',
                 'minimalist-wireless-mouse',
+                'WIRELESS-MOUSE-08',
+                'MOUSE-PART-08',
                 'Logitech',
                 'Electronics',
                 'Computer Accessories',
@@ -918,13 +1023,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'mouse, wireless, computer accessories, logitech',
+                '100g',
+                'Black, White, Rose',
+                'Standard',
                 'Minimalist Wireless Mouse',
-                'Silent wireless mouse with comfortable design.'
+                'Silent wireless mouse with comfortable design.',
+                'wireless mouse, silent mouse, logitech'
             ],
             [
                 'Organic Cotton T-Shirt',
                 'COTTON-TEE-09',
                 'organic-cotton-t-shirt',
+                'COTTON-TEE-09',
+                'TEE-PART-09',
                 'Zara',
                 'Apparel',
                 'T-Shirts',
@@ -941,23 +1052,29 @@ class ProductController extends Controller
                 '',
                 '',
                 '',
-                '',
+                't-shirt, organic cotton, zara',
+                '150g',
+                'White, Navy, Olive',
+                'S, M, L, XL',
                 'Organic Cotton T-Shirt - Zara',
-                'Eco-friendly premium organic cotton tees.'
+                'Eco-friendly premium organic cotton tees.',
+                'organic t-shirt, cotton tee, zara'
             ],
             [
                 'Portable Power Bank',
                 'PORT-POWER-10',
-                '',
+                'portable-power-bank',
+                'PORT-POWER-10',
+                'POWER-PART-10',
                 'Xiaomi',
                 'Electronics',
-                '',
+                'Power Banks',
                 1999.00,
-                '',
+                1699.00,
                 5,
                 0,
                 'out_of_stock',
-                '',
+                '10000mAh fast charging power bank.',
                 '10000mAh high capacity fast charging power bank with dual USB outputs.',
                 'active',
                 'yes',
@@ -965,16 +1082,20 @@ class ProductController extends Controller
                 '',
                 '',
                 '',
-                '',
-                '',
-                ''
+                'power bank, portable charger, xiaomi',
+                '220g',
+                'Black, Silver',
+                '10000mAh',
+                'Portable Power Bank - Xiaomi',
+                'High capacity fast charging portable power bank.',
+                'power bank, portable charger, xiaomi'
             ]
         ];
 
         $sheet->fromArray([$headers], null, 'A1');
         $sheet->fromArray($samples, null, 'A2');
 
-        $lastCol = 'V';
+        $lastCol = 'AB';
         $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
@@ -983,15 +1104,15 @@ class ProductController extends Controller
             ],
         ]);
 
-        // Style specific helper columns
-        $sheet->getStyle('P1:S1')->applyFromArray([
+        // Style specific helper columns (Featured Image, Gallery Images)
+        $sheet->getStyle('R1:U1')->applyFromArray([
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '06B6D4'],
             ],
         ]);
 
-        for ($col = 1; $col <= 22; $col++) {
+        for ($col = 1; $col <= 28; $col++) {
             $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
             $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
@@ -1043,17 +1164,25 @@ class ProductController extends Controller
     private function productTenantId(): ?int
     {
         $user = auth()->user();
+        if (!$user || $user->hasRole('Super Admin')) {
+            return null;
+        }
 
-        return $user && $user->hasRole('Admin') ? $user->id : null;
+        return $user->id;
     }
 
     private function applyProductTenant($query)
     {
-        $tenantId = $this->productTenantId();
+        $user = auth()->user();
+        if (!$user) {
+            return $query->whereNull('subscriber_id');
+        }
 
-        return $tenantId === null
-            ? $query->whereNull('subscriber_id')
-            : $query->where('subscriber_id', $tenantId);
+        if ($user->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        return $query->where('subscriber_id', $user->id);
     }
 
     private function productTenantQuery()

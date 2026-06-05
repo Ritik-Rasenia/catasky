@@ -368,12 +368,23 @@
 
 <style>
     .product-image-container {
-        background: #ffffff !important;
+        background: #f8fafc !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        padding: 10px !important;
+        aspect-ratio: 1/1 !important;
+        position: relative !important;
     }
     .product-image-container img {
-        width: 100% !important;
-        height: 100% !important;
+        max-width: 90% !important;
+        max-height: 90% !important;
+        width: auto !important;
+        height: auto !important;
         object-fit: contain !important;
+        transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     }
 
     /* Desktop Sticky Sidebar styling to prevent overflowing footer & scroll internally */
@@ -476,8 +487,13 @@
             margin-bottom: 8px !important;
             aspect-ratio: 1/1 !important;
             height: auto !important;
+            padding: 8px !important;
         }
         .product-image-container img {
+            max-width: 90% !important;
+            max-height: 90% !important;
+            width: auto !important;
+            height: auto !important;
             object-fit: contain !important;
         }
         .product-title {

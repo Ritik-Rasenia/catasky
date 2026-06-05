@@ -85,6 +85,7 @@
                                     <th>Category/Subcategory</th>
                                     <th>Offer Price (₹)</th>
                                     <th>Validation Status</th>
+                                    <th>Failure Reason</th>
                                 </tr>
                             </thead>
                             <tbody id="preview-rows">
@@ -94,7 +95,6 @@
                     </div>
                 </div>
             </div>
- 
             <!-- Live Progress / Worker Panel (Hidden initially) -->
             <div class="card d-none" id="progress-card">
                 <div class="card-body p-5 text-center">
@@ -118,7 +118,57 @@
                     </div>
                 </div>
             </div>
- 
+
+            <!-- Summary Card (Hidden initially) -->
+            <div class="card d-none mb-4" id="summary-card">
+                <div class="card-body p-5 text-center">
+                    <div class="icon-wrap bg-success-subtle text-success rounded-circle p-4 mb-4 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                        <i class="fa-solid fa-circle-check fa-3x"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-2">Import Processed Successfully</h3>
+                    <p class="text-secondary mb-4 mx-auto" style="max-width: 500px;">The product import process has finished. Please review the execution summary below.</p>
+                    
+                    <div class="row g-3 justify-content-center mb-4" style="max-width: 600px; margin: 0 auto;">
+                        <div class="col-6 col-sm-3">
+                            <div class="border rounded-3 p-3 bg-light-subtle">
+                                <div class="text-muted small fw-semibold text-uppercase mb-1">Total Processed</div>
+                                <h4 class="fw-bold mb-0 text-dark" id="summary-total-rows">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="border rounded-3 p-3 bg-success-subtle border-success-subtle">
+                                <div class="text-success small fw-semibold text-uppercase mb-1">Inserted</div>
+                                <h4 class="fw-bold mb-0 text-success" id="summary-inserted-rows">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="border rounded-3 p-3 bg-info-subtle border-info-subtle">
+                                <div class="text-info small fw-semibold text-uppercase mb-1">Updated</div>
+                                <h4 class="fw-bold mb-0 text-info" id="summary-updated-rows">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="border rounded-3 p-3 bg-danger-subtle border-danger-subtle">
+                                <div class="text-danger small fw-semibold text-uppercase mb-1">Failed</div>
+                                <h4 class="fw-bold mb-0 text-danger" id="summary-failed-rows">0</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="#" class="btn btn-outline-danger d-none" id="btn-download-errors">
+                            <i class="fa-solid fa-download me-2"></i>Download Error Report
+                        </a>
+                        <a href="{{ route('subscriber.products.index') }}" class="btn btn-primary px-4">
+                            <i class="fa-solid fa-boxes-stacked me-2"></i>Go to Products
+                        </a>
+                        <a href="{{ route('subscriber.products.import-logs') }}" class="btn btn-outline-secondary px-4">
+                            <i class="fa-solid fa-clock-rotate-left me-2"></i>View History
+                        </a>
+                    </div>
+                </div>
+            </div>
+  
             <!-- Import Logs & Live Logging History -->
             <div class="card" id="logs-card">
                 <div class="card-header bg-transparent border-0 py-4 d-flex justify-content-between align-items-center">
@@ -126,8 +176,8 @@
                     <div class="d-flex gap-2">
                         <span class="badge bg-success-soft text-success px-3 py-2" id="badge-imported">0 Imported</span>
                         <span class="badge bg-warning-soft text-warning px-3 py-2" id="badge-warning">0 Warnings</span>
-                        <span class="badge bg-danger-soft text-danger px-3 py-2" id="badge-skipped">0 Skipped</span>
-                        <span class="badge bg-info-soft text-dark px-3 py-2" id="badge-failed">0 Failed</span>
+                        <span class="badge bg-info-soft text-info px-3 py-2" id="badge-updated">0 Updated</span>
+                        <span class="badge bg-danger-soft text-danger px-3 py-2" id="badge-failed">0 Failed</span>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -158,8 +208,6 @@
     </div>
 </div>
  
-
- 
 @push('js')
 <script>
 (function () {
@@ -172,6 +220,7 @@
     const uploadCard = document.getElementById('upload-card');
     const previewCard = document.getElementById('preview-card');
     const progressCard = document.getElementById('progress-card');
+    const summaryCard = document.getElementById('summary-card');
     const logsCard = document.getElementById('logs-card');
     
     const previewRows = document.getElementById('preview-rows');
@@ -184,11 +233,17 @@
     const progressTextLeft = document.getElementById('progress-text-left');
     const progressTextRight = document.getElementById('progress-text-right');
     
+    const summaryTotalRows = document.getElementById('summary-total-rows');
+    const summaryInsertedRows = document.getElementById('summary-inserted-rows');
+    const summaryUpdatedRows = document.getElementById('summary-updated-rows');
+    const summaryFailedRows = document.getElementById('summary-failed-rows');
+    const btnDownloadErrors = document.getElementById('btn-download-errors');
+    
     const importReportRows = document.getElementById('import-report-rows');
     const reportEmptyRow = document.getElementById('report-empty-row');
     const badgeImported = document.getElementById('badge-imported');
     const badgeWarning = document.getElementById('badge-warning');
-    const badgeSkipped = document.getElementById('badge-skipped');
+    const badgeUpdated = document.getElementById('badge-updated');
     const badgeFailed = document.getElementById('badge-failed');
     
     const btnConfirmImport = document.getElementById('btn-confirm-import');
@@ -306,9 +361,9 @@
         previewValidCount.textContent = data.summary.valid + ' Valid Rows';
         previewErrorCount.textContent = data.summary.error + ' With Errors';
  
-        if (data.summary.error > 0) {
+        if (data.summary.valid === 0) {
             btnConfirmImport.disabled = true;
-            btnConfirmImport.title = 'Please fix errors in the Excel file before importing.';
+            btnConfirmImport.title = 'There are no valid rows to import.';
         } else {
             btnConfirmImport.disabled = false;
             btnConfirmImport.title = '';
@@ -323,10 +378,22 @@
                 imgHtml = `<img src="${row.featured_image}" class="preview-thumb" alt="Thumbnail">`;
             }
  
-            // Error Badge
-            let statusHtml = '<span class="badge bg-success-subtle text-success py-1 px-3 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i>Ready</span>';
+            // Status Badge
+            let statusHtml = '';
             if (!row.is_valid) {
                 statusHtml = `<span class="badge bg-danger-subtle text-danger py-1 px-3 rounded-pill" title="${escapeHtml(row.errors.join(', '))}"><i class="fa-solid fa-circle-exclamation me-1"></i>${row.errors.length} Errors</span>`;
+            } else {
+                if (row.action === 'Update') {
+                    statusHtml = '<span class="badge bg-info-subtle text-info py-1 px-3 rounded-pill"><i class="fa-solid fa-pen-to-square me-1"></i>Ready (Update)</span>';
+                } else {
+                    statusHtml = '<span class="badge bg-success-subtle text-success py-1 px-3 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i>Ready (Insert)</span>';
+                }
+            }
+ 
+            // Error Reason Cell
+            let errorReasonHtml = '<span class="text-muted small">—</span>';
+            if (!row.is_valid && row.errors && row.errors.length) {
+                errorReasonHtml = `<span class="text-danger small">${escapeHtml(row.errors.join(', '))}</span>`;
             }
  
             tr.innerHTML = `
@@ -337,6 +404,7 @@
                 <td><small class="text-secondary">${escapeHtml(row.category)} &rarr; ${escapeHtml(row.subcategory)}</small></td>
                 <td><strong>₹${row.price || '0.00'}</strong></td>
                 <td>${statusHtml}</td>
+                <td>${errorReasonHtml}</td>
             `;
             previewRows.appendChild(tr);
         });
@@ -419,11 +487,25 @@
                         progressBarFill.classList.remove('bg-indigo');
                         progressBarFill.classList.add('bg-success');
                         progressStatusTitle.textContent = 'Import Completed!';
-                        progressStatusDesc.textContent = `Successfully imported ${data.imported_rows} products.`;
+                        progressStatusDesc.textContent = `Successfully processed products.`;
                         
                         setTimeout(() => {
-                            window.location.href = "{{ route('subscriber.products.index') }}";
-                        }, 2500);
+                            progressCard.classList.add('d-none');
+                            summaryCard.classList.remove('d-none');
+                            
+                            summaryTotalRows.textContent = data.total_rows || 0;
+                            summaryInsertedRows.textContent = data.imported_rows || 0;
+                            summaryUpdatedRows.textContent = data.updated_rows || 0;
+                            summaryFailedRows.textContent = data.failed_rows || 0;
+                            
+                            if (data.failed_rows > 0) {
+                                btnDownloadErrors.classList.remove('d-none');
+                                const downloadUrl = "{{ route('subscriber.products.import-logs.download-errors', ['id' => ':id']) }}".replace(':id', logId);
+                                btnDownloadErrors.href = downloadUrl;
+                            } else {
+                                btnDownloadErrors.classList.add('d-none');
+                            }
+                        }, 1500);
                     } else {
                         progressBarFill.classList.remove('bg-indigo');
                         progressBarFill.classList.add('bg-danger');
@@ -447,13 +529,13 @@
             progressTextLeft.textContent = 'Job pending in worker queue...';
         } else if (data.status === 'processing') {
             progressStatusTitle.textContent = 'Importing Products...';
-            progressTextLeft.textContent = `Processing row ${data.imported_rows + data.skipped_rows + data.failed_rows} of ${data.total_rows}`;
+            progressTextLeft.textContent = `Processing row ${data.imported_rows + data.updated_rows + data.failed_rows} of ${data.total_rows}`;
         }
  
         // Render Reports
         badgeImported.textContent = (data.imported_rows || 0) + ' Imported';
         badgeWarning.textContent = (data.warning_rows || 0) + ' Warnings';
-        badgeSkipped.textContent = (data.skipped_rows || 0) + ' Skipped';
+        badgeUpdated.textContent = (data.updated_rows || 0) + ' Updated';
         badgeFailed.textContent = (data.failed_rows || 0) + ' Failed';
  
         const detailedLogs = data.detailed_logs || [];
@@ -467,9 +549,9 @@
                 const tr = document.createElement('tr');
                 let badgeClass = 'bg-secondary-subtle text-secondary';
                 if (log.status === 'imported') badgeClass = 'bg-success-subtle text-success';
-                else if (log.status === 'skipped') badgeClass = 'bg-danger-subtle text-danger';
+                else if (log.status === 'updated') badgeClass = 'bg-info-subtle text-info';
                 else if (log.status === 'warning') badgeClass = 'bg-warning-subtle text-warning';
-                else if (log.status === 'failed') badgeClass = 'bg-dark-subtle text-dark';
+                else if (log.status === 'failed') badgeClass = 'bg-danger-subtle text-danger';
  
                 tr.innerHTML = `
                     <td class="ps-4 fw-bold text-muted">${log.row || '—'}</td>

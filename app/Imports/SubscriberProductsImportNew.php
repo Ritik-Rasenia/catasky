@@ -52,119 +52,148 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         $sku = trim($this->getCell($data, 'sku', 'part_code'));
         $slugInput = trim($this->getCell($data, 'slug'));
  
+        // 1. Required fields checks
         if ($name === '') {
-            $this->logSkippedRow($rowIndex, $sku, $name, 'Product name is required.', $data);
+            $this->logFailedRow($rowIndex, $sku, $name, 'Product name is required.', $data);
+            return;
+        }
+        if ($sku === '') {
+            $this->logFailedRow($rowIndex, $sku, $name, 'SKU is required.', $data);
             return;
         }
  
-        // Limits Check
-        $user = \App\Models\User::find($this->subscriberId);
-        $sub = $user?->activeSubscription();
-        $limit = $sub?->plan?->product_limit ?? 1000;
-        $currCount = SubscriberProduct::whereNull('deleted_at')
-            ->where('user_id', $this->subscriberId)
-            ->count();
-        if ($currCount >= $limit) {
-            $this->logFailedRow($rowIndex, $sku, $name, "Subscription limit reached. Your plan allows max {$limit} products.", $data);
-            return;
-        }
+        // 2. Numeric checks
+        $mrpRaw = $this->getCell($data, 'mrp');
+        $offerPriceRaw = $this->getCell($data, 'offer_price', 'price');
+        $moqRaw = $this->getCell($data, 'moq');
+        $stockRaw = $this->getCell($data, 'stock_quantity', 'stock');
  
-        // Duplicate product checking in subscriber workspace
-        if ($sku !== '') {
-            $existingProduct = SubscriberProduct::whereNull('deleted_at')
-                ->where('user_id', $this->subscriberId)
-                ->where(function ($query) use ($sku, $name) {
-                    $query->where('sku', $sku)
-                        ->orWhere('name', $name);
-                })
-                ->first();
-            if ($existingProduct) {
-                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' or SKU '{$sku}' already exists in your catalogue.", $data);
-                return;
-            }
-        } else {
-            $sku = 'SKU-' . strtoupper(Str::random(10));
-            $existingProduct = SubscriberProduct::whereNull('deleted_at')
-                ->where('user_id', $this->subscriberId)
-                ->where('name', $name)
-                ->first();
-            if ($existingProduct) {
-                $this->logSkippedRow($rowIndex, $sku, $name, "Duplicate product: '{$name}' already exists in your catalogue.", $data);
+        if ($mrpRaw !== null && $mrpRaw !== '') {
+            $mrpClean = preg_replace('/[^0-9.]/', '', $mrpRaw);
+            if (!is_numeric($mrpClean)) {
+                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid MRP format.', $data);
                 return;
             }
         }
+        if ($offerPriceRaw !== null && $offerPriceRaw !== '') {
+            $opClean = preg_replace('/[^0-9.]/', '', $offerPriceRaw);
+            if (!is_numeric($opClean)) {
+                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid price format.', $data);
+                return;
+            }
+        }
+        if ($moqRaw !== null && $moqRaw !== '') {
+            $moqClean = preg_replace('/[^0-9]/', '', $moqRaw);
+            if (!is_numeric($moqClean)) {
+                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid MOQ format.', $data);
+                return;
+            }
+        }
+        if ($stockRaw !== null && $stockRaw !== '') {
+            $stockClean = preg_replace('/[^0-9]/', '', $stockRaw);
+            if (!is_numeric($stockClean)) {
+                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid stock quantity format.', $data);
+                return;
+            }
+        }
  
-        // Resolve categories
+        $mrp = $this->parseNumeric($mrpRaw);
+        $offerPrice = $this->parseNumeric($offerPriceRaw);
+        $moq = (int)$this->parseNumeric($moqRaw, 1);
+        $stock = (int)$this->parseNumeric($stockRaw, 0);
+ 
+        // 3. Resolve categories (Strict check)
         $categoryCell = trim($this->getCell($data, 'category'));
         if ($categoryCell === '') {
-            $categoryCell = 'General';
+            $this->logFailedRow($rowIndex, $sku, $name, 'Category is required.', $data);
+            return;
         }
         $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
         $categoryIds = [];
         $firstCategoryId = null;
+        $firstCategoryName = null;
         foreach ($categoryNames as $cName) {
             $cat = $this->resolveCategory($cName);
-            if ($cat) {
-                $categoryIds[] = $cat->id;
-                if ($firstCategoryId === null) {
-                    $firstCategoryId = $cat->id;
-                }
+            if (!$cat) {
+                $this->logFailedRow($rowIndex, $sku, $name, "Category not found: '{$cName}'.", $data);
+                return;
+            }
+            $categoryIds[] = $cat->id;
+            if ($firstCategoryId === null) {
+                $firstCategoryId = $cat->id;
+                $firstCategoryName = $cName;
             }
         }
-        if (empty($categoryIds)) {
-            $cat = $this->resolveCategory('General');
-            $categoryIds[] = $cat->id;
-            $firstCategoryId = $cat->id;
-        }
-
-        // Resolve subcategories (scoped to the first category found, or general)
+ 
+        // 4. Resolve subcategories (Strict check scoped to category)
         $subcategoryCell = trim($this->getCell($data, 'subcategory', 'sub_category'));
         if ($subcategoryCell === '') {
-            $subcategoryCell = 'General';
+            $this->logFailedRow($rowIndex, $sku, $name, 'Subcategory is required.', $data);
+            return;
         }
         $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
         $subcategoryIds = [];
         foreach ($subcategoryNames as $sName) {
             $sub = $this->resolveSubcategory($firstCategoryId, $sName);
-            if ($sub) {
-                $subcategoryIds[] = $sub->id;
+            if (!$sub) {
+                $this->logFailedRow($rowIndex, $sku, $name, "Subcategory not found: '{$sName}' under Category '{$firstCategoryName}'.", $data);
+                return;
             }
-        }
-        if (empty($subcategoryIds)) {
-            $sub = $this->resolveSubcategory($firstCategoryId, 'General');
             $subcategoryIds[] = $sub->id;
         }
-
-        // Resolve Brands
+ 
+        // 5. Resolve Brands (Strict check)
         $brandCell = trim($this->getCell($data, 'brand'));
         $brandIds = [];
         if ($brandCell !== '') {
             $brandNames = array_filter(array_map('trim', explode(',', $brandCell)));
             foreach ($brandNames as $bName) {
                 $bId = $this->resolveBrandId($bName);
-                if ($bId) {
-                    $brandIds[] = $bId;
+                if (!$bId) {
+                    $this->logFailedRow($rowIndex, $sku, $name, "Brand does not exist: '{$bName}'.", $data);
+                    return;
                 }
+                $brandIds[] = $bId;
             }
         }
-
+ 
+        // 6. Check if product already exists (Upsert)
+        $existingProduct = SubscriberProduct::whereNull('deleted_at')
+            ->where('user_id', $this->subscriberId)
+            ->where(function ($query) use ($sku, $name) {
+                $query->where('sku', $sku)
+                    ->orWhere('name', $name);
+            })
+            ->first();
+ 
+        // 7. Limit check for INSERTS only
+        if (!$existingProduct) {
+            $user = \App\Models\User::find($this->subscriberId);
+            $sub = $user?->activeSubscription();
+            $limit = $sub?->plan?->product_limit ?? 1000;
+            $currCount = SubscriberProduct::whereNull('deleted_at')
+                ->where('user_id', $this->subscriberId)
+                ->count();
+            if ($currCount >= $limit) {
+                $this->logFailedRow($rowIndex, $sku, $name, "Subscription limit reached. Your plan allows max {$limit} products.", $data);
+                return;
+            }
+        }
+ 
         // Generate Slug
         $slug = $slugInput !== '' ? Str::slug($slugInput) : Str::slug($name);
         if ($slug === '') {
             $slug = Str::slug($name) . '-' . Str::lower(Str::random(6));
         }
         $slug = $this->uniqueSlug($slug, $sku);
-
-        // Handle Thumbnail: Column P (Featured Image)
+ 
+        // Handle Thumbnail
         $thumbnail = null;
         $thumbWarning = null;
-
-        // Try pre-extracted cell drawing first
         $extractedDrawingPath = $this->getExtractedDrawing($rowIndex, 'P');
         if ($extractedDrawingPath) {
             $thumbnail = $this->copyDrawingToFinal($extractedDrawingPath, $slug, 'thumbnail');
         } else {
-            // Check string URL or filename
             $thumbVal = trim($this->getCell($data, 'featured_image', 'thumbnail'));
             if ($thumbVal !== '') {
                 if (filter_var($thumbVal, FILTER_VALIDATE_URL)) {
@@ -183,64 +212,98 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                 }
             }
         }
-
-        // Parse fields
-        $mrp = $this->parseNumeric($this->getCell($data, 'mrp'));
-        $offerPrice = $this->parseNumeric($this->getCell($data, 'offer_price', 'price'));
-        $moq = (int)$this->parseNumeric($this->getCell($data, 'moq'), 1);
-        $stock = (int)$this->parseNumeric($this->getCell($data, 'stock_quantity', 'stock'), 0);
+ 
         $stockStatus = trim($this->getCell($data, 'stock_status'));
         if ($stockStatus === '') {
             $stockStatus = $stock > 0 ? 'in_stock' : 'out_of_stock';
         }
         $status = $this->parseStatus($this->getCell($data, 'status'));
         $featured = $this->parseBool($this->getCell($data, 'featured'));
-
         $shortDesc = trim($this->getCell($data, 'short_description'));
         $fullDesc = trim($this->getCell($data, 'full_description', 'description'));
         $tagsStr = trim($this->getCell($data, 'tags'));
         $tagsArray = $tagsStr !== '' ? array_map('trim', explode(',', $tagsStr)) : null;
         $metaTitle = trim($this->getCell($data, 'meta_title'));
         $metaDescription = trim($this->getCell($data, 'meta_description'));
-
+ 
         try {
-            DB::transaction(function () use ($name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $firstCategoryId, $mrp, $offerPrice, $moq, $stock, $stockStatus, $shortDesc, $fullDesc, $thumbnail, $status, $featured, $tagsArray, $metaTitle, $metaDescription, $rowIndex, $data) {
-                // Create Subscriber Product
-                $product = SubscriberProduct::create([
-                    'user_id'           => $this->subscriberId,
-                    'category_id'       => $categoryIds,
-                    'subcategory_id'    => $subcategoryIds,
-                    'brand_id'          => $brandIds,
-                    'name'              => $name,
-                    'slug'              => $slug,
-                    'sku'               => $sku,
-                    'mrp'               => $mrp > 0 ? $mrp : null,
-                    'offer_price'       => $offerPrice > 0 ? $offerPrice : null,
-                    'price'             => $offerPrice > 0 ? $offerPrice : ($mrp > 0 ? $mrp : 0.00),
-                    'moq'               => $moq,
-                    'stock'             => $stock,
-                    'stock_status'      => $stockStatus,
-                    'thumbnail'         => $thumbnail,
-                    'short_description' => $shortDesc,
-                    'full_description'  => $fullDesc,
-                    'tags'              => $tagsArray,
-                    'featured'          => $featured,
-                    'status'            => $status,
-                    'meta_title'        => $metaTitle ?: null,
-                    'meta_description'  => $metaDescription ?: null,
-                    'approval_status'   => 'approved', // Auto-approved for B2B subscriber
-                ]);
-
-                // Initialize default Variant (for stock/inventory)
-                SubscriberProductVariant::create([
-                    'subscriber_product_id' => $product->id,
-                    'variant_sku'           => $product->sku,
-                    'price'                 => $product->offer_price ?: ($product->mrp ?: 0.00),
-                    'stock'                 => $stock,
-                    'status'                => true,
-                ]);
-
-                // Save dynamic attributes (PIM attributes mapped to subcategory first, falling back to category)
+            DB::transaction(function () use ($existingProduct, $name, $slug, $sku, $brandIds, $categoryIds, $subcategoryIds, $firstCategoryId, $mrp, $offerPrice, $moq, $stock, $stockStatus, $shortDesc, $fullDesc, $thumbnail, $status, $featured, $tagsArray, $metaTitle, $metaDescription, $rowIndex, $data) {
+                if ($existingProduct) {
+                    // Update
+                    $updateData = [
+                        'category_id'       => $categoryIds,
+                        'subcategory_id'    => $subcategoryIds,
+                        'brand_id'          => $brandIds,
+                        'name'              => $name,
+                        'slug'              => $slug,
+                        'sku'               => $sku,
+                        'mrp'               => $mrp > 0 ? $mrp : null,
+                        'offer_price'       => $offerPrice > 0 ? $offerPrice : null,
+                        'price'             => $offerPrice > 0 ? $offerPrice : ($mrp > 0 ? $mrp : 0.00),
+                        'moq'               => $moq,
+                        'stock'             => $stock,
+                        'stock_status'      => $stockStatus,
+                        'short_description' => $shortDesc,
+                        'full_description'  => $fullDesc,
+                        'tags'              => $tagsArray,
+                        'featured'          => $featured,
+                        'status'            => $status,
+                        'meta_title'        => $metaTitle ?: null,
+                        'meta_description'  => $metaDescription ?: null,
+                    ];
+                    if ($thumbnail) {
+                        $updateData['thumbnail'] = $thumbnail;
+                    }
+                    $existingProduct->update($updateData);
+                    $product = $existingProduct;
+ 
+                    // Update Variant
+                    SubscriberProductVariant::updateOrCreate(
+                        ['subscriber_product_id' => $product->id],
+                        [
+                            'variant_sku' => $product->sku,
+                            'price'       => $product->offer_price ?: ($product->mrp ?: 0.00),
+                            'stock'       => $stock,
+                            'status'      => true,
+                        ]
+                    );
+                } else {
+                    // Insert
+                    $product = SubscriberProduct::create([
+                        'user_id'           => $this->subscriberId,
+                        'category_id'       => $categoryIds,
+                        'subcategory_id'    => $subcategoryIds,
+                        'brand_id'          => $brandIds,
+                        'name'              => $name,
+                        'slug'              => $slug,
+                        'sku'               => $sku,
+                        'mrp'               => $mrp > 0 ? $mrp : null,
+                        'offer_price'       => $offerPrice > 0 ? $offerPrice : null,
+                        'price'             => $offerPrice > 0 ? $offerPrice : ($mrp > 0 ? $mrp : 0.00),
+                        'moq'               => $moq,
+                        'stock'             => $stock,
+                        'stock_status'      => $stockStatus,
+                        'thumbnail'         => $thumbnail,
+                        'short_description' => $shortDesc,
+                        'full_description'  => $fullDesc,
+                        'tags'              => $tagsArray,
+                        'featured'          => $featured,
+                        'status'            => $status,
+                        'meta_title'        => $metaTitle ?: null,
+                        'meta_description'  => $metaDescription ?: null,
+                        'approval_status'   => 'approved',
+                    ]);
+ 
+                    SubscriberProductVariant::create([
+                        'subscriber_product_id' => $product->id,
+                        'variant_sku'           => $product->sku,
+                        'price'                 => $product->offer_price ?: ($product->mrp ?: 0.00),
+                        'stock'                 => $stock,
+                        'status'                => true,
+                    ]);
+                }
+ 
+                // Sync Dynamic PIM attributes
                 $subcatIdToUse = $this->subcategoryId ?: ($subcategoryIds[0] ?? null);
                 $attributes = collect();
                 if ($subcatIdToUse) {
@@ -258,28 +321,27 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                         ->get();
                     $attributes = $categoryAttributes->pluck('attribute')->filter();
                 }
-
+ 
                 foreach ($attributes as $attr) {
                     $slugKey = Str::slug($attr->name);
                     $headingKey = str_replace('-', '_', $slugKey);
-
+ 
                     $val = null;
                     if (isset($data[$headingKey]) && $data[$headingKey] !== '') {
                         $val = $data[$headingKey];
                     } elseif (isset($data[$slugKey]) && $data[$slugKey] !== '') {
                         $val = $data[$slugKey];
                     }
-
+ 
                     if ($val !== null && $val !== '') {
-                        SubscriberProductAttributeValue::create([
-                            'subscriber_product_id' => $product->id,
-                            'attribute_id'          => $attr->id,
-                            'value'                 => is_array($val) ? json_encode($val) : (string)$val,
-                        ]);
+                        SubscriberProductAttributeValue::updateOrCreate(
+                            ['subscriber_product_id' => $product->id, 'attribute_id' => $attr->id],
+                            ['value' => is_array($val) ? json_encode($val) : (string)$val]
+                        );
                     }
                 }
-
-                // Handle Gallery Images (Columns Q, R, S)
+ 
+                // Sync Gallery Images
                 $galleryImages = [];
                 foreach (['Q', 'R', 'S'] as $colIndex => $colLetter) {
                     $drawingPath = $this->getExtractedDrawing($rowIndex, $colLetter);
@@ -290,8 +352,7 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                         }
                     }
                 }
-
-                // Fallback to gallery URLs
+ 
                 foreach (['gallery_image_1', 'gallery_image_2', 'gallery_image_3'] as $colIndex => $key) {
                     $url = trim($this->getCell($data, $key));
                     if ($url !== '' && filter_var($url, FILTER_VALIDATE_URL)) {
@@ -305,8 +366,18 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                         }
                     }
                 }
-
+ 
                 if (!empty($galleryImages)) {
+                    if ($existingProduct) {
+                        foreach ($product->images as $prevImg) {
+                            $prevRelative = 'uploads/subscriber-products/' . $prevImg->image_path;
+                            $prevPath = public_path($prevRelative);
+                            if (is_file($prevPath)) {
+                                @unlink($prevPath);
+                            }
+                            $prevImg->delete();
+                        }
+                    }
                     foreach ($galleryImages as $index => $gImg) {
                         SubscriberProductImage::create([
                             'subscriber_product_id' => $product->id,
@@ -318,14 +389,20 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
                 }
             });
  
-            // Log row level results
-            $this->logDetailedRow($rowIndex, $sku, $name, 'imported', 'Product imported successfully.', $data);
- 
-            if ($thumbWarning) {
-                $this->logWarningRow($rowIndex, $sku, $name, $thumbWarning, $data);
+            // Log detailed row
+            if ($existingProduct) {
+                $this->logDetailedRow($rowIndex, $sku, $name, 'updated', 'Product updated successfully.', $data);
+                if ($thumbWarning) {
+                    $this->logWarningRow($rowIndex, $sku, $name, $thumbWarning, $data);
+                }
+                $this->applyLogDelta(0, 1, 0, 0, $thumbWarning ? 1 : 0);
+            } else {
+                $this->logDetailedRow($rowIndex, $sku, $name, 'imported', 'Product imported successfully.', $data);
+                if ($thumbWarning) {
+                    $this->logWarningRow($rowIndex, $sku, $name, $thumbWarning, $data);
+                }
+                $this->applyLogDelta(1, 0, 0, 0, $thumbWarning ? 1 : 0);
             }
- 
-            $this->applyLogDelta(1, 0, 0, $thumbWarning ? 1 : 0);
         } catch (\Throwable $e) {
             $this->logFailedRow($rowIndex, $sku, $name, 'Database error: ' . $e->getMessage(), $data);
         }
@@ -380,19 +457,19 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
     private function logSkippedRow(int $rowIndex, string $sku, string $name, string $message, array $row = []): void
     {
         $this->logDetailedRow($rowIndex, $sku, $name, 'skipped', $message, $row);
-        $this->applyLogDelta(0, 1, 0, 0);
+        $this->applyLogDelta(0, 0, 1, 0, 0);
     }
  
     private function logFailedRow(int $rowIndex, string $sku, string $name, string $message, array $row = []): void
     {
         $this->logDetailedRow($rowIndex, $sku, $name, 'failed', $message, $row);
-        $this->applyLogDelta(0, 0, 1, 0);
+        $this->applyLogDelta(0, 0, 0, 1, 0);
     }
  
     private function logWarningRow(int $rowIndex, string $sku, string $name, string $message, array $row = []): void
     {
         $this->logDetailedRow($rowIndex, $sku, $name, 'warning', $message, $row);
-        $this->applyLogDelta(0, 0, 0, 1);
+        $this->applyLogDelta(0, 0, 0, 0, 1);
     }
  
     private function logDetailedRow(int $rowIndex, string $sku, string $productName, string $status, string $message, array $row = []): void
@@ -417,13 +494,14 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
         $log->update(['detailed_logs' => $existingLogs]);
     }
  
-    private function applyLogDelta(int $imported, int $skipped, int $failed, int $warning): void
+    private function applyLogDelta(int $imported, int $updated, int $skipped, int $failed, int $warning): void
     {
         $log = ProductImportLog::find($this->importLogId);
         if (!$log) return;
  
         $log->update([
             'imported_rows' => $log->imported_rows + $imported,
+            'updated_rows'  => ($log->updated_rows ?? 0) + $updated,
             'skipped_rows'  => $log->skipped_rows + $skipped,
             'failed_rows'   => ($log->failed_rows ?? 0) + $failed,
             'warning_rows'  => ($log->warning_rows ?? 0) + $warning,
@@ -441,14 +519,6 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             ->where('subscriber_id', $this->subscriberId)
             ->whereRaw('LOWER(name) = ?', [$key])
             ->first();
-        if (!$cat) {
-            $cat = Category::create([
-                'subscriber_id' => $this->subscriberId,
-                'name'   => $name,
-                'slug'   => Str::slug($name),
-                'status' => 1
-            ]);
-        }
         $this->categoryCache[$key] = $cat;
         return $cat;
     }
@@ -465,15 +535,6 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             ->where('category_id', $categoryId)
             ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
             ->first();
-        if (!$sub) {
-            $sub = Subcategory::create([
-                'subscriber_id' => $this->subscriberId,
-                'category_id' => $categoryId,
-                'name'        => $name,
-                'slug'        => Str::slug($name),
-                'status'      => 1
-            ]);
-        }
         $this->subcategoryCache[$key] = $sub;
         return $sub;
     }
@@ -582,14 +643,6 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             ->where('subscriber_id', $this->subscriberId)
             ->whereRaw('LOWER(name) = ?', [$key])
             ->first();
-        if (!$brand) {
-            $brand = \App\Models\Brand::create([
-                'subscriber_id' => $this->subscriberId,
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'status' => 1
-            ]);
-        }
         $id = $brand?->id;
         $this->brandCache[$key] = $id;
  

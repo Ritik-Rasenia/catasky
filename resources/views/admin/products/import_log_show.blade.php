@@ -7,11 +7,18 @@
             <h3 class="fw-bold mb-1">Import Details</h3>
             <p class="text-muted mb-0">Detailed results for import: <code class="text-primary">{{ $log->filename }}</code></p>
         </div>
-        <a href="{{ route('admin.products.import-logs') }}" class="btn btn-light border rounded-pill px-4">
-            <i class="fa-solid fa-arrow-left me-1"></i> Back to Logs
-        </a>
+        <div class="d-flex gap-2">
+            @if(($log->failed_rows ?? 0) > 0)
+                <a href="{{ route('admin.products.import-logs.download-errors', $log->id) }}" class="btn btn-danger rounded-pill px-4">
+                    <i class="fa-solid fa-download me-1"></i> Download Error Report
+                </a>
+            @endif
+            <a href="{{ route('admin.products.import-logs') }}" class="btn btn-light border rounded-pill px-4">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Logs
+            </a>
+        </div>
     </div>
-
+ 
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="card border-0  rounded-4 text-center p-4">
@@ -26,9 +33,9 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0  rounded-4 text-center p-4 border-bottom border-4 border-warning">
-                <div class="text-warning small fw-bold text-uppercase mb-1">Skipped</div>
-                <h2 class="fw-bold mb-0 text-warning">{{ $log->skipped_rows }}</h2>
+            <div class="card border-0  rounded-4 text-center p-4 border-bottom border-4 border-info">
+                <div class="text-info small fw-bold text-uppercase mb-1">Updated</div>
+                <h2 class="fw-bold mb-0 text-info">{{ $log->updated_rows ?? 0 }}</h2>
             </div>
         </div>
         <div class="col-md-3">
@@ -38,7 +45,7 @@
             </div>
         </div>
     </div>
-
+ 
     <div class="card border-0  rounded-4 overflow-hidden">
         <div class="card-header bg-white p-4 border-0 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0"><i class="fa-solid fa-list text-primary me-2"></i>Row Level Logs</h5>
@@ -68,8 +75,9 @@
                                 @php
                                     $status = $item['status'] ?? 'unknown';
                                     $badgeClass = $status == 'imported' ? 'bg-success-subtle text-success' : 
+                                                 ($status == 'updated' ? 'bg-info-subtle text-info' : 
                                                  ($status == 'skipped' ? 'bg-warning-subtle text-warning' : 
-                                                 ($status == 'failed' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary'));
+                                                 ($status == 'failed' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary')));
                                 @endphp
                                 <span class="badge {{ $badgeClass }} rounded-pill px-2">{{ ucfirst($status) }}</span>
                             </td>

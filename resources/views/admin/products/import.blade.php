@@ -131,6 +131,7 @@
                                 <th>Price</th>
                                 <th>Stock</th>
                                 <th>Validation Status</th>
+                                <th>Failure Reason</th>
                             </tr>
                         </thead>
                         <tbody id="preview-rows"></tbody>
@@ -296,14 +297,27 @@
 
         const statusCell = document.createElement('td');
         if (row.is_valid) {
-            statusCell.appendChild(buildBadge('Ready', 'bg-success-soft text-success', 'fa-solid fa-circle-check me-1'));
+            if (row.action === 'Update') {
+                statusCell.appendChild(buildBadge('Ready (Update)', 'bg-info-soft text-info', 'fa-solid fa-pen-to-square me-1'));
+            } else {
+                statusCell.appendChild(buildBadge('Ready (Insert)', 'bg-success-soft text-success', 'fa-solid fa-circle-check me-1'));
+            }
         } else {
             const badge = buildBadge(`${row.errors.length} Errors`, 'bg-danger-soft text-danger', 'fa-solid fa-circle-exclamation me-1');
             badge.title = (row.errors || []).join(', ');
             statusCell.appendChild(badge);
         }
 
-        tr.append(rowCell, imgCell, nameCell, skuCell, catCell, priceCell, stockCell, statusCell);
+        const errorCell = document.createElement('td');
+        if (!row.is_valid && row.errors && row.errors.length) {
+            errorCell.className = 'text-danger small';
+            errorCell.textContent = row.errors.join(', ');
+        } else {
+            errorCell.className = 'text-muted small';
+            errorCell.textContent = '—';
+        }
+
+        tr.append(rowCell, imgCell, nameCell, skuCell, catCell, priceCell, stockCell, statusCell, errorCell);
         return tr;
     }
 

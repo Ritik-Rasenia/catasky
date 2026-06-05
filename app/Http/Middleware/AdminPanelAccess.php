@@ -25,7 +25,7 @@ class AdminPanelAccess
         $user = auth()->user();
 
         // Subscriber must not access admin routes
-        if ($user->hasRole('Subscriber')) {
+        if ($user->hasRole('Subscriber') || $user->hasRole('subscriber')) {
             abort(403, 'Access denied. Please use the Subscriber panel.');
         }
 

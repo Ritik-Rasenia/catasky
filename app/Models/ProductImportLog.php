@@ -12,6 +12,7 @@ class ProductImportLog extends Model
         'filename',
         'total_rows',
         'imported_rows',
+        'updated_rows',
         'skipped_rows',
         'failed_rows',
         'warning_rows',

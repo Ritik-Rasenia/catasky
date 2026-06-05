@@ -85,12 +85,12 @@ class User extends Authenticatable
 
     public function isSubscriber(): bool
     {
-        return $this->hasRole('Subscriber');
+        return $this->hasRole('Subscriber') || $this->hasRole('subscriber');
     }
 
     public function isAdmin(): bool
     {
-        return $this->hasRole('Admin');
+        return $this->hasRole('Admin') || $this->hasRole('admin') || $this->hasRole('Super Admin');
     }
 
     public function isDemo(): bool

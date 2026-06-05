@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Implicitly grant "Super Admin" and "Admin" roles all permissions and dynamically map permissions for other roles
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
-            if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
+            if ($user->hasAnyRole(['Super Admin', 'Admin', 'admin'])) {
                 return true;
             }
 

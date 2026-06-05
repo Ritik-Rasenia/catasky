@@ -19,9 +19,16 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
             ->with(['images'])
             ->orderBy('id');
 
-        return $this->tenantId === null
-            ? $query->whereNull('subscriber_id')
-            : $query->where('subscriber_id', $this->tenantId);
+        $user = auth()->user();
+        if ($user && $user->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        if ($this->tenantId === null) {
+            return $query->whereNull('subscriber_id');
+        }
+
+        return $query->where('subscriber_id', $this->tenantId);
     }
 
     public function headings(): array

@@ -127,6 +127,42 @@ class FrontendController extends Controller
      */
     public function categoryProducts($slug, Request $request)
     {
+        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
+        if (!$subscriberId && $request->filled('company_slug')) {
+            $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
+            if ($profile) {
+                $subscriberId = $profile->user_id;
+            }
+        }
+
+        if ($subscriberId) {
+            $profile = \App\Models\SubscriberProfile::where('user_id', $subscriberId)->firstOrFail();
+            
+            // Double-approval check: Account status must be approved/active AND Store status must be live
+            if ($profile->status !== 'approved' && $profile->status !== 'active') {
+                abort(403, 'This storefront account is not active.');
+            }
+            if ($profile->store_status !== 'live') {
+                abort(403, 'This storefront is pending review.');
+            }
+
+            // Check active subscription
+            $subscriber = $profile->user;
+            if (!$subscriber || !$subscriber->hasActiveSubscription()) {
+                abort(403, 'This storefront has no active subscription.');
+            }
+
+            // Redirect to unified store catalog page with category and other filter parameters
+            $queryParams = $request->query();
+            $queryParams['category'] = $slug;
+
+            if ($request->attributes->has('custom_domain_subscriber_id')) {
+                return redirect()->to('/?' . http_build_query($queryParams));
+            } else {
+                return redirect()->route('store.catalog', array_merge(['company_slug' => $profile->company_slug], $queryParams));
+            }
+        }
+
         $category = Category::where('slug', $slug)->firstOrFail();
 
         $query = Product::where(function($q) use ($category) {
@@ -167,6 +203,34 @@ class FrontendController extends Controller
         $products = $query->paginate(12)->withQueryString();
 
         return view('category-products', compact('category', 'products'));
+    }
+
+    /**
+     * Display products for a specific subcategory (redirects to catalog with filter).
+     */
+    public function subcategoryProducts($slug, Request $request)
+    {
+        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
+        if (!$subscriberId && $request->filled('company_slug')) {
+            $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
+            if ($profile) {
+                $subscriberId = $profile->user_id;
+            }
+        }
+
+        $queryParams = $request->query();
+        $queryParams['subcategory'] = $slug;
+
+        if ($subscriberId) {
+            $profile = \App\Models\SubscriberProfile::where('user_id', $subscriberId)->firstOrFail();
+            if ($request->attributes->has('custom_domain_subscriber_id')) {
+                return redirect()->to('/?' . http_build_query($queryParams));
+            } else {
+                return redirect()->route('store.catalog', array_merge(['company_slug' => $profile->company_slug], $queryParams));
+            }
+        }
+
+        return redirect()->route('catalogue', $queryParams);
     }
 
     public function productDetails($slug)
@@ -284,35 +348,193 @@ class FrontendController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('query');
-        $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
-        
-        if (!$subscriberId && $request->filled('company_slug')) {
-            $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
-            if ($profile) {
-                $subscriberId = $profile->user_id;
-                $request->attributes->set('custom_domain_subscriber_id', $subscriberId);
+
+        // 1. Resolve subscriber_id context
+        $subscriberId = null;
+        if (auth()->check() && auth()->user()->isSubscriber()) {
+            $subscriberId = auth()->id();
+        } elseif (auth()->check() && auth()->user()->isAdmin()) {
+            $subscriberId = null;
+        } else {
+            $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
+            if (!$subscriberId && $request->filled('company_slug')) {
+                $profile = \App\Models\SubscriberProfile::where('company_slug', $request->input('company_slug'))->first();
+                if ($profile) {
+                    $subscriberId = $profile->user_id;
+                    $request->attributes->set('custom_domain_subscriber_id', $subscriberId);
+                }
             }
         }
 
+        // 2. Resolve matching Category, Subcategory, and Brand IDs for the query string
+        $matchingCategoryIds = \App\Models\Category::withoutGlobalScope('tenant')
+            ->where('name', 'like', "%{$query}%")
+            ->pluck('id')
+            ->toArray();
+
+        $matchingSubcategoryIds = \App\Models\Subcategory::withoutGlobalScope('tenant')
+            ->where('name', 'like', "%{$query}%")
+            ->pluck('id')
+            ->toArray();
+
+        $matchingBrandIds = \App\Models\Brand::withoutGlobalScope('tenant')
+            ->where('name', 'like', "%{$query}%")
+            ->pluck('id')
+            ->toArray();
+
+        // 3. Formulate query
         if ($subscriberId) {
-            $products = \App\Models\SubscriberProduct::where('user_id', $subscriberId)
+            $dbQuery = \App\Models\SubscriberProduct::where('user_id', $subscriberId)
                 ->where('status', 'active')
-                ->where('approval_status', 'approved')
-                ->where(function($q) use ($query) {
-                    $q->where('name', 'like', "%$query%")
-                      ->orWhere('sku', 'like', "%$query%")
-                      ->orWhere('short_description', 'like', "%$query%")
-                      ->orWhere('full_description', 'like', "%$query%");
-                })
-                ->paginate(12);
+                ->where('approval_status', 'approved');
+            $descColumn = 'full_description';
         } else {
-            $products = Product::where('name', 'like', "%$query%")
-                ->orWhere('short_description', 'like', "%$query%")
-                ->where('status', 1)
-                ->paginate(12);
+            $dbQuery = Product::where('status', 1);
+            $descColumn = 'description';
         }
 
-        return view('search-results', compact('products', 'query'));
+        // 4. Apply partial matches
+        $dbQuery->where(function($q) use ($query, $descColumn, $matchingCategoryIds, $matchingSubcategoryIds, $matchingBrandIds) {
+            $q->where('name', 'like', "%{$query}%")
+              ->orWhere('sku', 'like', "%{$query}%")
+              ->orWhere('short_description', 'like', "%{$query}%")
+              ->orWhere($descColumn, 'like', "%{$query}%");
+
+            // Match Category Name
+            foreach ($matchingCategoryIds as $catId) {
+                $q->orWhere('category_id', $catId)
+                  ->orWhere('category_id', (string)$catId)
+                  ->orWhereJsonContains('category_id', $catId)
+                  ->orWhereJsonContains('category_id', (string)$catId)
+                  ->orWhere('category_id', 'like', '%"' . $catId . '"%')
+                  ->orWhere('category_id', 'like', '%[' . $catId . ']%')
+                  ->orWhere('category_id', 'like', '%[' . $catId . ',%')
+                  ->orWhere('category_id', 'like', '%,' . $catId . ']%')
+                  ->orWhere('category_id', 'like', '%,' . $catId . ',%');
+            }
+
+            // Match Subcategory Name
+            foreach ($matchingSubcategoryIds as $subcatId) {
+                $q->orWhere('subcategory_id', $subcatId)
+                  ->orWhere('subcategory_id', (string)$subcatId)
+                  ->orWhereJsonContains('subcategory_id', $subcatId)
+                  ->orWhereJsonContains('subcategory_id', (string)$subcatId)
+                  ->orWhere('subcategory_id', 'like', '%"' . $subcatId . '"%')
+                  ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ']%')
+                  ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ',%')
+                  ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ']%')
+                  ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ',%');
+            }
+
+            // Match Brand Name
+            foreach ($matchingBrandIds as $brandId) {
+                $q->orWhere('brand_id', $brandId)
+                  ->orWhere('brand_id', (string)$brandId)
+                  ->orWhereJsonContains('brand_id', $brandId)
+                  ->orWhereJsonContains('brand_id', (string)$brandId)
+                  ->orWhere('brand_id', 'like', '%"' . $brandId . '"%')
+                  ->orWhere('brand_id', 'like', '%[' . $brandId . ']%')
+                  ->orWhere('brand_id', 'like', '%[' . $brandId . ',%')
+                  ->orWhere('brand_id', 'like', '%,' . $brandId . ']%')
+                  ->orWhere('brand_id', 'like', '%,' . $brandId . ',%');
+            }
+        });
+
+        // 5. Apply catalogue filters (products, category, subcategory) if present
+        if ($request->filled('products')) {
+            $ids = array_filter(explode(',', $request->input('products')));
+            $dbQuery->whereIn('id', $ids);
+        }
+
+        if ($request->filled('category')) {
+            $catSlug = $request->input('category');
+            $cat = \App\Models\Category::withoutGlobalScope('tenant')
+                ->where('slug', $catSlug)
+                ->when($subscriberId, function($q) use ($subscriberId) {
+                    $q->where(function($sq) use ($subscriberId) {
+                        $sq->where('subscriber_id', $subscriberId)
+                           ->orWhereNull('subscriber_id');
+                    });
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
+            if ($cat) {
+                $dbQuery->where(function($q) use ($cat) {
+                    $q->where('category_id', $cat->id)
+                      ->orWhere('category_id', (string)$cat->id)
+                      ->orWhereJsonContains('category_id', $cat->id)
+                      ->orWhereJsonContains('category_id', (string)$cat->id)
+                      ->orWhere('category_id', 'like', '%"' . $cat->id . '"%');
+                });
+            }
+        }
+
+        if ($request->filled('subcategory')) {
+            $subSlug = $request->input('subcategory');
+            $sub = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                ->where('slug', $subSlug)
+                ->when($subscriberId, function($q) use ($subscriberId) {
+                    $q->where(function($sq) use ($subscriberId) {
+                        $sq->where('subscriber_id', $subscriberId)
+                           ->orWhereNull('subscriber_id');
+                    });
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
+            if ($sub) {
+                $dbQuery->where(function($q) use ($sub) {
+                    $q->where('subcategory_id', $sub->id)
+                      ->orWhere('subcategory_id', (string)$sub->id)
+                      ->orWhereJsonContains('subcategory_id', $sub->id)
+                      ->orWhereJsonContains('subcategory_id', (string)$sub->id)
+                      ->orWhere('subcategory_id', 'like', '%"' . $sub->id . '"%');
+                });
+            }
+        }
+
+        $products = $dbQuery->paginate(12);
+
+        // 6. Resolve brand variables for direct pages view output compatibility
+        $profile = null;
+        $isSubscriberStore = false;
+        $companyName = 'Catasky';
+        $settings = null;
+        $logoBase64 = '';
+
+        if ($subscriberId) {
+            $profile = \App\Models\SubscriberProfile::where('user_id', $subscriberId)->first();
+            if ($profile) {
+                $isSubscriberStore = true;
+                $companyName = $profile->company_name;
+                $settings = (object)[
+                    'site_title' => $profile->company_name,
+                    'logo' => $profile->logo ? 'subscriber-logos/' . $profile->logo : null,
+                    'footer_logo' => $profile->logo ? 'subscriber-logos/' . $profile->logo : null,
+                ];
+                if ($profile->logo) {
+                    $logoPath = public_path('uploads/subscriber-logos/' . $profile->logo);
+                    if (file_exists($logoPath) && is_file($logoPath)) {
+                        $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                        $data = @file_get_contents($logoPath);
+                        if ($data) {
+                            $logoBase64 = 'data:image/' . ($type === 'svg' ? 'svg+xml' : $type) . ';base64,' . base64_encode($data);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!$settings) {
+            $settings = \App\Models\Setting::first() ?? (object)[
+                'site_title' => 'Catasky',
+                'logo' => null,
+                'footer_logo' => null,
+            ];
+        }
+
+        return view('search-results', compact(
+            'products', 'query', 'subscriberId', 'profile', 'isSubscriberStore', 'companyName', 'settings', 'logoBase64'
+        ));
     }
 
     /**
@@ -698,23 +920,35 @@ class FrontendController extends Controller
         }
         */
         
-        // Double-approval check: Account status must be approved/active AND Store status must be live
-        if ($profile->status !== 'approved' && $profile->status !== 'active') {
-            abort(403, 'This storefront account is not active.');
+        // Resolve demo user id dynamically
+        $demoUser = \App\Models\User::where('id', 3)->first();
+        if (!$demoUser) {
+            $demoUser = \App\Models\User::where('email', 'like', '%demo%')
+                ->orWhere('name', 'like', '%demo%')
+                ->first();
         }
+        $demoUserId = $demoUser ? $demoUser->id : 3;
 
-        if ($profile->store_status !== 'live') {
-            return response()->view('subscriber-panel.share.pending', ['link' => (object)[
-                'title' => $profile->company_name . ' - Storefront Catalog',
-                'approval_status' => $profile->store_status ?: 'pending',
-                'is_expired' => false,
-            ]], 403);
-        }
-
-        // Check active subscription
         $subscriber = $profile->user;
-        if (!$subscriber || !$subscriber->hasActiveSubscription()) {
-            abort(403, 'This storefront has no active subscription.');
+
+        if ($profile->user_id != $demoUserId) {
+            // Double-approval check: Account status must be approved/active AND Store status must be live
+            if ($profile->status !== 'approved' && $profile->status !== 'active') {
+                abort(403, 'This storefront account is not active.');
+            }
+
+            if ($profile->store_status !== 'live') {
+                return response()->view('subscriber-panel.share.pending', ['link' => (object)[
+                    'title' => $profile->company_name . ' - Storefront Catalog',
+                    'approval_status' => $profile->store_status ?: 'pending',
+                    'is_expired' => false,
+                ]], 403);
+            }
+
+            // Check active subscription
+            if (!$subscriber || !$subscriber->hasActiveSubscription()) {
+                abort(403, 'This storefront has no active subscription.');
+            }
         }
 
         $category = (object)['name' => 'All Products', 'id' => 0];
@@ -744,26 +978,54 @@ class FrontendController extends Controller
             });
         }
 
-        // Category filter
+        // Category filter (Robust match supporting JSON arrays, plain IDs, and wrapped formats)
         if ($request->filled('category')) {
             $catSlug = $request->input('category');
-            $cat = Category::withoutGlobalScope('tenant')->where('slug', $catSlug)->first();
+            $cat = Category::withoutGlobalScope('tenant')
+                ->where('slug', $catSlug)
+                ->where(function($q) use ($profile) {
+                    $q->where('subscriber_id', $profile->user_id)
+                      ->orWhereNull('subscriber_id');
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
             if ($cat) {
                 $query->where(function($q) use ($cat) {
-                    $q->whereJsonContains('category_id', $cat->id)
-                      ->orWhereJsonContains('category_id', (string)$cat->id);
+                    $q->where('category_id', $cat->id)
+                      ->orWhere('category_id', (string)$cat->id)
+                      ->orWhereJsonContains('category_id', $cat->id)
+                      ->orWhereJsonContains('category_id', (string)$cat->id)
+                      ->orWhere('category_id', 'like', '%"' . $cat->id . '"%')
+                      ->orWhere('category_id', 'like', '%[' . $cat->id . ']%')
+                      ->orWhere('category_id', 'like', '%[' . $cat->id . ',%')
+                      ->orWhere('category_id', 'like', '%,' . $cat->id . ']%')
+                      ->orWhere('category_id', 'like', '%,' . $cat->id . ',%');
                 });
             }
         }
 
-        // Subcategory filter
+        // Subcategory filter (Robust match supporting JSON arrays, plain IDs, and wrapped formats)
         if ($request->filled('subcategory')) {
             $subSlug = $request->input('subcategory');
-            $sub = \App\Models\Subcategory::withoutGlobalScope('tenant')->where('slug', $subSlug)->first();
+            $sub = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                ->where('slug', $subSlug)
+                ->where(function($q) use ($profile) {
+                    $q->where('subscriber_id', $profile->user_id)
+                      ->orWhereNull('subscriber_id');
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
             if ($sub) {
                 $query->where(function($q) use ($sub) {
-                    $q->whereJsonContains('subcategory_id', $sub->id)
-                      ->orWhereJsonContains('subcategory_id', (string)$sub->id);
+                    $q->where('subcategory_id', $sub->id)
+                      ->orWhere('subcategory_id', (string)$sub->id)
+                      ->orWhereJsonContains('subcategory_id', $sub->id)
+                      ->orWhereJsonContains('subcategory_id', (string)$sub->id)
+                      ->orWhere('subcategory_id', 'like', '%"' . $sub->id . '"%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $sub->id . ']%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $sub->id . ',%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $sub->id . ']%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $sub->id . ',%');
                 });
             }
         }
@@ -806,11 +1068,25 @@ class FrontendController extends Controller
 
         if ($request->filled('category')) {
             $catSlug = $request->input('category');
-            $cat = \App\Models\Category::withoutGlobalScope('tenant')->where('slug', $catSlug)->first();
+            $cat = \App\Models\Category::withoutGlobalScope('tenant')
+                ->where('slug', $catSlug)
+                ->where(function($q) use ($profile) {
+                    $q->where('subscriber_id', $profile->user_id)
+                      ->orWhereNull('subscriber_id');
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
             if ($cat) {
                 $subQuery->where(function($q) use ($cat) {
-                    $q->whereJsonContains('category_id', $cat->id)
-                      ->orWhereJsonContains('category_id', (string)$cat->id);
+                    $q->where('category_id', $cat->id)
+                      ->orWhere('category_id', (string)$cat->id)
+                      ->orWhereJsonContains('category_id', $cat->id)
+                      ->orWhereJsonContains('category_id', (string)$cat->id)
+                      ->orWhere('category_id', 'like', '%"' . $cat->id . '"%')
+                      ->orWhere('category_id', 'like', '%[' . $cat->id . ']%')
+                      ->orWhere('category_id', 'like', '%[' . $cat->id . ',%')
+                      ->orWhere('category_id', 'like', '%,' . $cat->id . ']%')
+                      ->orWhere('category_id', 'like', '%,' . $cat->id . ',%');
                 });
             }
         }
@@ -824,7 +1100,14 @@ class FrontendController extends Controller
 
         // Category object for header/title context
         if ($request->filled('category')) {
-            $cat = \App\Models\Category::withoutGlobalScope('tenant')->where('slug', $request->input('category'))->first();
+            $cat = \App\Models\Category::withoutGlobalScope('tenant')
+                ->where('slug', $request->input('category'))
+                ->where(function($q) use ($profile) {
+                    $q->where('subscriber_id', $profile->user_id)
+                      ->orWhereNull('subscriber_id');
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
             if ($cat) {
                 $category = $cat;
             }
@@ -1027,5 +1310,92 @@ class FrontendController extends Controller
             'count' => $products->total(),
         ]);
     }
+
+    /**
+     * Generate dynamic web app manifest for subscriber storefront or main platform.
+     */
+    public function storeManifest($company_slug = null)
+    {
+        $settings = \App\Models\Setting::first();
+        $request = request();
+        
+        $name = $settings->site_title ?? 'Catasky';
+        $shortName = 'Catasky';
+        $startUrl = '/';
+        
+        // Use the site's settings logo, fallback to uploads/logo.png
+        $logoUrl = ($settings && $settings->logo) ? asset('uploads/settings/' . $settings->logo) : asset('uploads/logo.png');
+        $faviconUrl = ($settings && $settings->favicon) ? asset('uploads/settings/' . $settings->favicon) : asset('uploads/fav.png');
+
+        // Resolve profile either by slug or by custom domain attribute
+        $profile = null;
+        if ($company_slug) {
+            $profile = \App\Models\SubscriberProfile::where('company_slug', $company_slug)->first();
+        } elseif ($request->attributes->has('custom_domain_subscriber_id')) {
+            $subscriberId = $request->attributes->get('custom_domain_subscriber_id');
+            $profile = \App\Models\SubscriberProfile::where('user_id', $subscriberId)->first();
+        }
+
+        if ($profile) {
+            $name = $profile->company_name;
+            $shortName = \Illuminate\Support\Str::limit($profile->company_name, 12, '');
+            
+            if ($request->attributes->has('custom_domain_subscriber_id')) {
+                $startUrl = '/';
+            } else {
+                $startUrl = '/store/' . $profile->company_slug;
+            }
+            
+            if ($profile->logo) {
+                $logoUrl = asset('uploads/subscriber-logos/' . $profile->logo);
+            }
+        }
+
+        // Use site logo as the PWA icon
+        $iconSrc = $logoUrl ?: $faviconUrl;
+
+        $manifest = [
+            'name'             => $name,
+            'short_name'       => $shortName,
+            'start_url'        => $startUrl,
+            'display'          => 'standalone',
+            'background_color' => '#ffffff',
+            'theme_color'      => '#1D6FEB',
+            'icons'            => [
+                [
+                    'src'     => $iconSrc,
+                    'sizes'   => '192x192',
+                    'type'    => $this->getIconType($iconSrc),
+                    'purpose' => 'any'
+                ],
+                [
+                    'src'     => $iconSrc,
+                    'sizes'   => '512x512',
+                    'type'    => $this->getIconType($iconSrc),
+                    'purpose' => 'any'
+                ]
+            ]
+        ];
+
+        return response()->json($manifest)
+            ->header('Content-Type', 'application/manifest+json');
+    }
+
+    /**
+     * Helper to resolve mime type of logo/icon.
+     */
+    private function getIconType($url)
+    {
+        $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION);
+        return match (strtolower($ext)) {
+            'png'         => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'gif'         => 'image/gif',
+            'svg'         => 'image/svg+xml',
+            'webp'        => 'image/webp',
+            default       => 'image/png',
+        };
+    }
 }
+
 

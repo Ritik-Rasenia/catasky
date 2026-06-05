@@ -17,7 +17,7 @@
                     <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalogue</a></li>
                 @endif
                 @if($product->category)
-                    <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category->slug) }}" class="text-secondary">{{ $product->category->name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ isset($isSubscriberStore) && $isSubscriberStore && isset($profile) ? route('category.products', [$product->category->slug, 'company_slug' => $profile->company_slug]) : route('category.products', $product->category->slug) }}" class="text-secondary">{{ $product->category->name }}</a></li>
                 @endif
                 <li class="breadcrumb-item active fw-bold text-primary" aria-current="page">{{ $product->name }}</li>
             </ol>
@@ -100,7 +100,7 @@
                     <!-- Brand & Title Block -->
                     <div>
                         @if($product->category)
-                            <a href="{{ route('category.products', $product->category->slug) }}" class="text-decoration-none badge bg-primary-subtle text-primary rounded-pill px-3 py-2 mb-2 fw-semibold" style="font-size: 0.8rem;">
+                            <a href="{{ isset($isSubscriberStore) && $isSubscriberStore && isset($profile) ? route('category.products', [$product->category->slug, 'company_slug' => $profile->company_slug]) : route('category.products', $product->category->slug) }}" class="text-decoration-none badge bg-primary-subtle text-primary rounded-pill px-3 py-2 mb-2 fw-semibold" style="font-size: 0.8rem;">
                                 {{ $product->category->name }}
                             </a>
                         @endif

@@ -627,8 +627,8 @@ class ProductController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         
         $tempId = \Illuminate\Support\Str::random(12);
-        $tempDirName = 'products/temp/' . $tempId;
-        $tempPath = storage_path('app/public/' . $tempDirName);
+        $tempDirName = 'uploads/temp/products/' . $tempId;
+        $tempPath = public_path($tempDirName);
         \Illuminate\Support\Facades\File::ensureDirectoryExists($tempPath);
  
         // Store file temporarily
@@ -713,7 +713,7 @@ class ProductController extends Controller
             // Row drawing checks (Embedded cell images)
             $featuredImageSrc = '';
             if (isset($extractedImages["P_{$rowIndex}"])) {
-                $featuredImageSrc = asset('storage/' . $tempDirName . '/' . $extractedImages["P_{$rowIndex}"]);
+                $featuredImageSrc = asset($tempDirName . '/' . $extractedImages["P_{$rowIndex}"]);
             } elseif ($featuredImageVal !== '') {
                 $featuredImageSrc = $featuredImageVal;
             }
@@ -722,7 +722,7 @@ class ProductController extends Controller
             $gallerySrcs = [];
             foreach (['Q', 'R', 'S'] as $col) {
                 if (isset($extractedImages["{$col}_{$rowIndex}"])) {
-                    $gallerySrcs[] = asset('storage/' . $tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
+                    $gallerySrcs[] = asset($tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
                 }
             }
             foreach ([$gallery1Val, $gallery2Val, $gallery3Val] as $gVal) {
@@ -733,15 +733,16 @@ class ProductController extends Controller
  
             $errors = [];
  
-            // Validation Rules
+            // Required validations
             if ($name === '') {
                 $errors[] = 'Product Name is required.';
             }
- 
-            if ($currCount + $summary['valid'] >= $limit) {
-                $errors[] = "Subscription limit of max {$limit} products reached.";
+            if ($sku === '') {
+                $errors[] = 'SKU is required.';
             }
  
+            // Check if product exists (Upsert mode)
+            $action = 'Insert';
             if ($sku !== '') {
                 $exists = SubscriberProduct::whereNull('deleted_at')
                     ->where('user_id', $user->id)
@@ -751,17 +752,88 @@ class ProductController extends Controller
                     })
                     ->first();
                 if ($exists) {
-                    $errors[] = "Product name or SKU already exists for product: '{$exists->name}'.";
+                    $action = 'Update';
                 }
-            } elseif ($name !== '' && SubscriberProduct::whereNull('deleted_at')->where('user_id', $user->id)->where('name', $name)->exists()) {
-                $errors[] = "Product '{$name}' already exists.";
+            } elseif ($name !== '') {
+                $exists = SubscriberProduct::whereNull('deleted_at')
+                    ->where('user_id', $user->id)
+                    ->where('name', $name)
+                    ->first();
+                if ($exists) {
+                    $action = 'Update';
+                }
+            }
+
+            // Category existence check
+            $firstCatId = null;
+            $firstCatName = null;
+            if ($category === '') {
+                $errors[] = 'Category is required.';
+            } else {
+                $categoryNames = array_filter(array_map('trim', explode(',', $category)));
+                if (empty($categoryNames)) {
+                    $errors[] = 'Category is required.';
+                } else {
+                    foreach ($categoryNames as $cName) {
+                        $cat = \App\Models\Category::withoutGlobalScope('tenant')
+                            ->whereNull('deleted_at')
+                            ->where('subscriber_id', $user->id)
+                            ->whereRaw('LOWER(name) = ?', [strtolower($cName)])
+                            ->first();
+                        if (!$cat) {
+                            $errors[] = "Category not found: '{$cName}'.";
+                        } else {
+                            if ($firstCatId === null) {
+                                $firstCatId = $cat->id;
+                                $firstCatName = $cName;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Subcategory existence check
+            if ($subcategory === '') {
+                $errors[] = 'Subcategory is required.';
+            } elseif ($firstCatId !== null) {
+                $subcatNames = array_filter(array_map('trim', explode(',', $subcategory)));
+                if (empty($subcatNames)) {
+                    $errors[] = 'Subcategory is required.';
+                } else {
+                    foreach ($subcatNames as $sName) {
+                        $sub = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                            ->whereNull('deleted_at')
+                            ->where('subscriber_id', $user->id)
+                            ->where('category_id', $firstCatId)
+                            ->whereRaw('LOWER(name) = ?', [strtolower($sName)])
+                            ->first();
+                        if (!$sub) {
+                            $errors[] = "Subcategory not found: '{$sName}' under Category '{$firstCatName}'.";
+                        }
+                    }
+                }
+            }
+
+            // Brand existence check
+            if ($brand !== '') {
+                $brandNames = array_filter(array_map('trim', explode(',', $brand)));
+                foreach ($brandNames as $bName) {
+                    $brandExists = \App\Models\Brand::withoutGlobalScope('tenant')
+                        ->whereNull('deleted_at')
+                        ->where('subscriber_id', $user->id)
+                        ->whereRaw('LOWER(name) = ?', [strtolower($bName)])
+                        ->exists();
+                    if (!$brandExists) {
+                        $errors[] = "Brand does not exist: '{$bName}'.";
+                    }
+                }
             }
  
             $mrp = null;
             if ($mrpVal !== '') {
                 $mrpClean = preg_replace('/[^0-9.]/', '', $mrpVal);
                 if (!is_numeric($mrpClean)) {
-                    $errors[] = 'MRP must be numeric.';
+                    $errors[] = 'Invalid MRP format.';
                 } else {
                     $mrp = (float)$mrpClean;
                 }
@@ -771,30 +843,34 @@ class ProductController extends Controller
             if ($offerPriceVal !== '') {
                 $opClean = preg_replace('/[^0-9.]/', '', $offerPriceVal);
                 if (!is_numeric($opClean)) {
-                    $errors[] = 'Offer Price must be numeric.';
+                    $errors[] = 'Invalid price format.';
                 } else {
                     $offerPrice = (float)$opClean;
                 }
             }
-
+ 
             $moq = 1;
             if ($moqVal !== '') {
                 $moqClean = preg_replace('/[^0-9]/', '', $moqVal);
                 if (!is_numeric($moqClean)) {
-                    $errors[] = 'MOQ must be an integer.';
+                    $errors[] = 'Invalid MOQ format.';
                 } else {
                     $moq = (int)$moqClean;
                 }
             }
-
+ 
             $stock = 0;
             if ($stockVal !== '') {
                 $stockClean = preg_replace('/[^0-9]/', '', $stockVal);
                 if (!is_numeric($stockClean)) {
-                    $errors[] = 'Stock Quantity must be an integer.';
+                    $errors[] = 'Invalid stock quantity format.';
                 } else {
                     $stock = (int)$stockClean;
                 }
+            }
+ 
+            if ($action === 'Insert' && $currCount + $summary['valid'] >= $limit) {
+                $errors[] = "Subscription limit of max {$limit} products reached.";
             }
  
             $hasError = count($errors) > 0;
@@ -836,6 +912,7 @@ class ProductController extends Controller
                 'meta_description' => $metaDescription,
                 'errors' => $errors,
                 'is_valid' => !$hasError,
+                'action' => $action,
             ];
         }
  
@@ -880,7 +957,7 @@ class ProductController extends Controller
         \Illuminate\Support\Facades\Storage::disk('local')->copy($storedFilePath, $base . '/products.xlsx');
  
         // Copy drawings to job images folder
-        $tempPath = storage_path('app/public/products/temp/' . $tempId);
+        $tempPath = public_path('uploads/temp/products/' . $tempId);
         $jobImagesPath = \Illuminate\Support\Facades\Storage::disk('local')->path($base . '/images');
         \Illuminate\Support\Facades\File::ensureDirectoryExists($jobImagesPath);
  
@@ -927,7 +1004,7 @@ class ProductController extends Controller
     public function importStatus(string $id)
     {
         $log = $this->importLogQuery()->findOrFail($id);
-        $processed = $log->imported_rows + $log->skipped_rows + ($log->failed_rows ?? 0);
+        $processed = $log->imported_rows + ($log->updated_rows ?? 0) + $log->skipped_rows + ($log->failed_rows ?? 0);
         $percent = $log->total_rows > 0
             ? (int) min(100, round(($processed / $log->total_rows) * 100))
             : null;
@@ -937,6 +1014,7 @@ class ProductController extends Controller
             'status' => $log->status,
             'total_rows' => $log->total_rows,
             'imported_rows' => $log->imported_rows,
+            'updated_rows' => $log->updated_rows ?? 0,
             'skipped_rows' => $log->skipped_rows,
             'failed_rows' => $log->failed_rows ?? 0,
             'warning_rows' => $log->warning_rows ?? 0,
@@ -953,11 +1031,52 @@ class ProductController extends Controller
         $logs = $this->importLogQuery()->latest()->paginate(15);
         return view('subscriber-panel.products.import_logs', compact('logs'));
     }
-
+ 
     public function importLogShow($id)
     {
         $log = $this->importLogQuery()->findOrFail($id);
         return view('subscriber-panel.products.import_log_show', compact('log'));
+    }
+
+    public function downloadImportErrors($id)
+    {
+        $log = $this->importLogQuery()->findOrFail($id);
+        $detailedLogs = is_array($log->detailed_logs) ? $log->detailed_logs : json_decode($log->detailed_logs, true) ?? [];
+        
+        $failedRows = array_filter($detailedLogs, function($item) {
+            return ($item['status'] ?? '') === 'failed';
+        });
+
+        if (empty($failedRows)) {
+            return back()->with('error', 'No failed records found in this import log.');
+        }
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="import_errors_' . $log->id . '_' . date('Ymd_His') . '.csv"',
+        ];
+
+        $callback = function() use ($failedRows) {
+            $file = fopen('php://output', 'w');
+            
+            // Header row
+            fputcsv($file, ['Row Number', 'SKU', 'Product Name', 'Category', 'Subcategory', 'Failure Reason']);
+            
+            foreach ($failedRows as $row) {
+                fputcsv($file, [
+                    $row['row'] ?? '',
+                    $row['part_code'] ?? '',
+                    $row['product_name'] ?? '',
+                    $row['category'] ?? '',
+                    $row['subcategory'] ?? '',
+                    $row['message'] ?? '',
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
  
     public function downloadTemplate()

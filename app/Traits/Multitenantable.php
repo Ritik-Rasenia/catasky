@@ -11,8 +11,8 @@ trait Multitenantable
         // 1. Automatically assign subscriber_id and generate slug when creating a record
         static::creating(function ($model) {
             if (auth()->check()) {
-                // If the authenticated user is a Subscriber or Admin, save their ID
-                if (auth()->user()->hasAnyRole(['Subscriber', 'Admin'])) {
+                // Save authenticated user's ID for all roles except Super Admin
+                if (!auth()->user()->hasRole('Super Admin')) {
                     $model->subscriber_id = auth()->id();
                 }
             }
@@ -27,8 +27,8 @@ trait Multitenantable
             $isDashboard = request()->is('dashboard*') || request()->is('api/notifications*');
 
             if ($isDashboard && auth()->check()) {
-                // For authenticated users in dashboard: if they are a Subscriber or Admin, filter by their user ID
-                if (auth()->user()->hasAnyRole(['Subscriber', 'Admin'])) {
+                // Filter by authenticated user's ID for all roles except Super Admin
+                if (!auth()->user()->hasRole('Super Admin')) {
                     $builder->where($builder->getQuery()->from . '.subscriber_id', auth()->id());
                 }
             } else {

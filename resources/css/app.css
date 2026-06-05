@@ -1375,7 +1375,8 @@ footer .nav-icon-btn:hover {
     .premium-modal .premium-card[style*="min-height:520px"] {
         min-height: 340px !important;
     }
-    .premium-modal div[id*="pdf-preview-frame"] {
+    .premium-modal div[id*="pdf-preview-frame"],
+    .premium-modal div[id*="pdf-preview-loader"] {
         min-height: 260px !important;
     }
 }

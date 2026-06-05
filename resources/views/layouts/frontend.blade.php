@@ -27,8 +27,10 @@
         $faviconUrl = ($settings && $settings->favicon) ? asset('uploads/settings/' . $settings->favicon) : asset('uploads/fav.png');
         $footerLogoUrl = ($settings && $settings->footer_logo) ? asset('uploads/settings/' . $settings->footer_logo) : $logoBase64;
 
+        $isDemo = (isset($profile) && ($profile->company_slug === 'demo' || $profile->user_id == 3)) || request()->is('demo*');
+
         if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
-            $siteTitle = $profile->company_name;
+            $siteTitle = $profile->company_name; // Always use subscriber's company name for watermark
             if ($profile->logo && $profile->company_slug !== 'demo') {
                 $footerLogoUrl = asset('uploads/subscriber-logos/' . $profile->logo);
             }
@@ -42,6 +44,15 @@
     @endif
     <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+    @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+        @if(request()->attributes->has('custom_domain_subscriber_id'))
+            <link rel="manifest" href="/manifest.json">
+        @else
+            <link rel="manifest" href="/store/{{ $profile->company_slug }}/manifest.json">
+        @endif
+    @else
+        <link rel="manifest" href="/manifest.json">
+    @endif
 
     <!-- Google Fonts: Poppins & Outfit for modern SaaS feel -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -273,12 +284,10 @@
         .share-image-preview-card > div {
             width: 1080px;
             height: 1350px;
-            transform: scale(var(--preview-scale, 0.163)) translateZ(0);
+            transform: scale(var(--preview-scale, 0.218)) translateZ(0) !important;
             transform-origin: top left;
             will-change: transform;
-            contain: layout paint;
             image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
         }
         /* Pulsing Skeleton Previews */
         .skeleton-pulse {
@@ -392,7 +401,9 @@
                 aspect-ratio: 4 / 5 !important;
             }
             #pdf-preview-frame-details,
-            #pdf-preview-frame-images {
+            #pdf-preview-frame-images,
+            #pdf-preview-loader-details,
+            #pdf-preview-loader-images {
                 min-height: 320px !important;
                 max-width: 100%;
             }
@@ -427,7 +438,7 @@
     <nav class="navbar navbar-expand-lg navbar-premium">
         <div class="container">
             <!-- Brand Logo -->
-            @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && $profile->company_slug !== 'demo')
+            @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && $profile->company_slug !== 'demo' && $profile->user_id != 3 && !request()->is('demo*'))
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('subscriber_store', $profile->company_slug) }}">
                     @if($profile->logo)
                         <img src="{{ asset('uploads/subscriber-logos/' . $profile->logo) }}" alt="{{ $profile->company_name }}" decoding="async" style="max-height: 40px; object-fit: contain;">
@@ -447,6 +458,9 @@
 
             <!-- Mobile Navbar Controls -->
             <div class="d-flex align-items-center gap-2 d-lg-none">
+                <button id="pwa-install-btn-mobile" class="nav-icon-btn" title="Install App">
+                    <i class="bi bi-phone-vibrate"></i>
+                </button>
                 <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal">
                     <i class="bi bi-search"></i>
                 </button>
@@ -500,12 +514,16 @@
 
                 <!-- Desktop Right Action Bar -->
                 <div class="d-none d-lg-flex align-items-center gap-2 ms-auto">
+                    <button id="pwa-install-btn" class="nav-icon-btn" title="Install App">
+                        <i class="bi bi-phone-vibrate"></i>
+                    </button>
                     <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal" title="Search Catalogue">
                         <i class="bi bi-search"></i>
                     </button>
 
                     @auth
                         <div class="dropdown">
+                            
                             <button id="headerUserDropdownBtn" class="btn btn-premium btn-premium-outline py-2 px-3 d-flex align-items-center gap-2" type="button" onclick="this.nextElementSibling.classList.toggle('show'); event.stopPropagation();" style="font-size:0.85rem; border-radius: 12px;">
                                 <i class="bi bi-person-fill-check text-primary" style="pointer-events: none;"></i>
                                 <span class="fw-semibold" style="pointer-events: none;">{{ Str::limit(Auth::user()->name, 20) }}</span>
@@ -567,11 +585,11 @@
                 <!-- Col 1: Bio -->
                 <div class="col-lg-4 col-md-6 col-12">
                     @php
-                        $isDemo = (isset($profile) && $profile->company_slug === 'demo');
+                        $isDemo = (isset($profile) && ($profile->company_slug === 'demo' || $profile->user_id == 3)) || request()->is('demo*');
                         $homeUrl = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && !$isDemo) 
                             ? route('subscriber_store', $profile->company_slug) 
                             : route('home');
-                        $footerBio = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
+                        $footerBio = (isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && !$isDemo)
                             ? ($profile->bio ?: $siteDescription)
                             : $siteDescription;
                     @endphp
@@ -622,7 +640,8 @@
                     <h6 class="fw-bold text-white mb-3" style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Categories</h6>
                     <ul class="list-unstyled d-flex flex-column gap-2 small">
                         @php
-                            if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile) && $profile->company_slug !== 'demo') {
+                            $isDemo = (isset($profile) && ($profile->company_slug === 'demo' || $profile->user_id == 3)) || request()->is('demo*');
+                            if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
                                 $categoryIds = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
                                     ->where('status', 'active')
                                     ->pluck('category_id')
@@ -641,7 +660,7 @@
                         @foreach($footerCats as $fcat)
                             @php
                                 if (isset($isSubscriberStore) && $isSubscriberStore && isset($profile)) {
-                                    if ($profile->company_slug === 'demo') {
+                                    if ($isDemo) {
                                         $catUrl = route('demo') . '?category=' . $fcat->slug;
                                     } else {
                                         $catUrl = route('subscriber_store', $profile->company_slug) . '?category=' . $fcat->slug;
@@ -854,25 +873,12 @@
                                                 <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-include-link" checked style="width: 42px; height: 22px; cursor: pointer;">
                                             </div>
                                         </div>
-                                        <input type="text" class="form-control rounded-3 p-2 share-setting-mirror" data-share-setting="share-note-text" value="An Award For Every Achievement & Effort" style="font-size: 0.8rem;">
-                                        <div>
-                                            <label class="form-label fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">Logo position</label>
-                                            <div class="d-flex gap-3 align-items-center">
-                                                <button type="button" class="logo-pos-btn" data-pos="bottom-left" title="Bottom Left">
-                                                    <span class="dot-indicator" style="bottom: 6px; left: 6px;"></span>
-                                                </button>
-                                                <button type="button" class="logo-pos-btn" data-pos="top-left" title="Top Left">
-                                                    <span class="dot-indicator" style="top: 6px; left: 6px;"></span>
-                                                </button>
-                                                <button type="button" class="logo-pos-btn" data-pos="top-right" title="Top Right">
-                                                    <span class="dot-indicator" style="top: 6px; right: 6px;"></span>
-                                                </button>
-                                                <button type="button" class="logo-pos-btn active" data-pos="bottom-right" title="Bottom Right">
-                                                    <span class="dot-indicator" style="bottom: 6px; right: 6px;"></span>
-                                                </button>
-                                            </div>
-                                        </div>
                                     </div>
+
+                                        <!-- Note text input -->
+                                        <div class="mb-3" id="note-text-group-details" style="display:none;">
+                                            <input type="text" class="form-control rounded-3 p-2 share-setting-mirror" data-share-setting="share-note-text" value="An Award For Every Achievement &amp; Effort" style="font-size: 0.8rem;">
+                                        </div>
                                     
                                     <!-- Status Message Overlay -->
                                     <div id="dt-status-log-details" class="alert alert-info py-2 px-3 small rounded-3 d-none mb-3" style="font-size: 0.75rem;"></div>
@@ -1049,25 +1055,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Premium Logo Corner position selector -->
-                                        <div class="mb-4" id="watermark-pos-group">
-                                            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">Logo position</h6>
-                                            <div class="d-flex gap-3 align-items-center mt-2">
-                                                <button type="button" class="logo-pos-btn" data-pos="bottom-left" title="Bottom Left">
-                                                    <span class="dot-indicator" style="bottom: 6px; left: 6px;"></span>
-                                                </button>
-                                                <button type="button" class="logo-pos-btn" data-pos="top-left" title="Top Left">
-                                                    <span class="dot-indicator" style="top: 6px; left: 6px;"></span>
-                                                </button>
-                                                <button type="button" class="logo-pos-btn" data-pos="top-right" title="Top Right">
-                                                    <span class="dot-indicator" style="top: 6px; right: 6px;"></span>
-                                                </button>
-                                                <button type="button" class="logo-pos-btn active" data-pos="bottom-right" title="Bottom Right">
-                                                    <span class="dot-indicator" style="bottom: 6px; right: 6px;"></span>
-                                                </button>
-                                            </div>
-                                            <input type="hidden" id="share-logo-pos" value="bottom-right">
-                                        </div>
+
                                     </div>
                                     
                                     <!-- Status Message Overlay -->
@@ -1266,6 +1254,7 @@
 
         var selectedProducts = [];
         window.companyLogoBase64 = "@if($settings && $settings->logo && !empty($logoBase64)){{ $logoBase64 }}@else @endif";
+        window.companySiteTitle = "{{ $siteTitle ?? 'CataSky' }}";
         window.isSubscriberStore = {{ (isset($isSubscriberStore) && $isSubscriberStore) ? 'true' : 'false' }};
         window.userIsSubscriber = {{ (auth()->check() && auth()->user()->isSubscriber()) ? 'true' : 'false' }};
         window.currentUserId = {{ auth()->check() ? auth()->id() : 'null' }};
@@ -2657,115 +2646,144 @@
                 // Scale design context (800x1000 coords mapped to 2160x2700 pixels)
                 ctx.scale(SCALE, SCALE);
 
-                const footerHeight   = 104;
-                const noteHeight     = showNote ? 58 : 0;
+                const footerHeight   = 170;
+                const noteHeight     = showNote ? 60 : 0;
                 const imageAreaBottom = footerHeight + noteHeight;
 
                 // ── WHITE BACKGROUND ───────────────────────────────────────────────────
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
 
-                // ── PRODUCT IMAGE (object-fit: cover inside canvas coordinates) ────────
+                // ── PRODUCT IMAGE — object-fit: contain (fits full area, maintains aspect ratio, no cropping) ─
                 const img  = await loadImage(imgUrl);
                 const imgH = DESIGN_HEIGHT - imageAreaBottom;
-                drawCoverImage(ctx, img, 0, 0, DESIGN_WIDTH, imgH);
+                // Light grey background for image area (matching HTML preview background #f8fafc)
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, DESIGN_WIDTH, imgH);
+                drawContainImage(ctx, img, 0, 0, DESIGN_WIDTH, imgH);
 
-                // ── TOP TITLE + SHORT DESCRIPTION ─────────────────────────────────────
-                if (showTitle) {
-                    ctx.textAlign    = 'left';
-                    ctx.textBaseline = 'top';
-
-                    ctx.fillStyle = '#000000';
-                    ctx.font      = '900 23px "Outfit", "Poppins", sans-serif';
-                    ctx.fillText(productName, 44, 34);
-
-                    if (p.short_description) {
-                        ctx.font      = '700 13px "Outfit", "Poppins", sans-serif';
-                        ctx.fillStyle = '#111111';
-                        ctx.fillText(p.short_description, 44, 62);
+                // ── TRANSPARENT COMPANY NAME WATERMARK (diagonal, center, once) ───────
+                if (showWatermark) {
+                    const watermarkText = (window.companySiteTitle || 'CataSky').toUpperCase();
+                    ctx.save();
+                    ctx.globalAlpha = 0.20; // Increased opacity for readability on all image colors
+                    ctx.translate(DESIGN_WIDTH / 2, imgH / 2);
+                    ctx.rotate(-30 * Math.PI / 180);
+                    ctx.textAlign    = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle    = '#000000';
+                    
+                    let fontSize = 100;
+                    ctx.font = `900 ${fontSize}px "Outfit", "Poppins", sans-serif`;
+                    let textWidth = ctx.measureText(watermarkText).width;
+                    const maxAllowedWidth = DESIGN_WIDTH * 0.85; // 85% of 800 = 680px
+                    if (textWidth > maxAllowedWidth) {
+                        fontSize = Math.floor(fontSize * (maxAllowedWidth / textWidth));
+                        if (fontSize < 30) fontSize = 30;
+                        ctx.font = `900 ${fontSize}px "Outfit", "Poppins", sans-serif`;
                     }
+                    
+                    ctx.fillText(watermarkText, 0, 0);
+                    ctx.restore();
                 }
 
-                // ── WATERMARK LOGO ────────────────────────────────────────────────────
-                if (showWatermark && window.companyLogoBase64) {
-                    const logoImg = await loadImage(window.companyLogoBase64);
-                    if (logoImg) {
-                        let logoX = 686;
-                        let logoY = DESIGN_HEIGHT - imageAreaBottom - 18 - 42; // default: bottom-right
-                        if (logoPos === 'top-left')    { logoX = 24;  logoY = 22; }
-                        else if (logoPos === 'top-right')   { logoX = 686; logoY = 22; }
-                        else if (logoPos === 'bottom-left') { logoX = 24;  logoY = DESIGN_HEIGHT - imageAreaBottom - 18 - 42; }
-                        drawContainImage(ctx, logoImg, logoX, logoY, 90, 42);
-                    }
-                }
-
-                // ── YELLOW NOTE BAR ───────────────────────────────────────────────────
+                // ── YELLOW NOTE BAR (above footer) ────────────────────────────────────
                 if (showNote) {
                     const noteY = DESIGN_HEIGHT - footerHeight - noteHeight;
                     ctx.fillStyle = '#FFD000';
                     ctx.fillRect(0, noteY, DESIGN_WIDTH, noteHeight);
-
                     ctx.fillStyle    = '#000000';
-                    ctx.font         = '900 17px "Outfit", "Poppins", sans-serif';
+                    ctx.font         = '700 16px "Outfit", "Poppins", sans-serif';
                     ctx.textBaseline = 'middle';
-
-                    ctx.textAlign = 'left';
-                    ctx.fillText(`CODE: ${partCode}`, 48, noteY + noteHeight / 2);
-
-                    ctx.textAlign = 'right';
-                    ctx.fillText(noteText, DESIGN_WIDTH - 48, noteY + noteHeight / 2);
+                    ctx.textAlign    = 'left';
+                    ctx.fillText(`CODE: ${partCode}`, 44, noteY + noteHeight / 2);
+                    ctx.textAlign    = 'right';
+                    ctx.fillText(noteText, DESIGN_WIDTH - 44, noteY + noteHeight / 2);
                 }
 
-                // ── BLACK FOOTER ──────────────────────────────────────────────────────
+                // ── BLACK FOOTER (3 rows) ─────────────────────────────────────────────
                 const footerY = DESIGN_HEIGHT - footerHeight;
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(0, footerY, DESIGN_WIDTH, footerHeight);
 
+                // Extract MRP and Offer Price — guard against null/undefined/empty/zero
+                const mrpRawC   = p.mrp ?? p.price;
+                const offerRawC = p.offer_price ?? p.sale_price;
+                const _parsePrice = v => {
+                    if (v === null || v === undefined || String(v).trim() === '') return NaN;
+                    const n = Number(v);
+                    return (isNaN(n) || n <= 0) ? NaN : n;
+                };
+                const mrpNumC   = _parsePrice(mrpRawC);
+                const offerNumC = _parsePrice(offerRawC);
+                const mrpValC   = !isNaN(mrpNumC)   ? '\u20B9 ' + mrpNumC.toLocaleString('en-IN')   : '';
+                const offerValC = !isNaN(offerNumC) ? '\u20B9 ' + offerNumC.toLocaleString('en-IN') : '';
+                const hasBothPrices = mrpValC && offerValC && mrpValC !== offerValC;
+
                 ctx.textBaseline = 'middle';
 
-                // Part code — yellow
-                ctx.fillStyle = '#FFD000';
-                ctx.font      = '900 14px "Outfit", "Poppins", sans-serif';
-                ctx.textAlign = 'left';
-                ctx.fillText(`CODE: ${partCode}`, 48, footerY + 32);
-
-                // Product name — white
+                // ─ ROW 1 (y ≈ footerY + 38): Product title (left) | MRP strikethrough (right)
+                const row1Y = footerY + 38;
                 if (showTitle) {
                     ctx.fillStyle = '#ffffff';
-                    ctx.font      = '900 25px "Outfit", "Poppins", sans-serif';
-                    const maxTitleW = showPrice ? 420 : 600;
+                    ctx.font      = '900 26px "Outfit", "Poppins", sans-serif';
+                    ctx.textAlign = 'left';
+                    const maxTitleW = showPrice ? 420 : 700;
                     let displayTitle = productName;
-                    while (displayTitle.length > 0 && ctx.measureText(displayTitle + '...').width > maxTitleW) {
+                    while (displayTitle.length > 0 && ctx.measureText(displayTitle + '…').width > maxTitleW) {
                         displayTitle = displayTitle.slice(0, -1);
                     }
-                    if (displayTitle !== productName) displayTitle += '...';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(displayTitle, 48, footerY + 66);
+                    if (displayTitle !== productName) displayTitle += '…';
+                    ctx.fillText(displayTitle, 44, row1Y);
+                }
+                if (showPrice && hasBothPrices) {
+                    // MRP with strikethrough (greyed out)
+                    ctx.font      = '700 19px "Outfit", "Poppins", sans-serif';
+                    ctx.fillStyle = '#999999';
+                    ctx.textAlign = 'right';
+                    const mrpX = DESIGN_WIDTH - 44;
+                    ctx.fillText(mrpValC, mrpX, row1Y);
+                    const mrpW = ctx.measureText(mrpValC).width;
+                    ctx.strokeStyle = '#999999';
+                    ctx.lineWidth   = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(mrpX - mrpW, row1Y);
+                    ctx.lineTo(mrpX, row1Y);
+                    ctx.stroke();
                 }
 
-                // Price — white, right-aligned
+                // ─ ROW 2 (y ≈ footerY + 82): Part code (left, yellow) | Offer / only price (right, white)
+                const row2Y = footerY + 82;
+                if (showNote && partCode) {
+                    ctx.fillStyle = '#FFD000';
+                    ctx.font      = '700 14px "Outfit", "Poppins", sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`CODE: ${partCode}`, 44, row2Y);
+                }
                 if (showPrice) {
                     ctx.fillStyle = '#ffffff';
-                    ctx.font      = '900 28px "Outfit", "Poppins", sans-serif';
+                    ctx.font      = '900 32px "Outfit", "Poppins", sans-serif';
                     ctx.textAlign = 'right';
-                    ctx.fillText(displayPrice, DESIGN_WIDTH - 48, footerY + 32);
+                    const priceToShow = hasBothPrices ? offerValC : (offerValC || mrpValC || displayPrice);
+                    ctx.fillText(priceToShow, DESIGN_WIDTH - 44, row2Y);
                 }
 
+                // ─ ROW 3 (y ≈ footerY + 132): Tap to view pill (left)
                 if (includeLink) {
-                    const pillW = 110, pillH = 32;
-                    const pillX = DESIGN_WIDTH - 48 - pillW;
-                    const pillY = footerY + 52;
-                    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 16, '#ffffff', null);
-                    ctx.fillStyle = '#000000';
-                    ctx.font      = '900 13px "Outfit", "Poppins", sans-serif';
-                    ctx.textAlign = 'center';
+                    const pillW = 120, pillH = 30;
+                    const pillX = 44;
+                    const pillY = footerY + 127;
+                    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 15, '#ffffff', null);
+                    ctx.fillStyle    = '#000000';
+                    ctx.font         = '900 12px "Outfit", "Poppins", sans-serif';
+                    ctx.textAlign    = 'center';
+                    ctx.textBaseline = 'middle';
                     ctx.fillText('TAP TO VIEW', pillX + pillW / 2, pillY + pillH / 2);
                 }
 
-                // ── EXPORT: ULTRA HIGH-RESOLUTION (SUPER SHARP & OPTIMIZED FILE SIZE) ───────────────────
-                // Increase quality to 0.88 for maximum HD preview preservation during WhatsApp transfers
+                // ── EXPORT ───────────────────────────────────────────────────────────
                 return new Promise(resolve => {
-                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.88);
+                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.90);
                 });
             }
 
@@ -2894,64 +2912,84 @@
                 const p = item.product || {};
                 const imgUrl = getRelativeImageUrl(item.imageUrl || '');
                 const settings = getShareSettings();
-                const companyLogo = getRelativeImageUrl(String(options.companyLogo || window.companyLogoBase64 || '').trim());
                 const showTitle = settings.showTitle;
                 const showPrice = settings.showPrice;
                 const showWatermark = settings.showWatermark;
                 const showNote = settings.showNotes;
                 const includeLink = settings.includeLink;
                 const noteText = escapeHtml(settings.noteText || 'An Award For Every Achievement & Effort');
-                const logoPos = settings.logoPos || 'bottom-right';
                 const productName = escapeHtml(p.name || 'Product');
                 const partCode = escapeHtml(p.part_code || '');
-                const displayPrice = formatProductPrice(p);
-                const footerHeight = 140;
-                const noteHeight = showNote ? 78 : 0;
+
+                // MRP and Offer Price — guard against null/undefined/empty/zero
+                const mrpRawH   = p.mrp ?? p.price;
+                const offerRawH = p.offer_price ?? p.sale_price;
+                const _parsePriceH = v => {
+                    if (v === null || v === undefined || String(v).trim() === '') return NaN;
+                    const n = Number(v);
+                    return (isNaN(n) || n <= 0) ? NaN : n;
+                };
+                const mrpNumH   = _parsePriceH(mrpRawH);
+                const offerNumH = _parsePriceH(offerRawH);
+                const mrpValH   = !isNaN(mrpNumH)   ? '\u20B9\u00A0' + mrpNumH.toLocaleString('en-IN')   : '';
+                const offerValH = !isNaN(offerNumH) ? '\u20B9\u00A0' + offerNumH.toLocaleString('en-IN') : '';
+                const hasBothH  = mrpValH && offerValH && mrpValH !== offerValH;
+
+                const footerHeight   = 210;
+                const noteHeight     = showNote ? 80 : 0;
                 const imageAreaBottom = footerHeight + noteHeight;
 
-                let logoPosStyle = 'top: 30px; right: 32px;';
-                if (logoPos === 'top-left') {
-                    logoPosStyle = 'top: 30px; left: 32px;';
-                } else if (logoPos === 'bottom-left') {
-                    logoPosStyle = `bottom: ${imageAreaBottom + 24}px; left: 32px;`;
-                } else if (logoPos === 'bottom-right') {
-                    logoPosStyle = `bottom: ${imageAreaBottom + 24}px; right: 32px;`;
-                }
+                // Large diagonal company watermark — centered on image area (rendered once, clearly visible)
+                const wmText = escapeHtml((window.companySiteTitle || 'CataSky').toUpperCase());
+                const dynamicImageFontSize = wmText.length > 15 ? '55px' : (wmText.length > 8 ? '75px' : '110px');
+                const watermarkHtml = showWatermark ? `
+                <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:3;pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                    <div style="transform:rotate(-30deg);text-align:center;max-width:90%;">
+                        <div style="font-size:${dynamicImageFontSize};font-weight:900;color:rgba(0,0,0,0.18);font-family:'Outfit','Poppins',Arial,sans-serif;letter-spacing:4px;text-transform:uppercase;line-height:1.2;word-wrap:break-word;">${wmText}</div>
+                    </div>
+                </div>` : '';
 
                 return `
-                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1350px;overflow:hidden;position:relative;background:#ffffff;will-change:transform;contain:layout paint;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
-                    <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background:#ffffff;">
-                        ${showTitle ? `
-                        <div style="position:absolute;top:46px;left:60px;right:284px;z-index:4;color:#000000;">
-                            <div style="font-size:32px;font-weight:900;line-height:1.12;letter-spacing:0;">${productName}</div>
-                            ${p.short_description ? `<div style="font-size:18px;font-weight:700;line-height:1.2;margin-top:6px;">${escapeHtml(p.short_description)}</div>` : ''}
-                        </div>` : ''}
+                <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1350px;overflow:hidden;position:relative;background:#ffffff;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
 
-                        ${showWatermark && companyLogo ? `
-                        <div style="position:absolute;${logoPosStyle}width:120px;height:56px;z-index:5;display:flex;align-items:center;justify-content:center;">
-                            <img src="${companyLogo}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
-                        </div>` : ''}
-
-                        ${imgUrl
-                            ? `<img src="${imgUrl}" decoding="async" style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;object-fit:contain;display:block;z-index:1;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;">`
-                            : `<div style="position:absolute;left:0;right:0;top:0;bottom:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;z-index:1;">No Image</div>`
-                        }
+                    <!-- Image area: background-size:contain to fill, no white space, no stretching in html2canvas -->
+                    <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background-color:#f8fafc;${imgUrl ? `background-image:url('${imgUrl}');background-position:center;background-size:contain;background-repeat:no-repeat;` : ''}overflow:hidden;z-index:1;">
+                        ${!imgUrl ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;font-size:36px;z-index:1;">No Image</div>` : ''}
+                        ${watermarkHtml}
                     </div>
 
+                    <!-- Optional yellow note bar -->
                     ${showNote ? `
-                    <div style="position:absolute;left:0;right:0;bottom:${footerHeight}px;height:${noteHeight}px;background:#FFD000;color:#000000;display:flex;align-items:center;justify-content:space-between;padding:0 64px;box-sizing:border-box;font-weight:900;">
-                        <div style="font-size:23px;">CODE: ${partCode}</div>
-                        <div style="font-size:23px;text-transform:uppercase;text-align:right;max-width:580px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${noteText}</div>
+                    <div style="position:absolute;left:0;right:0;bottom:${footerHeight}px;height:${noteHeight}px;background:#FFD000;color:#000000;display:flex;align-items:center;justify-content:space-between;padding:0 64px;box-sizing:border-box;font-weight:700;font-size:26px;z-index:10;">
+                        <div>CODE: ${partCode}</div>
+                        <div style="text-transform:uppercase;text-align:right;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${noteText}</div>
                     </div>` : ''}
 
-                    <div style="position:absolute;left:0;right:0;bottom:0;height:${footerHeight}px;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:space-between;padding:0 64px;box-sizing:border-box;">
-                        <div style="min-width:0;max-width:${showPrice ? '680px' : '920px'};">
-                            <div style="font-size:19px;color:#FFD000;font-weight:900;text-transform:uppercase;margin-bottom:8px;">CODE: ${partCode}</div>
-                            ${showTitle ? `<div style="font-size:34px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${productName}</div>` : ''}
+                    <!-- Black footer: 2-row layout — title+MRP | code+offer -->
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:${footerHeight}px;background:#000000;color:#ffffff;display:flex;flex-direction:column;justify-content:center;padding:24px 64px;box-sizing:border-box;z-index:10;gap:16px;">
+
+                        <!-- Row 1: Product title (left) + MRP strikethrough (right) -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                            ${showTitle
+                                ? `<div style="font-size:38px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${showPrice && hasBothH ? '580px' : '950px'};">${productName}</div>`
+                                : '<div></div>'
+                            }
+                            ${showPrice && hasBothH
+                                ? `<div style="font-size:28px;color:#aaaaaa;font-weight:700;text-decoration:line-through;white-space:nowrap;flex-shrink:0;margin-left:16px;">${mrpValH}</div>`
+                                : ''
+                            }
                         </div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
-                            ${showPrice ? `<div style="font-size:38px;font-weight:900;white-space:nowrap;">${displayPrice}</div>` : ''}
-                            ${includeLink ? `<div style="background:#ffffff;color:#000000;border-radius:999px;padding:9px 22px;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0;cursor:pointer;">Tap to view</div>` : ''}
+
+                        <!-- Row 2: Code + Tap-to-view (left) + Offer/single price (right) -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                                ${showNote ? `<div style="font-size:20px;color:#FFD000;font-weight:700;text-transform:uppercase;">CODE: ${partCode}</div>` : ''}
+                                ${includeLink ? `<div style="background:#ffffff;color:#000000;border-radius:999px;padding:10px 28px;font-size:18px;font-weight:900;text-transform:uppercase;white-space:nowrap;">Tap to view</div>` : ''}
+                            </div>
+                            ${showPrice
+                                ? `<div style="font-size:46px;font-weight:900;color:#ffffff;white-space:nowrap;flex-shrink:0;">${hasBothH ? offerValH : (mrpValH || offerValH)}</div>`
+                                : ''
+                            }
                         </div>
                     </div>
                 </div>
@@ -2972,16 +3010,22 @@
                 for (let index = 0; index < 6; index++) {
                     const item = pageItems[index];
                     if (item) {
+                        // Each card is 1080x1350 (4:5). Scale to fit display width.
+                        // display slot: width=218px → scale=218/1080=0.20185, height=218*(1350/1080)=272px
+                        const slotW = 218;
+                        const slotH = Math.round(slotW * (1350 / 1080)); // 272px
                         slotsHtml += `
-                        <div class="pdf-product-link-target" data-slug="${item.product && item.product.slug ? escapeHtml(item.product.slug) : ''}" style="width:218px;height:218px;position:relative;border-radius:8px;overflow:hidden;background:#ffffff;border:1.5px solid #E2E8F0;box-sizing:border-box;cursor:pointer;">
-                            <div style="width:1080px;height:1080px;transform:scale(0.20185);transform-origin:top left;will-change:transform;contain:layout paint;">
+                        <div class="pdf-product-link-target" data-slug="${item.product && item.product.slug ? escapeHtml(item.product.slug) : ''}" style="width:${slotW}px;height:${slotH}px;position:relative;border-radius:8px;overflow:hidden;background:#ffffff;border:1.5px solid #E2E8F0;box-sizing:border-box;cursor:pointer;flex-shrink:0;">
+                            <div style="width:1080px;height:1350px;transform:scale(${(slotW/1080).toFixed(5)});transform-origin:top left;will-change:transform;">
                                 ${renderImagePdfBoxHtml(item, { companyLogo })}
                             </div>
                         </div>
                         `;
                     } else {
+                        const slotW = 218;
+                        const slotH = Math.round(slotW * (1350 / 1080));
                         slotsHtml += `
-                        <div style="width:218px;height:218px;border-radius:8px;background:#ffffff;border:1.5px dashed #E2E8F0;display:flex;align-items:center;justify-content:center;box-sizing:border-box;">
+                        <div style="width:${slotW}px;height:${slotH}px;border-radius:8px;background:#ffffff;border:1.5px dashed #E2E8F0;display:flex;align-items:center;justify-content:center;box-sizing:border-box;">
                             <div style="font-size:0.75rem;color:#E2E8F0;font-family:'Outfit',sans-serif;font-weight:800;text-transform:uppercase;">Empty Slot</div>
                         </div>
                         `;
@@ -3660,7 +3704,7 @@
                     // We use CSS grid 1fr columns; approximate card width from container.
                     // The card inner div is 1080px wide; scale = cardDisplayWidth / 1080.
                     // We target ~2 columns on mobile (~160px each) and 176px on desktop.
-                    const previewScale = (176 / 1080).toFixed(4); // 0.1630
+                    const previewScale = (0.218).toFixed(4); // 0.1630
                     const includeLink = getShareSettings().includeLink;
                     const html = `
                         <div class="share-image-preview-grid">
@@ -3892,45 +3936,34 @@
                                 const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
                                 const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
                                 
-                                // Extract MRP and Offer price
-                                const mrpRaw = p.price ?? p.mrp;
-                                const offerRaw = p.sale_price ?? p.offer_price;
-                                const mrpValue = mrpRaw !== null && mrpRaw !== undefined && String(mrpRaw).trim() !== '' 
-                                    ? '₹ ' + Number(mrpRaw).toLocaleString('en-IN') 
-                                    : '';
-                                
-                                const offerValue = offerRaw !== null && offerRaw !== undefined && String(offerRaw).trim() !== '' 
-                                    ? '₹ ' + Number(offerRaw).toLocaleString('en-IN') 
-                                    : '';
+                                // Extract MRP and Offer price — guard against null/undefined/empty/zero
+                                const mrpRaw = p.mrp ?? p.price;
+                                const offerRaw = p.offer_price ?? p.sale_price;
+                                const _parseP = v => {
+                                    if (v === null || v === undefined || String(v).trim() === '') return NaN;
+                                    const n = Number(v); return (isNaN(n) || n <= 0) ? NaN : n;
+                                };
+                                const mrpNum = _parseP(mrpRaw); const offerNum = _parseP(offerRaw);
+                                const mrpValue = !isNaN(mrpNum) ? '\u20B9 ' + mrpNum.toLocaleString('en-IN') : '';
+                                const offerValue = !isNaN(offerNum) ? '\u20B9 ' + offerNum.toLocaleString('en-IN') : '';
 
+                                // Remove per-card watermark from details PDF — watermark is now on the full page
                                 gridHtml += `
-                                <div style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif;">
-                                    <!-- Image Box -->
-                                    <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
-                                        ${imgUrl 
-                                            ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
-                                            : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
-                                        }
-                                        <!-- MRP overlay inside image box at bottom-left -->
-                                        ${shareSettings.showPrice && mrpValue ? `
-                                        <div style="position: absolute; bottom: 8px; left: 8px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000000; background: rgba(255, 255, 255, 0.85); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                                            MRP: ${mrpValue}
-                                        </div>` : ''}
+                                <div style="box-sizing:border-box;width:330px;height:420px;border:1.5px solid #d2d2d2;border-radius:12px;padding:15px;background:#ffffff;display:flex;flex-direction:column;justify-content:space-between;font-family:Arial,sans-serif;">
+                                    <!-- Image Box: background-size:contain to fill, no white space -->
+                                    <div style="position:relative;width:100%;flex:1;border:1px solid #e2e8f0;border-radius:10px;background-color:#f8fafc;${imgUrl ? `background-image:url('${imgUrl}');background-position:center;background-size:contain;background-repeat:no-repeat;` : ''}overflow:hidden;box-sizing:border-box;">
+                                        ${!imgUrl ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94A3B8;font-weight:bold;">No Image</div>` : ''}
                                     </div>
-                                    <!-- Below Image text -->
-                                    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; text-align: left; width: 100%;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-family: Arial, sans-serif; color: #000000;">
-                                            <span style="font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
-                                                Name: ${escapeHtml(name)}
-                                            </span>
-                                            ${shareSettings.showPrice && offerValue ? `
-                                            <span style="font-weight: normal; white-space: nowrap;">
-                                                Offer: ${offerValue}
-                                            </span>` : ''}
-                                        </div>
-                                        <div style="font-size: 11px; color: #555555; font-family: Arial, sans-serif; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 28px;">
-                                            Description: ${description}
-                                        </div>
+                                    <!-- Below Image: Name, MRP strikethrough, Offer Price, Description -->
+                                    <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;box-sizing:border-box;text-align:left;width:100%;">
+                                        <div style="font-size:13px;font-family:Arial,sans-serif;color:#000000;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
+                                        ${shareSettings.showPrice && (mrpValue || offerValue) ? `
+                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                            ${mrpValue && offerValue && mrpValue !== offerValue ? `<span style="font-size:11px;color:#888888;font-family:Arial,sans-serif;text-decoration:line-through;">MRP: ${mrpValue}</span>` : ''}
+                                            ${offerValue ? `<span style="font-size:12px;color:#1D6FEB;font-family:Arial,sans-serif;font-weight:bold;">Offer: ${offerValue}</span>` : (mrpValue ? `<span style="font-size:12px;color:#1D6FEB;font-family:Arial,sans-serif;font-weight:bold;">${mrpValue}</span>` : '')}
+                                        </div>` : ''}
+                                        ${shareSettings.showNote ? `<div style="font-size:11px;color:#555555;font-family:Arial,sans-serif;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">Note: ${escapeHtml(shareSettings.noteText || '')}</div>` : ''}
+                                        <div style="font-size:10px;color:#777777;font-family:Arial,sans-serif;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${description}</div>
                                     </div>
                                 </div>
                                 `;
@@ -3939,7 +3972,14 @@
                             const totalPages = Math.ceil(validDataList.length / 4);
 
                             previewPageHtml = `
-                            <div class="pdf-page" style="${pageStyle}">
+                            <div class="pdf-page" style="${pageStyle}position:relative;">
+                                ${shareSettings.showWatermark ? `
+                                <!-- Full-page diagonal watermark (one per page, sits on top of content) -->
+                                <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:99;pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                                    <div style="transform:rotate(-30deg);text-align:center;max-width:90%;">
+                                        <div style="font-size:${(window.companySiteTitle || 'CataSky').length > 15 ? '42px' : ((window.companySiteTitle || 'CataSky').length > 8 ? '55px' : '75px')};font-weight:900;color:rgba(0,0,0,0.10);font-family:Arial,sans-serif;letter-spacing:${(window.companySiteTitle || 'CataSky').length > 15 ? '2px' : '4px'};text-transform:uppercase;line-height:1.4;word-wrap:break-word;">${(window.companySiteTitle || 'CataSky').toUpperCase()}</div>
+                                    </div>
+                                </div>` : ''}
                                 <!-- Logo and Header -->
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1.5px solid #d2d2d2; font-family: 'Outfit', sans-serif;">
                                     <div style="display: flex; align-items: center;">
@@ -4233,52 +4273,48 @@
                             const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
                             const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
                             
-                            // Extract MRP and Offer price
-                            const mrpRaw = p.price ?? p.mrp;
-                            const offerRaw = p.sale_price ?? p.offer_price;
-                            const mrpValue = mrpRaw !== null && mrpRaw !== undefined && String(mrpRaw).trim() !== '' 
-                                ? '₹ ' + Number(mrpRaw).toLocaleString('en-IN') 
-                                : '';
-                            
-                            const offerValue = offerRaw !== null && offerRaw !== undefined && String(offerRaw).trim() !== '' 
-                                ? '₹ ' + Number(offerRaw).toLocaleString('en-IN') 
-                                : '';
+                            // Extract MRP and Offer price — guard against null/undefined/empty/zero
+                            const mrpRaw = p.mrp ?? p.price;
+                            const offerRaw = p.offer_price ?? p.sale_price;
+                            const _parseP2 = v => {
+                                if (v === null || v === undefined || String(v).trim() === '') return NaN;
+                                const n = Number(v); return (isNaN(n) || n <= 0) ? NaN : n;
+                            };
+                            const mrpNum2 = _parseP2(mrpRaw); const offerNum2 = _parseP2(offerRaw);
+                            const mrpValue = !isNaN(mrpNum2) ? '\u20B9 ' + mrpNum2.toLocaleString('en-IN') : '';
+                            const offerValue = !isNaN(offerNum2) ? '\u20B9 ' + offerNum2.toLocaleString('en-IN') : '';
 
+                            // Remove per-card watermark — watermark is now one full-page overlay
                             gridHtml += `
-                            <div class="pdf-product-link-target" data-slug="${escapeHtml(p.slug)}" style="box-sizing: border-box; width: 330px; height: 420px; border: 1.5px solid #d2d2d2; border-radius: 12px; padding: 15px; background: #ffffff; display: inline-flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif; cursor: pointer;">
-                                <!-- Image Box -->
-                                <div style="position: relative; width: 100%; height: 260px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box; padding: 0px;">
-                                    ${imgUrl 
-                                        ? `<img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%;">`
-                                        : `<div style="font-size: 14px; color: #94A3B8; font-weight: bold;">No Image</div>`
-                                    }
-                                    <!-- MRP overlay inside image box at bottom-left -->
-                                    ${shareSettings.showPrice && mrpValue ? `
-                                    <div style="position: absolute; bottom: 8px; left: 8px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000000; background: rgba(255, 255, 255, 0.85); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                                        MRP: ${mrpValue}
-                                    </div>` : ''}
+                            <div class="pdf-product-link-target" data-slug="${escapeHtml(p.slug)}" style="box-sizing:border-box;width:330px;height:420px;border:1.5px solid #d2d2d2;border-radius:12px;padding:15px;background:#ffffff;display:inline-flex;flex-direction:column;justify-content:space-between;font-family:Arial,sans-serif;cursor:pointer;">
+                                <!-- Image Box: background-size:contain to fill, no white space -->
+                                <div style="position:relative;width:100%;flex:1;border:1px solid #e2e8f0;border-radius:10px;background-color:#f8fafc;${imgUrl ? `background-image:url('${imgUrl}');background-position:center;background-size:contain;background-repeat:no-repeat;` : ''}overflow:hidden;box-sizing:border-box;">
+                                    ${!imgUrl ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94A3B8;font-weight:bold;">No Image</div>` : ''}
                                 </div>
-                                <!-- Below Image text -->
-                                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; text-align: left; width: 100%;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-family: Arial, sans-serif; color: #000000;">
-                                        <span style="font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
-                                            Name: ${escapeHtml(name)}
-                                        </span>
-                                        ${shareSettings.showPrice && offerValue ? `
-                                        <span style="font-weight: normal; white-space: nowrap;">
-                                            Offer: ${offerValue}
-                                        </span>` : ''}
-                                    </div>
-                                    <div style="font-size: 11px; color: #555555; font-family: Arial, sans-serif; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 28px;">
-                                        Description: ${description}
-                                    </div>
+                                <!-- Below Image: Name, MRP strikethrough, Offer Price, Description -->
+                                <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;box-sizing:border-box;text-align:left;width:100%;">
+                                    <div style="font-size:13px;font-family:Arial,sans-serif;color:#000000;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
+                                    ${shareSettings.showPrice && (mrpValue || offerValue) ? `
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                        ${mrpValue && offerValue && mrpValue !== offerValue ? `<span style="font-size:11px;color:#888888;font-family:Arial,sans-serif;text-decoration:line-through;">MRP: ${mrpValue}</span>` : ''}
+                                        ${offerValue ? `<span style="font-size:12px;color:#1D6FEB;font-family:Arial,sans-serif;font-weight:bold;">Offer: ${offerValue}</span>` : (mrpValue ? `<span style="font-size:12px;color:#1D6FEB;font-family:Arial,sans-serif;font-weight:bold;">${mrpValue}</span>` : '')}
+                                    </div>` : ''}
+                                    ${shareSettings.showNote ? `<div style="font-size:11px;color:#555555;font-family:Arial,sans-serif;line-height:1.3;">Note: ${escapeHtml(shareSettings.noteText || '')}</div>` : ''}
+                                    <div style="font-size:10px;color:#777777;font-family:Arial,sans-serif;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${description}</div>
                                 </div>
                             </div>
                             `;
                         });
 
                         pagesHtml += `
-                        <div class="pdf-page" style="${pageStyle}">
+                        <div class="pdf-page" style="${pageStyle}position:relative;">
+                            ${shareSettings.showWatermark ? `
+                            <!-- Full-page diagonal watermark (one per page, sits on top of content) -->
+                            <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:99;pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                                <div style="transform:rotate(-30deg);text-align:center;max-width:90%;">
+                                    <div style="font-size:${(window.companySiteTitle || 'CataSky').length > 15 ? '42px' : ((window.companySiteTitle || 'CataSky').length > 8 ? '55px' : '75px')};font-weight:900;color:rgba(0,0,0,0.10);font-family:Arial,sans-serif;letter-spacing:${(window.companySiteTitle || 'CataSky').length > 15 ? '2px' : '4px'};text-transform:uppercase;line-height:1.4;word-wrap:break-word;">${(window.companySiteTitle || 'CataSky').toUpperCase()}</div>
+                                </div>
+                            </div>` : ''}
                             <!-- Logo and Header -->
                             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1.5px solid #d2d2d2; font-family: 'Outfit', sans-serif;">
                                 <div style="display: flex; align-items: center;">
@@ -4683,6 +4719,18 @@
     
     <!-- Premium Bootstrap Toast Notification Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+        <!-- Dynamic PWA Toast -->
+        <div id="pwaToast" class="toast premium-toast border-0 shadow-lg rounded-4 animate-fade-in" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div id="pwaToastHeader" class="toast-header border-0 bg-primary text-white py-2.5 rounded-top-4">
+                <i id="pwaToastIcon" class="bi bi-info-circle-fill me-2 fs-5"></i>
+                <strong id="pwaToastTitle" class="me-auto font-outfit" style="font-size: 0.85rem;">PWA Notification</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body py-3 px-3 bg-white text-dark small rounded-bottom-4">
+                <span id="pwaToastMessage"></span>
+            </div>
+        </div>
+
         @if(session('success'))
             <div id="sessionToastSuccess" class="toast premium-toast border-0 shadow-lg rounded-4 animate-fade-in" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
                 <div class="toast-header border-0 bg-success text-white py-2.5 rounded-top-4">
@@ -4723,21 +4771,187 @@
         @endif
     </div>
 
+    @if(!isset($isSubscriberStore) || !$isSubscriberStore)
     <!-- Premium Floating Enquiry Button -->
     <a href="{{ route('contact') }}" class="floating-enquiry-btn shadow-lg" title="Enquire Now">
         <i class="bi bi-chat-left-text-fill"></i>
         <span>Enquire Now</span>
     </a>
+    @endif
 
     @stack('scripts')
     <script>
-        $(document).ready(function() {
-            // Trigger floating toasts automatically on load if session variables exist
-            $('.toast').each(function() {
-                var toast = new bootstrap.Toast(this);
-                toast.show();
+      $(document).ready(function () {
+
+    $('.toast').each(function () {
+        var toast = new bootstrap.Toast(this);
+        toast.show();
+    });
+
+});
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function (registration) {
+                console.log('ServiceWorker registration successful:', registration.scope);
+            })
+            .catch(function (err) {
+                console.log('ServiceWorker registration failed:', err);
             });
-        });
+    });
+}
+
+let deferredPrompt;
+
+const installBtnDesktop = document.getElementById('pwa-install-btn');
+const installBtnMobile = document.getElementById('pwa-install-btn-mobile');
+
+// Bootstrap Toast Message
+function showPwaToast(message, type = 'primary') {
+    const toastEl = document.getElementById('pwaToast');
+    const toastMessage = document.getElementById('pwaToastMessage');
+    const toastHeader = document.getElementById('pwaToastHeader');
+    const toastIcon = document.getElementById('pwaToastIcon');
+    const toastTitle = document.getElementById('pwaToastTitle');
+
+    if (!toastEl || !toastMessage) return;
+
+    let bgClass = 'bg-primary';
+    let textClass = 'text-white';
+    let iconClass = 'bi-info-circle-fill';
+    let title = 'PWA Notification';
+
+    if (type === 'success') {
+        bgClass = 'bg-success';
+        textClass = 'text-white';
+        iconClass = 'bi-check-circle-fill';
+        title = 'Success Update';
+    } else if (type === 'warning') {
+        bgClass = 'bg-warning';
+        textClass = 'text-dark';
+        iconClass = 'bi-exclamation-triangle-fill';
+        title = 'Install Warning';
+    } else if (type === 'danger') {
+        bgClass = 'bg-danger';
+        textClass = 'text-white';
+        iconClass = 'bi-exclamation-octagon-fill';
+        title = 'Install Error';
+    }
+
+    if (toastHeader) {
+        toastHeader.className = `toast-header border-0 ${bgClass} ${textClass} py-2.5 rounded-top-4`;
+        const closeBtn = toastHeader.querySelector('.btn-close');
+        if (closeBtn) {
+            if (textClass.includes('text-white')) {
+                closeBtn.classList.add('btn-close-white');
+            } else {
+                closeBtn.classList.remove('btn-close-white');
+            }
+        }
+    }
+
+    if (toastIcon) {
+        toastIcon.className = `bi ${iconClass} me-2 fs-5`;
+    }
+
+    if (toastTitle) {
+        toastTitle.textContent = title;
+    }
+
+    toastMessage.textContent = message;
+
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+// Check install status
+function isPWAInstalled() {
+    return localStorage.getItem('pwaInstalled') === 'true' ||
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+}
+
+// Update button icon
+function updateInstallButtonState() {
+    const installed = isPWAInstalled();
+
+    const icon = installed
+        ? '<i class="bi bi-check-circle"></i>'
+        : '<i class="bi bi-phone-vibrate"></i>';
+
+    if (installBtnDesktop) {
+        installBtnDesktop.classList.remove('d-none');
+        installBtnDesktop.innerHTML = icon;
+    }
+
+    if (installBtnMobile) {
+        installBtnMobile.classList.remove('d-none');
+        installBtnMobile.innerHTML = icon;
+    }
+}
+
+// Save install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    updateInstallButtonState();
+    console.log('PWA install prompt available');
+});
+
+// Install button click
+const triggerPwaInstall = async () => {
+    // Already Installed
+    if (isPWAInstalled()) {
+        showPwaToast('App is already installed on this device.', 'success');
+        return;
+    }
+
+    // Prompt unavailable
+    if (!deferredPrompt) {
+        showPwaToast('Install option is currently not available.', 'warning');
+        return;
+    }
+
+    try {
+        deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+
+        if (choiceResult.outcome === 'accepted') {
+            showPwaToast('Installing app...', 'success');
+        } else {
+            showPwaToast('Installation cancelled.', 'warning');
+        }
+        deferredPrompt = null;
+    } catch (error) {
+        console.error(error);
+        showPwaToast('Something went wrong.', 'danger');
+    }
+};
+
+// Button Events
+if (installBtnDesktop) {
+    installBtnDesktop.addEventListener('click', triggerPwaInstall);
+}
+
+if (installBtnMobile) {
+    installBtnMobile.addEventListener('click', triggerPwaInstall);
+}
+
+// App Installed Event
+window.addEventListener('appinstalled', () => {
+    console.log('PWA installed successfully');
+    localStorage.setItem('pwaInstalled', 'true');
+    deferredPrompt = null;
+    updateInstallButtonState();
+    showPwaToast('App installed successfully.', 'success');
+});
+
+// Initial Check
+window.addEventListener('load', () => {
+    updateInstallButtonState();
+});
     </script>
 </body>
 </html>

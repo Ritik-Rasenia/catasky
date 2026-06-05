@@ -658,7 +658,7 @@
             const y = 185;
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, size, size);
-            const scale = Math.max(size / img.width, size / img.height);
+            const scale = Math.min(size / img.width, size / img.height);
             const width = img.width * scale;
             const height = img.height * scale;
             ctx.drawImage(img, x + (size - width) / 2, y + (size - height) / 2, width, height);

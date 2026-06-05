@@ -63,9 +63,7 @@ const notificationService = {
             this.emit();
             return this.snapshot();
         } catch (error) {
-            if (!silent) {
-                alertService.toastError('Unable to load notifications.');
-            }
+            // Fail silently to prevent distracting toast errors on the frontend storefront or dashboard
             return this.snapshot();
         }
     },
