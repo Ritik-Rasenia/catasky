@@ -144,7 +144,7 @@
                                     <label class="form-label-premium">Inquiry Subject</label>
                                     <div class="input-group-premium">
                                         <span class="input-icon"><i class="bi bi-chat-left-dots-fill"></i></span>
-                                        <input type="text" name="subject" class="form-control-premium" placeholder="Bulk Catalogue Pricing" value="{{ old('subject') }}">
+                                        <input type="text" name="subject" class="form-control-premium" placeholder="Bulk Catalog Pricing" value="{{ old('subject') }}">
                                     </div>
                                 </div>
 

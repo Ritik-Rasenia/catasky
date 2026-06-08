@@ -220,6 +220,14 @@
             transition: all 0.3s ease;
             outline: none;
         }
+        select.form-input {
+            background-color: #111827 !important;
+            color: white !important;
+        }
+        select.form-input option {
+            background-color: #111827;
+            color: white;
+        }
         .form-input::placeholder { color: rgba(255,255,255,0.2); }
         .form-input:focus {
             border-color: rgba(79,70,229,0.6);
@@ -548,6 +556,34 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-md-6 col-12">
+                        <div class="mb-2">
+                            <label class="form-floating-label" for="has_gst">GST Registered? *</label>
+                            <div class="input-wrap">
+                                <i class="bi bi-percent input-icon"></i>
+                                <select name="has_gst" id="has_gst" class="form-input @error('has_gst') is-invalid @enderror" required>
+                                    <option value="no" {{ old('has_gst') === 'no' ? 'selected' : '' }}>No</option>
+                                    <option value="yes" {{ old('has_gst') === 'yes' ? 'selected' : '' }}>Yes</option>
+                                </select>
+                            </div>
+                            @error('has_gst') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-12" id="gst_number_wrapper" style="display: none;">
+                        <div class="mb-2">
+                            <label class="form-floating-label" for="gst_number">GST Number *</label>
+                            <div class="input-wrap">
+                                <i class="bi bi-receipt-cutoff input-icon"></i>
+                                <input type="text" name="gst_number" id="gst_number"
+                                    class="form-input @error('gst_number') is-invalid @enderror"
+                                    placeholder="e.g. 07ABOPN8619H1Z5"
+                                    value="{{ old('gst_number') }}">
+                            </div>
+                            @error('gst_number') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-signin" id="register-btn">
@@ -680,6 +716,27 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             matchContainer.classList.add('d-none');
         }
+    }
+
+    // GST fields toggle logic
+    const hasGstSelect = document.getElementById('has_gst');
+    const gstNumberWrapper = document.getElementById('gst_number_wrapper');
+    const gstNumberInput = document.getElementById('gst_number');
+
+    function toggleGstFields() {
+        if (hasGstSelect.value === 'yes') {
+            gstNumberWrapper.style.display = 'block';
+            gstNumberInput.required = true;
+        } else {
+            gstNumberWrapper.style.display = 'none';
+            gstNumberInput.required = false;
+            gstNumberInput.value = '';
+        }
+    }
+
+    if (hasGstSelect) {
+        hasGstSelect.addEventListener('change', toggleGstFields);
+        toggleGstFields();
     }
 
     // Form submit — only check length (8–12) and match

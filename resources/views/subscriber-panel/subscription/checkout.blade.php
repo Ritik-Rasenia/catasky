@@ -7,6 +7,12 @@
     $rzpKey = config('services.razorpay.key');
     $isTestMode = str_starts_with($rzpKey, 'rzp_test');
     $isNotConfigured = empty($rzpKey) || $rzpKey === 'rzp_test_change_me' || empty(config('services.razorpay.secret')) || config('services.razorpay.secret') === 'change_me_secret';
+    $hasGst = !$plan->is_trial;
+
+    // Prorata vs full price
+    $baseAmount  = isset($prorata) && $prorata ? $prorata['prorata_amount'] : $plan->price;
+    $gstAmount   = $hasGst ? round($baseAmount * 0.18, 2) : 0;
+    $totalAmount = $baseAmount + $gstAmount;
 @endphp
 
 
@@ -24,6 +30,33 @@
     <div>
         <h6 class="fw-bold mb-1 text-warning" style="font-size:0.9rem;">Razorpay Gateway Setup Required</h6>
         <p class="mb-0 text-muted small" style="line-height: 1.5;">You are currently running with default placeholder credentials. Please replace <strong>`RAZORPAY_KEY`</strong> and <strong>`RAZORPAY_SECRET`</strong> in your <strong>`.env`</strong> file with your valid Razorpay Dashboard API credentials to complete transactions.</p>
+    </div>
+</div>
+@endif
+
+{{-- Prorata Upgrade Banner --}}
+@if(isset($isUpgrade) && $isUpgrade && isset($prorata) && $prorata)
+<div class="alert border-0 shadow-sm d-flex gap-3 align-items-start p-4 mb-4 rounded-3" style="background: rgba(79, 70, 229, 0.06); border-left: 4px solid #4F46E5 !important;">
+    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center" style="width:42px;height:42px;background:rgba(79,70,229,0.12);">
+        <i class="bi bi-arrow-up-circle-fill text-primary fs-5"></i>
+    </div>
+    <div class="flex-grow-1">
+        <h6 class="fw-bold mb-1" style="font-size:0.9rem;color:#3730A3;">⚡ Prorata Upgrade Billing Applied</h6>
+        <p class="mb-2 text-muted small">You have an active subscription with <strong>{{ $prorata['remaining_days'] }}</strong> days remaining. Your unused credit of <strong class="text-success">₹{{ number_format($prorata['unused_credit'], 2) }}</strong> has been deducted from the new plan price.</p>
+        <div class="d-flex flex-wrap gap-3 mt-1">
+            <div class="px-3 py-2 rounded-3 small" style="background:#f1f5f9;font-size:0.78rem;">
+                <span class="text-muted">New Plan Full Price</span><br>
+                <strong class="text-dark">₹{{ number_format($prorata['new_plan_price'], 2) }}</strong>
+            </div>
+            <div class="px-3 py-2 rounded-3 small text-center" style="background:#f0fdf4;font-size:0.78rem;">
+                <span class="text-success">Unused Credit</span><br>
+                <strong class="text-success">− ₹{{ number_format($prorata['unused_credit'], 2) }}</strong>
+            </div>
+            <div class="px-3 py-2 rounded-3 small" style="background:rgba(79,70,229,0.08);font-size:0.78rem;">
+                <span class="text-primary fw-bold">You Pay Today</span><br>
+                <strong class="text-primary">₹{{ number_format($totalAmount, 2) }}</strong>
+            </div>
+        </div>
     </div>
 </div>
 @endif
@@ -72,13 +105,24 @@
                         You have selected the free trial option. Absolutely no payment or credit cards are required to begin. Activate below to launch your catalog instantly!
                     </p>
                 </div>
+                @elseif(isset($isUpgrade) && $isUpgrade)
+                {{-- Upgrade Intro Hero --}}
+                <div class="p-4 rounded-4 mb-4 text-center" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.03) 0%, rgba(79, 70, 229, 0.07) 100%); border: 1px dashed rgba(79, 70, 229, 0.2);">
+                    <div class="mx-auto mb-3" style="width: 56px; height: 56px; background: #ffffff; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1);">
+                        <i class="bi bi-arrow-up-circle-fill text-primary" style="font-size:1.6rem;"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1 text-dark" style="font-size:1rem; font-family:'Outfit', sans-serif;">Plan Upgrade — Prorata Billing</h6>
+                    <p class="text-muted small mx-auto mb-0" style="max-width: 440px; line-height: 1.5;">
+                        You are upgrading your subscription. Only the price difference (adjusted for unused days) is charged today. You get the full new plan duration.
+                    </p>
+                </div>
                 @else
                 {{-- Razorpay Intro Hero --}}
                 <div class="p-4 rounded-4 mb-4 text-center" style="background: linear-gradient(135deg, rgba(29, 111, 235, 0.03) 0%, rgba(29, 111, 235, 0.07) 100%); border: 1px dashed rgba(29, 111, 235, 0.2);">
                     <div class="mx-auto mb-3" style="width: 56px; height: 56px; background: #ffffff; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(29, 111, 235, 0.1);">
                         <i class="bi bi-shield-lock-fill text-primary" style="font-size:1.6rem;"></i>
                     </div>
-                    <h6 class="fw-bold mb-1 text-dark" style="font-size:1rem; font-family:'Outfit', sans-serif;">Unified UPI & Card Payments</h6>
+                    <h6 class="fw-bold mb-1 text-dark" style="font-size:1rem; font-family:'Outfit', sans-serif;">Unified UPI &amp; Card Payments</h6>
                     <p class="text-muted small mx-auto mb-0" style="max-width: 440px; line-height: 1.5;">
                         Complete your purchase seamlessly using UPI (GPay, PhonePe), Cards (Visa, Mastercard, RuPay), Netbanking, or digital Wallets via 100% secure PCI-DSS compliant processing.
                     </p>
@@ -129,7 +173,6 @@
                                 <path d="M10.7 0h-2.2L6.1 9.4 5.3 1.9C5.1 0.9 4.3 0 3.2 0H0v.4C2 0.9 3.5 1.6 4.3 2.9l2.7 10.6h2.4L13.1 0h-2.4zm8.9 4.9c0-1.8-2.6-1.9-2.6-2.7 0-.3.3-.5.9-.5 1.4 0 2.5.3 3.2.6l.4-1.8C20.8.2 19.5 0 18 0c-2.3 0-3.9 1.2-3.9 2.9 0 2.3 3.2 2.4 3.2 3.7 0 .4-.4.6-1 .6-1.7 0-2.6-.4-3.4-.8l-.4 1.8c.8.4 2.3.7 3.8.7 2.3.1 4-1.1 4-3.1zm4.4-4.9H22c-.6 0-1.1.4-1.3.9L17.5 13.5h2.4l.5-1.3h2.9l.3 1.3h2.1L24 0zM21 9.9l1-.4.6-2.4-.2 2.8H21z"/>
                             </svg>
                         </div>
-
                         <!-- Mastercard Badge -->
                         <div class="payment-badge border d-flex align-items-center justify-content-center px-3 py-2.5 bg-white shadow-sm" style="cursor: default; border-color: #E2E8F0; border-radius: 10px; width: 62px; height: 38px;">
                             <svg viewBox="0 0 24 18" style="width: 28px; height: auto;" xmlns="http://www.w3.org/2000/svg">
@@ -137,12 +180,10 @@
                                 <circle cx="16.5" cy="9" r="7.5" fill="#FF5F00" fill-opacity="0.85"/>
                             </svg>
                         </div>
-
                         <!-- UPI Badge -->
                         <div class="payment-badge border d-flex align-items-center justify-content-center px-3 py-2.5 bg-white shadow-sm" style="cursor: default; border-color: #E2E8F0; border-radius: 10px; width: 62px; height: 38px;">
                             <span class="badge bg-primary-soft text-primary px-1.5 py-0.5 rounded fw-extrabold" style="font-size:0.65rem; font-family:'Outfit',sans-serif; background-color: rgba(29, 111, 235, 0.08) !important; letter-spacing: 0.5px;">UPI</span>
                         </div>
-
                         <!-- Netbanking Badge -->
                         <div class="payment-badge border d-flex align-items-center justify-content-center px-3 py-2.5 bg-white shadow-sm" style="cursor: default; border-color: #E2E8F0; border-radius: 10px; width: 62px; height: 38px;">
                             <i class="bi bi-bank text-secondary fs-6"></i>
@@ -163,8 +204,13 @@
                     </form>
                     @else
                     <button type="button" class="btn btn-primary w-100 py-3.5 fw-bold text-white shadow-sm d-flex align-items-center justify-content-center gap-2" id="btn-razorpay-trigger" style="background:#1D6FEB; border:none; border-radius:12px; font-size:1.05rem; font-family:'Outfit', sans-serif; transition:all 0.3s; transform:translateY(0);" {{ $isNotConfigured ? 'disabled' : '' }}>
-                        <i class="bi bi-shield-lock-fill"></i>
-                        <span id="btn-text">Proceed to Secure Payment • ₹{{ number_format($plan->price, 2) }}</span>
+                        @if(isset($isUpgrade) && $isUpgrade)
+                            <i class="bi bi-arrow-up-circle-fill"></i>
+                            <span id="btn-text">Upgrade Plan — Pay ₹{{ number_format($totalAmount, 2) }} Today</span>
+                        @else
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span id="btn-text">Proceed to Secure Payment • ₹{{ number_format($totalAmount, 2) }}</span>
+                        @endif
                     </button>
                     
                     @if($isNotConfigured)
@@ -221,21 +267,54 @@
                 
                 <hr class="my-4" style="border-color:#E2E8F0;">
 
-                <div class="d-flex justify-content-between align-items-center mb-2.5">
-                    <span class="text-muted" style="font-size:0.88rem;">Plan Subscription Fee</span>
-                    <span class="text-dark fw-bold" style="font-size:0.88rem;">₹{{ number_format($plan->price, 2) }}</span>
-                </div>
+                {{-- Prorata Breakdown Lines --}}
+                @if(isset($prorata) && $prorata)
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted" style="font-size:0.88rem;">New Plan Full Price</span>
+                        <span class="text-dark fw-bold" style="font-size:0.88rem;">₹{{ number_format($prorata['new_plan_price'], 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted" style="font-size:0.88rem;">
+                            Prorata Credit
+                            <span class="badge bg-success rounded-pill ms-1" style="font-size:0.65rem;">{{ $prorata['remaining_days'] }} days unused</span>
+                        </span>
+                        <span class="text-success fw-bold" style="font-size:0.88rem;">− ₹{{ number_format($prorata['unused_credit'], 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-dark fw-semibold" style="font-size:0.88rem;">Upgrade Amount</span>
+                        <span class="text-dark fw-bold" style="font-size:0.88rem;">₹{{ number_format($prorata['prorata_amount'], 2) }}</span>
+                    </div>
+                @else
+                    <div class="d-flex justify-content-between align-items-center mb-2.5">
+                        <span class="text-muted" style="font-size:0.88rem;">Plan Subscription Fee</span>
+                        <span class="text-dark fw-bold" style="font-size:0.88rem;">₹{{ number_format($plan->price, 2) }}</span>
+                    </div>
+                @endif
+
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted" style="font-size:0.88rem;">Taxes & Service Fees</span>
-                    <span class="text-success fw-bold" style="font-size:0.88rem;">₹0.00</span>
+                    <span class="text-muted" style="font-size:0.88rem;">GST (18%)</span>
+                    <span class="text-{{ $hasGst ? 'danger' : 'success' }} fw-bold" style="font-size:0.88rem;">₹{{ number_format($gstAmount, 2) }}</span>
                 </div>
 
                 <hr class="my-4" style="border-color:#E2E8F0;">
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <span class="fw-bold fs-5" style="color:var(--text-primary); font-family:'Outfit',sans-serif;">Total Amount Due</span>
-                    <span class="fw-bold fs-3 text-primary" style="font-family:'Outfit',sans-serif;">₹{{ number_format($plan->price, 2) }}</span>
+                    <span class="fw-bold fs-5" style="color:var(--text-primary); font-family:'Outfit',sans-serif;">
+                        {{ (isset($isUpgrade) && $isUpgrade) ? 'Upgrade Amount Due' : 'Total Amount Due' }}
+                    </span>
+                    <span class="fw-bold fs-3 text-primary" style="font-family:'Outfit',sans-serif;">₹{{ number_format($totalAmount, 2) }}</span>
                 </div>
+
+                {{-- Prorata saving callout --}}
+                @if(isset($prorata) && $prorata && $prorata['unused_credit'] > 0)
+                <div class="p-3 rounded-3 mb-4 d-flex align-items-center gap-2" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                    <i class="bi bi-piggy-bank-fill text-success fs-5"></i>
+                    <div>
+                        <div class="fw-bold text-success small">You saved ₹{{ number_format($prorata['unused_credit'], 2) }}!</div>
+                        <div class="text-muted" style="font-size:0.75rem;">Prorata credit from your remaining {{ $prorata['remaining_days'] }} days was applied.</div>
+                    </div>
+                </div>
+                @endif
 
                 <div class="p-4 rounded-4" style="font-size:0.82rem; color:#475569; border: 1px solid #E2E8F0; background-color: rgba(0,0,0,0.01);">
                     <div class="fw-bold mb-3 text-dark" style="font-size:0.88rem; font-family:'Outfit',sans-serif;"><i class="bi bi-check2-circle text-success me-1"></i> Included Plan Privileges:</div>
@@ -275,19 +354,23 @@
 
         if (!triggerBtn) return;
 
+        @php
+            $isUpgradeJs = isset($isUpgrade) && $isUpgrade ? 'true' : 'false';
+            $btnLabel = (isset($isUpgrade) && $isUpgrade)
+                ? "Upgrade Plan — Pay ₹" . number_format($totalAmount, 2) . " Today"
+                : "Proceed to Secure Payment • ₹" . number_format($totalAmount, 2);
+        @endphp
+
         triggerBtn.addEventListener('click', async function() {
-            // Disable button, show loading spinner
             triggerBtn.disabled = true;
             btnText.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Initializing Gateway...`;
             
-            // Show Overlay
             overlay.classList.remove('d-none');
             overlay.style.display = 'flex';
             overlayTitle.innerText = "Initiating Secure Gateway...";
             overlayDesc.innerText = "Connecting with Razorpay servers. Please do not refresh.";
 
             try {
-                // Fetch secure order ID from server using relative route to prevent port mismatch guest redirects
                 const response = await fetch("{{ route('subscriber.subscription.razorpay.order', $plan->id, false) }}", {
                     method: 'POST',
                     headers: {
@@ -303,20 +386,32 @@
                     throw new Error(data.error || 'Server failed to initialize transaction.');
                 }
 
-                // Hide overlay temporarily to show the popup
+                // Handle prorata-free upgrade (credit covers full cost)
+                if (data.prorata_free) {
+                    overlayTitle.innerText = "Processing Prorata Upgrade...";
+                    overlayDesc.innerText = "Your unused credit covers the full upgrade cost. Activating now...";
+                    // Submit the free upgrade form
+                    const freeForm = document.createElement('form');
+                    freeForm.method = 'POST';
+                    freeForm.action = "{{ route('subscriber.subscription.pay', $plan->id, false) }}";
+                    freeForm.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="gateway" value="prorata_free">`;
+                    document.body.appendChild(freeForm);
+                    freeForm.submit();
+                    return;
+                }
+
                 overlay.classList.add('d-none');
 
-                // Initialize Razorpay Checkout
+                const isUpgrade = {{ $isUpgradeJs }};
                 const options = {
                     "key": data.key,
                     "amount": data.amount,
                     "currency": data.currency,
                     "name": "Catasky B2B Platform",
-                    "description": "{{ $plan->name }} Subscription Plan",
+                    "description": isUpgrade ? "Upgrade to {{ $plan->name }} Plan (Prorata)" : "{{ $plan->name }} Subscription Plan",
                     "image": "https://razorpay.com/favicon.png",
                     "order_id": data.id,
                     "handler": function (rzpResponse) {
-                        // Success Callback
                         overlay.classList.remove('d-none');
                         overlay.style.display = 'flex';
                         overlayTitle.innerText = "Verifying Signature...";
@@ -325,8 +420,6 @@
                         document.getElementById('razorpay-payment-id').value = rzpResponse.razorpay_payment_id;
                         document.getElementById('razorpay-order-id').value = rzpResponse.razorpay_order_id;
                         document.getElementById('razorpay-signature').value = rzpResponse.razorpay_signature;
-                        
-                        // Submit signature check form
                         document.getElementById('razorpay-hidden-form').submit();
                     },
                     "prefill": {
@@ -334,14 +427,11 @@
                         "email": data.user.email,
                         "contact": data.user.phone
                     },
-                    "theme": {
-                        "color": "#1D6FEB"
-                    },
+                    "theme": { "color": "#1D6FEB" },
                     "modal": {
                         "ondismiss": function() {
-                            // Restore UI on close
                             triggerBtn.disabled = false;
-                            btnText.innerHTML = `<i class="bi bi-shield-lock-fill"></i> Proceed to Secure Payment • ₹{{ number_format($plan->price, 2) }}`;
+                            btnText.innerHTML = `{{ $isUpgradeJs === 'true' ? '<i class="bi bi-arrow-up-circle-fill"></i> Upgrade Plan — Pay ₹' . number_format($totalAmount, 2) . ' Today' : '<i class="bi bi-shield-lock-fill"></i> Proceed to Secure Payment • ₹' . number_format($totalAmount, 2) }}`;
                             overlay.classList.add('d-none');
                             if (typeof alertService !== 'undefined') {
                                 alertService.errorAlert('Cancelled', 'Payment was closed. You can retry anytime.');
@@ -357,10 +447,8 @@
 
             } catch (error) {
                 console.error(error);
-                
-                // Restore button state
                 triggerBtn.disabled = false;
-                btnText.innerHTML = `<i class="bi bi-shield-lock-fill"></i> Proceed to Secure Payment • ₹{{ number_format($plan->price, 2) }}`;
+                btnText.innerHTML = `{{ $isUpgradeJs === 'true' ? 'Upgrade Plan — Pay ₹' . number_format($totalAmount, 2) . ' Today' : '<i class="bi bi-shield-lock-fill"></i> Proceed to Secure Payment • ₹' . number_format($plan->price, 2) }}`;
                 overlay.classList.add('d-none');
 
                 if (typeof alertService !== 'undefined') {

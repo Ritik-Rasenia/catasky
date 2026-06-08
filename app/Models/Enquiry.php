@@ -15,8 +15,12 @@ class Enquiry extends Model
     {
         static::addGlobalScope('tenant', function (Builder $builder) {
             if (auth()->check()) {
-                if (auth()->user()->hasRole('Subscriber')) {
-                    $userId = auth()->id();
+                $user = auth()->user();
+                $isSubscriber = $user->hasRole('Subscriber') || $user->hasRole('subscriber');
+                $isDemo = method_exists($user, 'isDemo') && $user->isDemo();
+
+                if ($isSubscriber || $isDemo) {
+                    $userId = $user->id;
                     $builder->where(function ($query) use ($userId) {
                         $query->whereHas('product', function ($q) use ($userId) {
                             $q->withoutGlobalScope('tenant')->where('subscriber_id', $userId);

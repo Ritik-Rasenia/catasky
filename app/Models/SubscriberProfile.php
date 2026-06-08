@@ -11,7 +11,7 @@ class SubscriberProfile extends Model
 
     protected $fillable = [
         'user_id', 'company_name', 'company_slug', 'phone', 'website',
-        'address', 'city', 'state', 'country', 'pincode', 'gst_number',
+        'address', 'city', 'state', 'country', 'pincode', 'gst_number', 'has_gst',
         'logo', 'banner', 'bio', 'whatsapp_number', 'email_for_inquiries',
         'primary_color', 'secondary_color', 'status', 'store_status', 'is_verified',
         'suspended_at', 'suspension_reason', 'custom_domain', 'domain_verified',
@@ -21,6 +21,7 @@ class SubscriberProfile extends Model
         'is_verified' => 'boolean',
         'domain_verified' => 'boolean',
         'suspended_at' => 'datetime',
+        'has_gst' => 'boolean',
     ];
 
     public function user()

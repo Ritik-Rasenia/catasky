@@ -60,4 +60,9 @@ class SubscriberProductImage extends Model
             ? asset($path)
             : asset('uploads/subscriber-products/' . $path);
     }
+
+    public function getImageAttribute(): ?string
+    {
+        return $this->image_path;
+    }
 }

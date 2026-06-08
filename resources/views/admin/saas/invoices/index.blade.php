@@ -143,7 +143,7 @@
                             </td>
                             <td>
                                 <span class="fw-extrabold text-dark" style="font-family:'Outfit',sans-serif; font-size:0.95rem;">
-                                    ₹{{ number_format($invoice->amount, 2) }}
+                                    ₹{{ number_format($invoice->total, 2) }}
                                 </span>
                             </td>
                             <td class="text-muted small">

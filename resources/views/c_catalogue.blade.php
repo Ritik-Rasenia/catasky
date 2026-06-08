@@ -352,8 +352,8 @@
                         $isDemo = true;
                     }
                 }
-                $browseUrl = $isDemo ? url('/demo') : url('/catalogue');
-                $browseLabel = $isDemo ? 'Browse Demo' : 'Browse Catalogue';
+                $browseUrl = $isDemo ? url('/demo') : url('/catalog');
+                $browseLabel = $isDemo ? 'Browse Demo' : 'Browse Catalog';
             @endphp
             <a href="{{ $browseUrl }}" class="d-flex align-items-center text-decoration-none">
                 @if($settings && $settings->logo)
@@ -408,7 +408,7 @@
         </div>
     </section>
 
-    <!-- ── Catalogue Grid ─────────────────────────── -->
+    <!-- ── Catalog Grid ─────────────────────────── -->
     <section class="pb-5">
         <div class="container">
             <div class="row g-3 g-sm-4">
@@ -448,7 +448,7 @@
                     <div class="col-12 text-center py-5">
                         <i class="bi bi-inbox text-secondary display-1 opacity-25"></i>
                         <h4 class="fw-bold mt-3">Selection Unavailable</h4>
-                        <p class="text-secondary">Please check with your B2B representative for a revised catalogue link.</p>
+                        <p class="text-secondary">Please check with your B2B representative for a revised catalog link.</p>
                     </div>
                 @endforelse
             </div>

@@ -38,7 +38,15 @@ class SubcategoryController extends Controller
             'category_id' => 'required|exists:categories,id',
             'name'        => [
                 'required',
-                \Illuminate\Validation\Rule::unique('subcategories', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+                \Illuminate\Validation\Rule::unique('subcategories', 'name')
+                    ->where(function ($query) {
+                        $user = auth()->user();
+                        if ($user && $user->isDemo()) {
+                            return $query->where('subscriber_id', $user->id);
+                        }
+                        return $query->whereNull('subscriber_id');
+                    })
+                    ->whereNull('deleted_at')
             ],
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'      => 'required',
@@ -99,7 +107,13 @@ class SubcategoryController extends Controller
                 'required',
                 \Illuminate\Validation\Rule::unique('subcategories', 'name')
                     ->ignore($subcategory->id)
-                    ->whereNull('subscriber_id')
+                    ->where(function ($query) {
+                        $user = auth()->user();
+                        if ($user && $user->isDemo()) {
+                            return $query->where('subscriber_id', $user->id);
+                        }
+                        return $query->whereNull('subscriber_id');
+                    })
                     ->whereNull('deleted_at')
             ],
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',

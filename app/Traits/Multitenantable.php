@@ -11,8 +11,11 @@ trait Multitenantable
         // 1. Automatically assign subscriber_id and generate slug when creating a record
         static::creating(function ($model) {
             if (auth()->check()) {
-                // Save authenticated user's ID for all roles except Super Admin
-                if (!auth()->user()->hasRole('Super Admin')) {
+                $user = auth()->user();
+                $isAdmin = method_exists($user, 'isAdmin') ? $user->isAdmin() : ($user->hasRole('Super Admin') || $user->hasRole('Admin') || $user->hasRole('admin'));
+                $isDemo = method_exists($user, 'isDemo') && $user->isDemo();
+                // Save authenticated user's ID for all roles except Admin / Super Admin, or if user is Demo
+                if (!$isAdmin || $isDemo) {
                     $model->subscriber_id = auth()->id();
                 }
             }
@@ -27,8 +30,11 @@ trait Multitenantable
             $isDashboard = request()->is('dashboard*') || request()->is('api/notifications*');
 
             if ($isDashboard && auth()->check()) {
-                // Filter by authenticated user's ID for all roles except Super Admin
-                if (!auth()->user()->hasRole('Super Admin')) {
+                $user = auth()->user();
+                $isAdmin = method_exists($user, 'isAdmin') ? $user->isAdmin() : ($user->hasRole('Super Admin') || $user->hasRole('Admin') || $user->hasRole('admin'));
+                $isDemo = method_exists($user, 'isDemo') && $user->isDemo();
+                // Filter by authenticated user's ID for all roles except Admin / Super Admin, or if user is Demo
+                if (!$isAdmin || $isDemo) {
                     $builder->where($builder->getQuery()->from . '.subscriber_id', auth()->id());
                 }
             } else {

@@ -297,7 +297,7 @@
             let id = $(this).data('id');
             let name = $(this).data('name');
             $('#assign-subscriber-name').text(name);
-            $('#assignPlanForm').attr('action', window.baseUrl + '/admin/subscribers/' + id + '/assign-plan');
+            $('#assignPlanForm').attr('action', window.baseUrl + '/dashboard/subscribers/' + id + '/assign-plan');
             $('#assignPlanModal').modal('show');
         });
 
@@ -306,7 +306,7 @@
             let id = $(this).data('id');
             let name = $(this).data('name');
             $('#suspend-subscriber-name').text(name);
-            $('#suspendForm').attr('action', window.baseUrl + '/admin/subscribers/' + id + '/suspend');
+            $('#suspendForm').attr('action', window.baseUrl + '/dashboard/subscribers/' + id + '/suspend');
             $('#suspendModal').modal('show');
         });
 

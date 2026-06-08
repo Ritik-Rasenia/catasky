@@ -40,7 +40,7 @@ class CustomDomainMiddleware
                 if ($user) {
                     $sub = $user->activeSubscription();
                     $plan = $sub ? $sub->plan : null;
-                    $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
+                    $isEnterprise = $plan && $plan->slug === 'enterprise';
 
                     // Check if subscription has not expired and user is on an Enterprise plan
                     if ($isEnterprise && $user->hasActiveSubscription()) {

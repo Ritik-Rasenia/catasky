@@ -71,6 +71,24 @@ class FrontendController extends Controller
             }
         }
 
+        // Filter by brand
+        if ($request->filled('brand')) {
+            $brand = Brand::where('slug', $request->input('brand'))->whereNull('subscriber_id')->first();
+            if ($brand) {
+                $query->where(function($q) use ($brand) {
+                    $q->where('brand_id', $brand->id)
+                      ->orWhere('brand_id', (string)$brand->id)
+                      ->orWhereJsonContains('brand_id', $brand->id)
+                      ->orWhereJsonContains('brand_id', (string)$brand->id)
+                      ->orWhere('brand_id', 'like', '%"' . $brand->id . '"%')
+                      ->orWhere('brand_id', 'like', '%[' . $brand->id . ']%')
+                      ->orWhere('brand_id', 'like', '%[' . $brand->id . ',%')
+                      ->orWhere('brand_id', 'like', '%,' . $brand->id . ']%')
+                      ->orWhere('brand_id', 'like', '%,' . $brand->id . ',%');
+                });
+            }
+        }
+
         // Filter by price
         if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->input('min_price'));
@@ -554,6 +572,57 @@ class FrontendController extends Controller
     }
 
     /**
+     * Subscriber Store Contact Us page — shows the subscriber's business contact info.
+     */
+    public function storeContact(string $company_slug)
+    {
+        $profile = \App\Models\SubscriberProfile::where('company_slug', $company_slug)->firstOrFail();
+
+        // Resolve demo user id dynamically
+        $demoUser = \App\Models\User::where('id', 3)->first();
+        $demoUserId = $demoUser ? $demoUser->id : 3;
+
+        if ($profile->user_id != $demoUserId) {
+            if ($profile->status !== 'approved' && $profile->status !== 'active') {
+                abort(403, 'This storefront account is not active.');
+            }
+            if ($profile->store_status !== 'live') {
+                abort(403, 'This storefront is pending review.');
+            }
+            $subscriber = $profile->user;
+            if (!$subscriber || !$subscriber->hasActiveSubscription()) {
+                abort(403, 'This storefront has no active subscription.');
+            }
+        }
+
+        $isSubscriberStore = true;
+        $companyName = $profile->company_name;
+
+        $settings = (object)[
+            'site_title'  => $profile->company_name,
+            'logo'        => $profile->logo ? 'subscriber-logos/' . $profile->logo : null,
+            'footer_logo' => $profile->logo ? 'subscriber-logos/' . $profile->logo : null,
+        ];
+
+        // Base64 logo for high-fidelity display
+        $logoBase64 = '';
+        if ($profile->logo) {
+            $logoPath = public_path('uploads/subscriber-logos/' . $profile->logo);
+            if (file_exists($logoPath) && is_file($logoPath)) {
+                $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                $data = @file_get_contents($logoPath);
+                if ($data) {
+                    $logoBase64 = 'data:image/' . ($type === 'svg' ? 'svg+xml' : $type) . ';base64,' . base64_encode($data);
+                }
+            }
+        }
+
+        return view('store-contact', compact(
+            'profile', 'isSubscriberStore', 'companyName', 'settings', 'logoBase64'
+        ));
+    }
+
+    /**
      * Handle Enquiry Submission.
      */
     public function enquirySubmit(Request $request)
@@ -664,6 +733,30 @@ class FrontendController extends Controller
     }
 
     /**
+     * Privacy Policy page.
+     */
+    public function privacyPolicy()
+    {
+        return view('privacy-policy');
+    }
+
+    /**
+     * Refund Policy page.
+     */
+    public function refundPolicy()
+    {
+        return view('refund-policy');
+    }
+
+    /**
+     * Terms & Conditions page.
+     */
+    public function termsConditions()
+    {
+        return view('terms-conditions');
+    }
+
+    /**
      * Future Products page.
      */
     public function futureProducts()
@@ -719,12 +812,15 @@ class FrontendController extends Controller
             foreach ($subProducts as $product) {
                 $thumbnail_url = $product->thumbnail_url;
                 $gallery_urls = $product->images->map(function($img) {
-                    $image_url = $img->image;
-                    if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
-                        return asset('uploads/subscriber-products/gallery/' . $img->image);
+                    $image_path = $img->image_path;
+                    if (!$image_path) return null;
+                    if (!filter_var($image_path, FILTER_VALIDATE_URL)) {
+                        return str_starts_with($image_path, 'uploads/') 
+                            ? asset($image_path) 
+                            : asset('uploads/subscriber-products/' . $image_path);
                     }
-                    return $image_url;
-                });
+                    return $image_path;
+                })->filter()->values();
 
                 $results[$product->id] = [
                     'success' => true,
@@ -748,12 +844,15 @@ class FrontendController extends Controller
                     foreach ($subProducts as $product) {
                         $thumbnail_url = $product->thumbnail_url;
                         $gallery_urls = $product->images->map(function($img) {
-                            $image_url = $img->image;
-                            if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
-                                return asset('uploads/subscriber-products/gallery/' . $img->image);
+                            $image_path = $img->image_path;
+                            if (!$image_path) return null;
+                            if (!filter_var($image_path, FILTER_VALIDATE_URL)) {
+                                return str_starts_with($image_path, 'uploads/') 
+                                    ? asset($image_path) 
+                                    : asset('uploads/subscriber-products/' . $image_path);
                             }
-                            return $image_url;
-                        });
+                            return $image_path;
+                        })->filter()->values();
 
                         $results[$product->id] = [
                             'success' => true,
@@ -827,13 +926,19 @@ class FrontendController extends Controller
         $isSubProduct = $product instanceof \App\Models\SubscriberProduct;
 
         $gallery_urls = $product->images->map(function($img) use ($isSubProduct) {
-            $image_url = $img->image;
-            if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
-                $folder = $isSubProduct ? 'subscriber-products/gallery/' : 'products/gallery/';
-                return asset('uploads/' . $folder . $img->image);
+            $rawImage = $isSubProduct ? $img->image_path : $img->image;
+            if (!$rawImage) return null;
+            if (!filter_var($rawImage, FILTER_VALIDATE_URL)) {
+                if ($isSubProduct) {
+                    return str_starts_with($rawImage, 'uploads/') 
+                        ? asset($rawImage) 
+                        : asset('uploads/subscriber-products/' . $rawImage);
+                } else {
+                    return asset('uploads/products/gallery/' . $rawImage);
+                }
             }
-            return $image_url;
-        });
+            return $rawImage;
+        })->filter()->values();
         
         return response()->json([
             'success' => true,
@@ -1026,6 +1131,32 @@ class FrontendController extends Controller
                       ->orWhere('subcategory_id', 'like', '%[' . $sub->id . ',%')
                       ->orWhere('subcategory_id', 'like', '%,' . $sub->id . ']%')
                       ->orWhere('subcategory_id', 'like', '%,' . $sub->id . ',%');
+                });
+            }
+        }
+
+        // Brand filter (Robust match supporting JSON arrays, plain IDs, and wrapped formats)
+        if ($request->filled('brand')) {
+            $brandSlug = $request->input('brand');
+            $brand = \App\Models\Brand::withoutGlobalScope('tenant')
+                ->where('slug', $brandSlug)
+                ->where(function($q) use ($profile) {
+                    $q->where('subscriber_id', $profile->user_id)
+                      ->orWhereNull('subscriber_id');
+                })
+                ->orderBy('subscriber_id', 'desc')
+                ->first();
+            if ($brand) {
+                $query->where(function($q) use ($brand) {
+                    $q->where('brand_id', $brand->id)
+                      ->orWhere('brand_id', (string)$brand->id)
+                      ->orWhereJsonContains('brand_id', $brand->id)
+                      ->orWhereJsonContains('brand_id', (string)$brand->id)
+                      ->orWhere('brand_id', 'like', '%"' . $brand->id . '"%')
+                      ->orWhere('brand_id', 'like', '%[' . $brand->id . ']%')
+                      ->orWhere('brand_id', 'like', '%[' . $brand->id . ',%')
+                      ->orWhere('brand_id', 'like', '%,' . $brand->id . ']%')
+                      ->orWhere('brand_id', 'like', '%,' . $brand->id . ',%');
                 });
             }
         }

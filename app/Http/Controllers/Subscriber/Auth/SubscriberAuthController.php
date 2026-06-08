@@ -86,12 +86,16 @@ class SubscriberAuthController extends Controller
             'company_name' => 'required|string|max:255',
             'phone'        => 'nullable|string|max:20',
             'whatsapp_number' => 'nullable|string|max:20',
+            'has_gst'      => 'required|in:yes,no',
+            'gst_number'   => 'required_if:has_gst,yes|nullable|string|size:15',
         ], [
             'password.required'  => 'Password is required.',
             'password.min'       => 'Password must be at least 8 characters.',
             'password.max'       => 'Password cannot exceed 12 characters.',
             'password.confirmed' => 'Password confirmation does not match.',
             'email.unique'       => 'This email is already registered.',
+            'gst_number.required_if' => 'GST Number is required when GST is enabled.',
+            'gst_number.size'    => 'GST Number must be exactly 15 characters.',
         ]);
 
         if ($validator->fails()) {
@@ -109,6 +113,8 @@ class SubscriberAuthController extends Controller
             'company_name' => $request->company_name,
             'phone' => $request->phone,
             'whatsapp_number' => $request->whatsapp_number,
+            'has_gst' => $request->has_gst,
+            'gst_number' => $request->has_gst === 'yes' ? strtoupper($request->gst_number) : null,
             'selected_plan' => $request->input('selected_plan', 'business'),
         ]);
         $request->session()->put('registration_otp', $otp);
@@ -205,6 +211,8 @@ class SubscriberAuthController extends Controller
             'status'           => 'approved', // Auto-approved
             'store_status'     => 'live',     // Auto-approved
             'is_verified'      => true,       // Verification completed
+            'has_gst'          => isset($regData['has_gst']) && $regData['has_gst'] === 'yes',
+            'gst_number'       => $regData['gst_number'] ?? null,
         ]);
 
         // Create default PDF template

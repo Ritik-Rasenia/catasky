@@ -356,7 +356,16 @@
         return tr;
     }
 
-    btnBrowse.addEventListener('click', () => inputExcel.click());
+    // Drag and Drop / Click hooks
+    excelDropZone.addEventListener('click', (e) => {
+        if (e.target !== inputExcel) {
+            inputExcel.click();
+        }
+    });
+
+    inputExcel.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
 
     excelDropZone.addEventListener('dragover', (e) => {
         e.preventDefault();

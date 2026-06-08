@@ -59,6 +59,8 @@ class ProfileController extends Controller
             'primary_color', 'secondary_color',
         ]);
 
+        $profileData['has_gst'] = !empty($request->gst_number);
+
         if ($request->hasFile('logo')) {
             $filename = Str::random(20) . '.' . $request->file('logo')->getClientOriginalExtension();
             $request->file('logo')->move(public_path('uploads/subscriber-logos'), $filename);

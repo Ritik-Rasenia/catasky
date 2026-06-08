@@ -39,7 +39,13 @@ use App\Http\Controllers\Subscriber\BulkUploadController as SubscriberBulkUpload
 */
 
 Route::get('/', [FrontendController::class, 'index'])->name('home');
-Route::get('/catalogue', [FrontendController::class, 'catalogue'])->name('catalogue');
+Route::get('/catalog', [FrontendController::class, 'catalogue'])->name('catalogue');
+Route::get('/catalogue', function () {
+    return redirect()->route('catalogue', request()->query());
+});
+Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('privacy.policy');
+Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('refund.policy');
+Route::get('/terms-and-conditions', [FrontendController::class, 'termsConditions'])->name('terms.conditions');
 Route::get('/demo', [FrontendController::class, 'demoCatalogue'])->name('demo');
 Route::get('/brands', [FrontendController::class, 'brands'])->name('brands');
 Route::get('/categories', [FrontendController::class, 'categories'])->name('categories');
@@ -83,7 +89,9 @@ Route::get('/pricing', [FrontendController::class, 'pricing'])->name('pricing');
 Route::get('/manifest.json', [FrontendController::class, 'storeManifest'])->name('main.manifest');
 Route::get('/store/{company_slug}/manifest.json', [FrontendController::class, 'storeManifest'])->name('store.manifest');
 Route::get('/store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('store.catalog');
+Route::get('/store/{company_slug}/contact', [FrontendController::class, 'storeContact'])->name('store.contact');
 Route::get('/subscriber_store/{company_slug}', [FrontendController::class, 'storeCatalog'])->name('subscriber_store');
+Route::get('/subscriber_store/{company_slug}/contact', [FrontendController::class, 'storeContact'])->name('subscriber_store.contact');
 
 /*
 |--------------------------------------------------------------------------

@@ -23,7 +23,7 @@
             }
         }
         $siteTitle = $settings->site_title ?? 'Catasky';
-        $siteDescription = $settings->site_description ?? 'Premium B2B catalogue and product sharing platform.';
+        $siteDescription = $settings->site_description ?? 'Premium B2B catalog and product sharing platform.';
         $faviconUrl = ($settings && $settings->favicon) ? asset('uploads/settings/' . $settings->favicon) : asset('uploads/fav.png');
         $footerLogoUrl = ($settings && $settings->footer_logo) ? asset('uploads/settings/' . $settings->footer_logo) : $logoBase64;
 
@@ -37,7 +37,7 @@
         }
     @endphp
 
-    <title>@yield('title', $siteTitle . ' - Premium B2B Catalogue')</title>
+    <title>@yield('title', $siteTitle . ' - Premium B2B Catalog')</title>
     <meta name="description" content="@yield('meta_description', Str::limit(strip_tags($siteDescription), 160, ''))">
     @if($settings && $settings->meta_keywords)
         <meta name="keywords" content="{{ $settings->meta_keywords }}">
@@ -69,7 +69,7 @@
         window.baseUrl = "{{ url('/') }}";
     </script>
 
-    <!-- CDNs for Client-Side PDF & Image catalogue generation -->
+    <!-- CDNs for Client-Side PDF & Image catalog generation -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -430,6 +430,92 @@
             0% { background-position: 0% 50%; }
             100% { background-position: 200% 50%; }
         }
+
+        /* Premium Floating PWA Install Button Styling */
+        .floating-pwa-btn {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            z-index: 1040;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 26px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: #ffffff !important;
+            font-family: 'Outfit', 'Poppins', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none !important;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+
+        /* If enquiry button is present before the PWA button, shift PWA button up */
+        .floating-enquiry-btn ~ .floating-pwa-btn {
+            bottom: 100px;
+        }
+
+        .floating-pwa-btn i {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .floating-pwa-btn:hover {
+            transform: translateY(-6px) scale(1.04);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.5);
+            background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #ffffff !important;
+        }
+
+        .floating-pwa-btn:hover i {
+            transform: rotate(-10deg) scale(1.15);
+        }
+
+        .floating-pwa-btn:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        /* Pulsing attention-getter animation */
+        @keyframes pwaPulse {
+            0% {
+                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35), 0 0 0 0 rgba(99, 102, 241, 0.45);
+            }
+            70% {
+                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35), 0 0 0 12px rgba(99, 102, 241, 0);
+            }
+            100% {
+                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35), 0 0 0 0 rgba(99, 102, 241, 0);
+            }
+        }
+
+        .floating-pwa-btn {
+            animation: pwaPulse 2.5s infinite ease-in-out;
+        }
+
+        @media (max-width: 576px) {
+            .floating-pwa-btn {
+                bottom: 90px;
+                right: 20px;
+                padding: 12px 20px;
+                font-size: 13.5px;
+                box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            }
+            .floating-pwa-btn i {
+                font-size: 16px;
+            }
+            /* If enquiry button is present before the PWA button, shift PWA button up on mobile */
+            .floating-enquiry-btn ~ .floating-pwa-btn {
+                bottom: 155px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -458,9 +544,6 @@
 
             <!-- Mobile Navbar Controls -->
             <div class="d-flex align-items-center gap-2 d-lg-none">
-                <button id="pwa-install-btn-mobile" class="nav-icon-btn" title="Install App">
-                    <i class="bi bi-phone-vibrate"></i>
-                </button>
                 <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal">
                     <i class="bi bi-search"></i>
                 </button>
@@ -514,10 +597,7 @@
 
                 <!-- Desktop Right Action Bar -->
                 <div class="d-none d-lg-flex align-items-center gap-2 ms-auto">
-                    <button id="pwa-install-btn" class="nav-icon-btn" title="Install App">
-                        <i class="bi bi-phone-vibrate"></i>
-                    </button>
-                    <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal" title="Search Catalogue">
+                    <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal" title="Search Catalog">
                         <i class="bi bi-search"></i>
                     </button>
 
@@ -626,12 +706,16 @@
                     <ul class="list-unstyled d-flex flex-column gap-2 small">
                         @if(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
                             <li><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Store Home</a></li>
-                            <li><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
+                            <li><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Explore Catalog</a></li>
+                            <li><a href="{{ route('store.contact', $profile->company_slug) }}" class="text-white-50 text-decoration-none hover-white">Contact Us</a></li>
                         @else
                             <li><a href="{{ route('home') }}" class="text-white-50 text-decoration-none hover-white">Home Page</a></li>
-                            <li><a href="{{ route('demo') }}" class="text-white-50 text-decoration-none hover-white">Explore Catalogue</a></li>
+                            <li><a href="{{ route('demo') }}" class="text-white-50 text-decoration-none hover-white">Explore Catalog</a></li>
+                            <li><a href="{{ route('contact') }}" class="text-white-50 text-decoration-none hover-white">Contact Us</a></li>
+                            <li><a href="{{ route('privacy.policy') }}" class="text-white-50 text-decoration-none hover-white">Privacy Policy</a></li>
+                            <li><a href="{{ route('refund.policy') }}" class="text-white-50 text-decoration-none hover-white">Refund Policy</a></li>
+                            <li><a href="{{ route('terms.conditions') }}" class="text-white-50 text-decoration-none hover-white">Terms of Service</a></li>
                         @endif
-                        <li><a href="{{ route('contact') }}" class="text-white-50 text-decoration-none hover-white">Contact Us</a></li>
                     </ul>
                 </div>
 
@@ -728,9 +812,11 @@
             <div class="border-top border-secondary border-opacity-20 mt-4 pt-4 d-flex flex-column flex-md-row align-items-center justify-content-between text-white-50 small">
                 <p class="m-0">&copy; {{ date('Y') }} {{ isset($profile) ? $profile->company_name : $siteTitle }}. All Rights Reserved.</p>
                 <div class="d-flex gap-3 mt-2 mt-md-0">
-                    <a href="#" class="text-white-50 text-decoration-none hover-white">Terms of Service</a>
+                    <a href="{{ route('terms.conditions') }}" class="text-white-50 text-decoration-none hover-white">Terms of Service</a>
                     <span class="opacity-25">|</span>
-                    <a href="#" class="text-white-50 text-decoration-none hover-white">Privacy Policy</a>
+                    <a href="{{ route('privacy.policy') }}" class="text-white-50 text-decoration-none hover-white">Privacy Policy</a>
+                    <span class="opacity-25">|</span>
+                    <a href="{{ route('refund.policy') }}" class="text-white-50 text-decoration-none hover-white">Refund Policy</a>
                 </div>
             </div>
         </div>
@@ -831,7 +917,7 @@
                                 <div class="col-md-6 d-flex flex-column">
                                     <h6 class="fw-bold mb-3 text-uppercase text-dark" style="font-size: 0.92rem; letter-spacing: 0.5px;">Share Settings</h6>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Catalogue Cover Color</label>
+                                        <label class="form-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Catalog Cover Color</label>
                                         <select class="form-select rounded-3 p-2" id="pdf-cover-color" style="font-size: 0.8rem;">
                                             <option value="indigo">Catasky Premium (Indigo & Violet)</option>
                                             <option value="slate">Corporate Elite (Slate & Charcoal)</option>
@@ -867,7 +953,7 @@
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
                                                 <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Include link</h6>
-                                                <p class="text-secondary small mb-0" style="max-width: 280px;">Make generated PDF buttons and image calls-to-action open the catalogue.</p>
+                                                <p class="text-secondary small mb-0" style="max-width: 280px;">Make generated PDF buttons and image calls-to-action open the catalog.</p>
                                             </div>
                                             <div class="form-check form-switch p-0 m-0">
                                                 <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-include-link" checked style="width: 42px; height: 22px; cursor: pointer;">
@@ -1209,13 +1295,13 @@
                 <div class="p-4 bg-white">
                     <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-search text-primary fs-4"></i>
-                        <input type="text" id="catalogue-search" class="form-control border-0 p-2 fs-5 outline-none shadow-none w-100" placeholder="Type keyword (e.g. Sweater, Polo, Drinkware, Awards)..." autocomplete="off">
+                        <input type="text" id="catalog-search" class="form-control border-0 p-2 fs-5 outline-none shadow-none w-100" placeholder="Type keyword (e.g. Sweater, Polo, Drinkware, Awards)..." autocomplete="off">
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
                 <div class="modal-body p-0 border-top bg-light" style="max-height: 400px; overflow-y: auto;" id="search-results-pane">
                     <div class="p-4 text-center text-secondary small">
-                        Type keyword to search among high-end catalogue items.
+                        Type keyword to search among high-end catalog items.
                     </div>
                 </div>
             </div>
@@ -1224,7 +1310,7 @@
 
 
 
-    <!-- Off-screen PDF Catalogue Layout Container (Invisible to user but rendered in viewport for high-fidelity captures) -->
+    <!-- Off-screen PDF Catalog Layout Container (Invisible to user but rendered in viewport for high-fidelity captures) -->
     <div id="pdf-rendering-container" style="position: fixed; top: 0; left: -10000px; width: 790px; z-index: -9999; opacity: 1; visibility: visible; pointer-events: none; background: white;">
         <div id="pdf-template-wrapper" style="width: 790px; background: white; padding: 40px; font-family: 'Poppins', sans-serif;">
             <!-- Populated dynamically via JS -->
@@ -1375,7 +1461,7 @@
             selectedProducts = [];
         }
 
-        // Restrict subscribers: clear selection if they are on an admin or unauthorized catalogue/page
+        // Restrict subscribers: clear selection if they are on an admin or unauthorized catalog/page
         if (window.userIsSubscriber) {
             if (!window.isSubscriberStore || window.currentUserId !== window.storeOwnerId) {
                 selectedProducts = [];
@@ -2040,7 +2126,7 @@
                 return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files }));
             }
 
-            function showToast(message, title = 'Catalogue export') {
+            function showToast(message, title = 'Catalog export') {
                 if (window.alertService && typeof window.alertService.infoAlert === 'function') {
                     window.alertService.infoAlert(title, message);
                 } else {
@@ -2268,11 +2354,11 @@
                 });
             };
 
-            // Opens WhatsApp directly with a prefilled message (catalogue link + optional caption)
+            // Opens WhatsApp directly with a prefilled message (catalog link + optional caption)
             function openWhatsAppWithLink(settings, extraMsg) {
                 const catalogUrl = window.isSubscriberStore 
                     ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}`
-                    : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                    : `${window.location.origin}/catalog?products=${selectedProducts.join(',')}`;
                 const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
                 
                 let productListText = '';
@@ -2293,16 +2379,16 @@
                 if (productListText) {
                     msg += `Selected Products (Tap to view):\n\n${productListText}`;
                 }
-                msg += `View Full Curated Catalogue:\n👉 ${catalogUrl}`;
+                msg += `View Full Curated Catalog:\n👉 ${catalogUrl}`;
                 openWhatsAppChat(msg);
             }
 
             async function whatsappImageShareFallback(files, settings, reason) {
                 console.warn('Native file share unavailable:', reason);
                 // On desktop/unsupported browsers, instead of downloading or showing alerts,
-                // we open WhatsApp Web with a beautiful prefilled catalogue link containing all selected products!
+                // we open WhatsApp Web with a beautiful prefilled catalog link containing all selected products!
                 if (typeof openWhatsAppWithLink === 'function') {
-                    openWhatsAppWithLink(settings, 'Check out these premium products I selected from the catalogue:');
+                    openWhatsAppWithLink(settings, 'Check out these premium products I selected from the catalog:');
                 } else if (typeof showToast === 'function') {
                     showToast('Sharing is only supported on mobile devices.', 'Desktop Browser', 'warning');
                 }
@@ -2378,7 +2464,7 @@
                     // Construct caption text with active product links if includeLink is checked
                     const catalogUrl = window.isSubscriberStore 
                         ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}`
-                        : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                        : `${window.location.origin}/catalog?products=${selectedProducts.join(',')}`;
                     const title = settings && settings.catalogTitle ? settings.catalogTitle : 'Premium Selection';
                     let productListText = '';
                     
@@ -2407,7 +2493,7 @@
                     if (productListText) {
                         captionText += `Tap to View Products:\n${productListText}`;
                     }
-                    captionText += `View Full Curated Catalogue:\n👉 ${catalogUrl}`;
+                    captionText += `View Full Curated Catalog:\n👉 ${catalogUrl}`;
                     
                     // We attempt direct automatic native share first!
                     try {
@@ -3097,14 +3183,14 @@
 
             // Custom search logic
             let searchTimeout = null;
-            $('#catalogue-search').on('input', function() {
+            $('#catalog-search').on('input', function() {
                 clearTimeout(searchTimeout);
                 const query = $(this).val().trim();
                 
                 if (query.length < 2) {
                     $('#search-results-pane').html(`
                         <div class="p-4 text-center text-secondary small">
-                            Type keyword to search among high-end catalogue items.
+                            Type keyword to search among high-end catalog items.
                         </div>
                     `);
                     return;
@@ -3318,7 +3404,7 @@
                                 <div class="text-center py-5">
                                     <i class="bi bi-exclamation-octagon text-warning display-4 mb-3 d-block"></i>
                                     <h6 class="fw-bold text-dark">Selected items not found</h6>
-                                    <p class="text-secondary small mb-3">The items in your selection are no longer available in the catalogue database. Please clear your selection to reset.</p>
+                                    <p class="text-secondary small mb-3">The items in your selection are no longer available in the catalog database. Please clear your selection to reset.</p>
                                     <button class="btn btn-premium btn-premium-danger btn-sm px-4" onclick="clearFullSelectionForce()">Reset Selection</button>
                                 </div>
                             `);
@@ -3355,7 +3441,7 @@
             function clearFullSelection() {
                 window.alertService.confirmAction({
                     title: 'Clear selection?',
-                    message: 'All selected products will be removed from this catalogue draft.',
+                    message: 'All selected products will be removed from this catalog draft.',
                     confirmText: 'Clear selection',
                     danger: true
                 }).then((result) => {
@@ -3453,7 +3539,7 @@
                     success: function(response) {
                         $('#dt-status-log').removeClass('alert-info alert-danger').addClass('alert-success').html(`
                             <i class="bi bi-check-circle-fill me-2"></i> ${response.message}
-                            <br><small class="d-block mt-1">Catalogue Code: <b>${response.code}</b></small>
+                            <br><small class="d-block mt-1">Catalog Code: <b>${response.code}</b></small>
                             <br><a href="${response.url}" target="_blank" class="small text-decoration-underline text-success">View secure client page</a>
                         `);
                         trackAnalyticsEvent('doubletick_share_success', selectedProducts.length);
@@ -3470,7 +3556,7 @@
             // Helper to register secure proposal selections on the fly for interactive tracking
             function registerProposalAndGetTrackingUrl(catalogTitle, callback) {
                 if (selectedProducts.length === 0) {
-                    callback(`${window.location.origin}/catalogue`);
+                    callback(`${window.location.origin}/catalog`);
                     return;
                 }
                 $.ajax({
@@ -3488,11 +3574,11 @@
                         if (res.success && res.url) {
                             callback(res.url);
                         } else {
-                            callback(`${window.location.origin}/catalogue`);
+                            callback(`${window.location.origin}/catalog`);
                         }
                     },
                     error: function() {
-                        callback(`${window.location.origin}/catalogue`);
+                        callback(`${window.location.origin}/catalog`);
                     }
                 });
             }
@@ -3554,8 +3640,8 @@
                 // Fallback to link sharing only
                 const catalogTitle = $('#share-catalog-title').val() || 'Premium Selection';
                 registerProposalAndGetTrackingUrl(catalogTitle, function(trackingUrl) {
-                    let msg = `📘 *CATASKY SMART CATALOGUE*\n\n`;
-                    msg += `🔗 *Press to Open Catalogue:*\n`;
+                    let msg = `📘 *CATASKY SMART CATALOG*\n\n`;
+                    msg += `🔗 *Press to Open Catalog:*\n`;
                     msg += `${trackingUrl}`;
                     openWhatsAppChat(msg);
                 });
@@ -3582,7 +3668,7 @@
                 btn.attr('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Generating PDF...');
                 statusLog.removeClass('d-none alert-success alert-danger').addClass('alert-info').html(`
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Compiling and building high-fidelity PDF specifications catalogue...
+                    Compiling and building high-fidelity PDF specifications catalog...
                 `);
 
                 // 1. Generate PDF blob
@@ -3716,7 +3802,7 @@
                                         : `${window.location.origin}/product/${slug}`)
                                     : (window.isSubscriberStore 
                                         ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}` 
-                                        : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`);
+                                        : `${window.location.origin}/catalog?products=${selectedProducts.join(',')}`);
                                 const inner = `<div style="--preview-scale:${previewScale};">${renderImagePdfBoxHtml(item)}</div>`;
                                 if (!includeLink) {
                                     return `<div class="share-image-preview-card">${inner}</div>`;
@@ -3925,15 +4011,16 @@
 
                         if (type === 'details') {
                             const shareSettings = getShareSettings();
+                            const detailsItems = getImagePdfItems(validDataList);
                             // Generate the first page of the product cards in a 2x2 grid (exactly items 1 to 4)
-                            const chunk = validDataList.slice(0, 4);
+                            const chunk = detailsItems.slice(0, 4);
                             let gridHtml = '';
                             
-                            chunk.forEach((data, index) => {
-                                const p = data.product;
+                            chunk.forEach((item, index) => {
+                                const p = item.product;
                                 const name = p.name || 'Product Model';
                                 const priceVal = formatProductPrice(p);
-                                const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
+                                const imgUrl = item.imageUrl;
                                 const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
                                 
                                 // Extract MRP and Offer price — guard against null/undefined/empty/zero
@@ -3969,7 +4056,7 @@
                                 `;
                             });
 
-                            const totalPages = Math.ceil(validDataList.length / 4);
+                            const totalPages = Math.ceil(detailsItems.length / 4);
 
                             previewPageHtml = `
                             <div class="pdf-page" style="${pageStyle}position:relative;">
@@ -3993,7 +4080,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Catalogue Title -->
+                                <!-- Catalog Title -->
                                 ${shareSettings.showTitle ? `
                                 <div style="text-align: center; font-size: 1.5rem; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
                                     ${escapeHtml(catalogTitle)}
@@ -4007,7 +4094,7 @@
                                 <!-- Page Footer -->
                                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #d2d2d2; padding-top: 12px; font-size: 0.78rem; color: #555555; font-family: 'Outfit', sans-serif; margin-top: 15px;">
                                     <div style="font-weight: bold;">
-                                        ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}
+                                        ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalog notes included') : 'Secure B2B Portfolio'}
                                     </div>
                                     <div style="font-weight: bold;">Page 1 of ${totalPages}</div>
                                 </div>
@@ -4248,7 +4335,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 20px; font-size: 0.75rem; color: rgba(255,255,255,0.45);">
                             <div>Secure B2B Portfolio &bull; Confidential</div>
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="color: #6366F1; font-weight: 900; font-family:'Outfit', sans-serif;">CATASKY</span> Smart Catalogue
+                                <span style="color: #6366F1; font-weight: 900; font-family:'Outfit', sans-serif;">CATASKY</span> Smart Catalog
                             </div>
                         </div>
                     </div>
@@ -4261,16 +4348,17 @@
                 if (type === 'details') {
                     const shareSettings = getShareSettings();
                     // Split products into pages (exactly 4 per page for 2x2 grid)
-                    const productChunks = chunkArray(validDataList, 4);
+                    const detailsItems = getImagePdfItems(validDataList);
+                    const productChunks = chunkArray(detailsItems, 4);
                     const totalProductPages = productChunks.length;
 
                     productChunks.forEach((chunk, pageIndex) => {
                         let gridHtml = '';
-                        chunk.forEach((data, index) => {
-                            const p = data.product;
+                        chunk.forEach((item, index) => {
+                            const p = item.product;
                             const name = p.name || 'Product Model';
                             const priceVal = formatProductPrice(p);
-                            const imgUrl = getRelativeImageUrl(data.thumbnail_url || '');
+                            const imgUrl = item.imageUrl;
                             const description = escapeHtml(p.short_description || p.specifications || p.additional_info || 'Detailed product specifications available on request.');
                             
                             // Extract MRP and Offer price — guard against null/undefined/empty/zero
@@ -4333,7 +4421,7 @@
                                 </div>
                             </div>
 
-                            <!-- Catalogue Title -->
+                            <!-- Catalog Title -->
                             ${shareSettings.showTitle ? `
                             <div style="text-align: center; font-size: 1.5rem; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; margin-bottom: 15px; font-family: 'Outfit', sans-serif;">
                                 ${escapeHtml(catalogTitle)}
@@ -4347,7 +4435,7 @@
                             <!-- Simple Footer -->
                             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #d2d2d2; padding-top: 12px; font-size: 0.78rem; color: #555555; font-family: 'Outfit', sans-serif; margin-top: 15px;">
                                 <div style="font-weight: bold;">
-                                    ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalogue notes included') : 'Secure B2B Portfolio'}
+                                    ${companyPhone} &bull; ${shareSettings.showNote ? escapeHtml(shareSettings.noteText || 'Custom catalog notes included') : 'Secure B2B Portfolio'}
                                 </div>
                                 <div style="font-weight: bold; display: flex; align-items: center; gap: 10px;">
                                     <span class="pdf-catalog-link-target" style="color: #1D6FEB; cursor: pointer; text-decoration: underline; font-weight: bold;">View Selection Online</span>
@@ -4516,7 +4604,7 @@
                 const includeLink = getShareSettings().includeLink;
                 const targetUrl = window.isSubscriberStore 
                     ? `${window.location.origin}/subscriber_store/${companySlug}?products=${selectedProducts.join(',')}`
-                    : `${window.location.origin}/catalogue?products=${selectedProducts.join(',')}`;
+                    : `${window.location.origin}/catalog?products=${selectedProducts.join(',')}`;
 
                 for (let i = 0; i < pageCanvases.length; i++) {
                     if (i > 0) pdf.addPage();
@@ -4719,17 +4807,6 @@
     
     <!-- Premium Bootstrap Toast Notification Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
-        <!-- Dynamic PWA Toast -->
-        <div id="pwaToast" class="toast premium-toast border-0 shadow-lg rounded-4 animate-fade-in" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
-            <div id="pwaToastHeader" class="toast-header border-0 bg-primary text-white py-2.5 rounded-top-4">
-                <i id="pwaToastIcon" class="bi bi-info-circle-fill me-2 fs-5"></i>
-                <strong id="pwaToastTitle" class="me-auto font-outfit" style="font-size: 0.85rem;">PWA Notification</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body py-3 px-3 bg-white text-dark small rounded-bottom-4">
-                <span id="pwaToastMessage"></span>
-            </div>
-        </div>
 
         @if(session('success'))
             <div id="sessionToastSuccess" class="toast premium-toast border-0 shadow-lg rounded-4 animate-fade-in" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
@@ -4779,6 +4856,19 @@
     </a>
     @endif
 
+    @if(Auth::check() && Auth::user()->hasRole('Subscriber') && isset($isSubscriberStore) && $isSubscriberStore)
+    <!-- Desktop Floating PWA Install Button -->
+    <button id="pwa-install-btn" class="floating-pwa-btn d-none d-lg-flex shadow-lg" title="Install App">
+        <i class="bi bi-phone-vibrate"></i>
+        <span>Install App</span>
+    </button>
+    <!-- Mobile Floating PWA Install Button -->
+    <button id="pwa-install-btn-mobile" class="floating-pwa-btn d-flex d-lg-none shadow-lg" title="Install App">
+        <i class="bi bi-phone-vibrate"></i>
+        <span>Install App</span>
+    </button>
+    @endif
+
     @stack('scripts')
     <script>
       $(document).ready(function () {
@@ -4790,168 +4880,121 @@
 
 });
 
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js')
-            .then(function (registration) {
-                console.log('ServiceWorker registration successful:', registration.scope);
-            })
-            .catch(function (err) {
-                console.log('ServiceWorker registration failed:', err);
-            });
-    });
-}
 
-let deferredPrompt;
-
-const installBtnDesktop = document.getElementById('pwa-install-btn');
-const installBtnMobile = document.getElementById('pwa-install-btn-mobile');
-
-// Bootstrap Toast Message
-function showPwaToast(message, type = 'primary') {
-    const toastEl = document.getElementById('pwaToast');
-    const toastMessage = document.getElementById('pwaToastMessage');
-    const toastHeader = document.getElementById('pwaToastHeader');
-    const toastIcon = document.getElementById('pwaToastIcon');
-    const toastTitle = document.getElementById('pwaToastTitle');
-
-    if (!toastEl || !toastMessage) return;
-
-    let bgClass = 'bg-primary';
-    let textClass = 'text-white';
-    let iconClass = 'bi-info-circle-fill';
-    let title = 'PWA Notification';
-
-    if (type === 'success') {
-        bgClass = 'bg-success';
-        textClass = 'text-white';
-        iconClass = 'bi-check-circle-fill';
-        title = 'Success Update';
-    } else if (type === 'warning') {
-        bgClass = 'bg-warning';
-        textClass = 'text-dark';
-        iconClass = 'bi-exclamation-triangle-fill';
-        title = 'Install Warning';
-    } else if (type === 'danger') {
-        bgClass = 'bg-danger';
-        textClass = 'text-white';
-        iconClass = 'bi-exclamation-octagon-fill';
-        title = 'Install Error';
-    }
-
-    if (toastHeader) {
-        toastHeader.className = `toast-header border-0 ${bgClass} ${textClass} py-2.5 rounded-top-4`;
-        const closeBtn = toastHeader.querySelector('.btn-close');
-        if (closeBtn) {
-            if (textClass.includes('text-white')) {
-                closeBtn.classList.add('btn-close-white');
-            } else {
-                closeBtn.classList.remove('btn-close-white');
-            }
-        }
-    }
-
-    if (toastIcon) {
-        toastIcon.className = `bi ${iconClass} me-2 fs-5`;
-    }
-
-    if (toastTitle) {
-        toastTitle.textContent = title;
-    }
-
-    toastMessage.textContent = message;
-
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
-}
-
-// Check install status
-function isPWAInstalled() {
-    return localStorage.getItem('pwaInstalled') === 'true' ||
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true;
-}
-
-// Update button icon
-function updateInstallButtonState() {
-    const installed = isPWAInstalled();
-
-    const icon = installed
-        ? '<i class="bi bi-check-circle"></i>'
-        : '<i class="bi bi-phone-vibrate"></i>';
-
-    if (installBtnDesktop) {
-        installBtnDesktop.classList.remove('d-none');
-        installBtnDesktop.innerHTML = icon;
-    }
-
-    if (installBtnMobile) {
-        installBtnMobile.classList.remove('d-none');
-        installBtnMobile.innerHTML = icon;
-    }
-}
-
-// Save install prompt
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    updateInstallButtonState();
-    console.log('PWA install prompt available');
-});
-
-// Install button click
-const triggerPwaInstall = async () => {
-    // Already Installed
-    if (isPWAInstalled()) {
-        showPwaToast('App is already installed on this device.', 'success');
-        return;
-    }
-
-    // Prompt unavailable
-    if (!deferredPrompt) {
-        showPwaToast('Install option is currently not available.', 'warning');
-        return;
-    }
-
-    try {
-        deferredPrompt.prompt();
-        const choiceResult = await deferredPrompt.userChoice;
-
-        if (choiceResult.outcome === 'accepted') {
-            showPwaToast('Installing app...', 'success');
-        } else {
-            showPwaToast('Installation cancelled.', 'warning');
-        }
-        deferredPrompt = null;
-    } catch (error) {
-        console.error(error);
-        showPwaToast('Something went wrong.', 'danger');
-    }
-};
-
-// Button Events
-if (installBtnDesktop) {
-    installBtnDesktop.addEventListener('click', triggerPwaInstall);
-}
-
-if (installBtnMobile) {
-    installBtnMobile.addEventListener('click', triggerPwaInstall);
-}
-
-// App Installed Event
-window.addEventListener('appinstalled', () => {
-    console.log('PWA installed successfully');
-    localStorage.setItem('pwaInstalled', 'true');
-    deferredPrompt = null;
-    updateInstallButtonState();
-    showPwaToast('App installed successfully.', 'success');
-});
-
-// Initial Check
-window.addEventListener('load', () => {
-    updateInstallButtonState();
-});
     </script>
+
+    @if(Auth::check() && Auth::user()->hasRole('Subscriber') && isset($isSubscriberStore) && $isSubscriberStore)
+    <script>
+        // PWA Install Script for Logged-in Subscribers
+        (function () {
+            let deferredPrompt;
+            const installBtnDesktop = document.getElementById('pwa-install-btn');
+            const installBtnMobile = document.getElementById('pwa-install-btn-mobile');
+
+            // Check install status
+            function isPWAInstalled() {
+                return localStorage.getItem('pwaInstalled') === 'true' ||
+                    window.matchMedia('(display-mode: standalone)').matches ||
+                    window.navigator.standalone === true;
+            }
+
+            // Update button state (keep them visible at all times)
+            function updateInstallButtonState() {
+                const installed = isPWAInstalled();
+                const icon = installed
+                    ? '<i class="bi bi-check-circle-fill text-success"></i>'
+                    : '<i class="bi bi-phone-vibrate text-white"></i>';
+                const label = installed ? ' Installed' : ' Install App';
+                
+                if (installBtnDesktop) {
+                    installBtnDesktop.innerHTML = icon + '<span>' + label + '</span>';
+                    installBtnDesktop.title = installed ? 'App is Installed' : 'Install App';
+                }
+                if (installBtnMobile) {
+                    installBtnMobile.innerHTML = icon + '<span>' + label + '</span>';
+                    installBtnMobile.title = installed ? 'App is Installed' : 'Install App';
+                }
+            }
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                updateInstallButtonState();
+                console.log('PWA install prompt available');
+            });
+
+            const triggerPwaInstall = async () => {
+                if (isPWAInstalled()) {
+                    if (window.alertService) {
+                        window.alertService.toastSuccess('App is already installed on this device.');
+                    } else {
+                        alert('App is already installed on this device.');
+                    }
+                    return;
+                }
+
+                if (!deferredPrompt) {
+                    // No warning toast if prompt is unavailable - just check matches display-mode or show installed, or do nothing.
+                    if (window.matchMedia('(display-mode: standalone)').matches || localStorage.getItem('pwaInstalled') === 'true') {
+                        if (window.alertService) {
+                            window.alertService.toastSuccess('App is already installed on this device.');
+                        } else {
+                            alert('App is already installed on this device.');
+                        }
+                    }
+                    return;
+                }
+
+                try {
+                    deferredPrompt.prompt();
+                    const choiceResult = await deferredPrompt.userChoice;
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('Installation failed:', error);
+                }
+            };
+
+            if (installBtnDesktop) {
+                installBtnDesktop.addEventListener('click', triggerPwaInstall);
+            }
+            if (installBtnMobile) {
+                installBtnMobile.addEventListener('click', triggerPwaInstall);
+            }
+
+            window.addEventListener('appinstalled', () => {
+                console.log('PWA installed successfully');
+                localStorage.setItem('pwaInstalled', 'true');
+                deferredPrompt = null;
+                updateInstallButtonState();
+                if (window.alertService) {
+                    window.alertService.toastSuccess('App installed successfully.');
+                } else {
+                    alert('App installed successfully.');
+                }
+            });
+
+            // Register Service Worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(function (registration) {
+                            console.log('ServiceWorker registration successful:', registration.scope);
+                        })
+                        .catch(function (err) {
+                            console.log('ServiceWorker registration failed:', err);
+                        });
+                });
+            }
+
+            // Initial check
+            updateInstallButtonState();
+        })();
+    </script>
+    @endif
 </body>
 </html>

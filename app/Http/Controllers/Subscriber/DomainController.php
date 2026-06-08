@@ -19,7 +19,7 @@ class DomainController extends Controller
         $user = auth()->user();
         $sub = $user ? $user->activeSubscription() : null;
         $plan = $sub ? $sub->plan : null;
-        $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
+        $isEnterprise = $plan && $plan->slug === 'enterprise';
 
         if (!$isEnterprise || !$user->hasActiveSubscription()) {
             abort(403, 'Unauthorized. Only Enterprise subscribers can access the custom domain management page.');

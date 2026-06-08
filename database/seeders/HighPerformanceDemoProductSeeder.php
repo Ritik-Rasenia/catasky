@@ -55,7 +55,7 @@ class HighPerformanceDemoProductSeeder extends Seeder
                 'full_description' => $description . ' Optimized demo listing with responsive images, realistic B2B pricing, attributes, and export-ready metadata.',
                 'tags' => json_encode($tags),
                 'featured' => $index < 4,
-                'status' => 'approved',
+                'status' => 'active',
                 'approval_status' => 'approved',
                 'sort_order' => $index,
             ]);
@@ -119,7 +119,7 @@ class HighPerformanceDemoProductSeeder extends Seeder
                 'bio' => 'High-performance realistic demo catalogue for preview, PDF, and image sharing flows.',
                 'primary_color' => '#0F766E',
                 'secondary_color' => '#F59E0B',
-                'status' => 'active',
+                'status' => 'approved',
                 'approval_status' => 'approved',
                 'is_verified' => 1,
             ]);

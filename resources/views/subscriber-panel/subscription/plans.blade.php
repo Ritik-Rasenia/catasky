@@ -10,13 +10,23 @@
         @php
             $isCurrent = $currentSubscription && $currentSubscription->subscription_plan_id === $plan->id;
             $isPopular = $plan->slug === 'professional' || $plan->slug === 'enterprise';
+            $isUpgradable = $currentSubscription && !$isCurrent && !$plan->is_trial && $plan->price > 0 && $plan->price > ($currentSubscription->plan->price ?? 0);
+            $isSwitchable = $currentSubscription && !$isCurrent && !$plan->is_trial && $plan->price > 0 && $plan->price <= ($currentSubscription->plan->price ?? 0);
         @endphp
         
         <div class="col-md-6 col-lg-4">
             <div class="vp-card h-100 position-relative" style="{{ $isPopular ? 'border-color:var(--subscriber-primary); box-shadow:var(--shadow-lg); transform: translateY(-2px);' : '' }}">
                 
-                @if($isPopular)
-                    <span class="position-absolute top-0 start-50  badge rounded-pill text-white" style="background: linear-gradient(135deg, var(--subscriber-primary), var(--subscriber-secondary)); padding: 6px 16px; font-weight:700; font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase;">
+                @if($isCurrent)
+                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill text-white" style="background: linear-gradient(135deg, #10B981, #059669); padding: 5px 14px; font-weight:700; font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; white-space:nowrap;">
+                        ✓ Current Plan
+                    </span>
+                @elseif($isUpgradable)
+                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill text-white" style="background: linear-gradient(135deg, #4F46E5, #7C3AED); padding: 5px 14px; font-weight:700; font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; white-space:nowrap;">
+                        ⚡ Upgrade (Prorata)
+                    </span>
+                @elseif($isPopular)
+                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill text-white" style="background: linear-gradient(135deg, var(--subscriber-primary), var(--subscriber-secondary)); padding: 5px 14px; font-weight:700; font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; white-space:nowrap;">
                         RECOMMENDED
                     </span>
                 @endif
@@ -69,9 +79,19 @@
                     </ul>
 
                     @if($isCurrent)
-                        <button class="btn btn-secondary w-100 py-2.5 fw-bold" style="border-radius: 10px;" disabled>
-                            <i class="bi bi-check2-all me-1"></i> Current Active Plan
+                        <button class="btn w-100 py-2 fw-bold" style="border-radius: 10px; background:#f0fdf4; color:#065f46; border:1.5px solid #bbf7d0; cursor:default;" disabled>
+                            <i class="bi bi-check2-circle me-1"></i> Current Active Plan
                         </button>
+                    @elseif($isUpgradable)
+                        <a href="{{ route('subscriber.subscription.checkout', $plan->id) }}" class="btn w-100 py-2 fw-bold text-white d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px; background: linear-gradient(135deg, #4F46E5, #7C3AED); border:none; transition:all 0.2s;">
+                            <i class="bi bi-arrow-up-circle-fill"></i>
+                            Upgrade — Pay Prorata
+                        </a>
+                    @elseif($isSwitchable)
+                        <a href="{{ route('subscriber.subscription.checkout', $plan->id) }}" class="btn w-100 py-2 fw-bold text-white d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px; background:#0F172A; border:none; transition:all 0.2s;">
+                            <i class="bi bi-arrow-left-right"></i>
+                            Switch Plan
+                        </a>
                     @else
                         <a href="{{ route('subscriber.subscription.checkout', $plan->id) }}" class="btn-subscriber w-100 justify-content-center py-2.5 fs-6" style="{{ $isPopular ? 'background: linear-gradient(135deg, var(--subscriber-primary), var(--subscriber-secondary));' : 'background:#0F172A;' }}">
                             {{ $plan->price > 0 ? 'Subscribe Now' : 'Choose Plan' }}

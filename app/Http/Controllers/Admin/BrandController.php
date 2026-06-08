@@ -38,7 +38,15 @@ class BrandController extends Controller
         $request->validate([
             'name'      => [
                 'required',
-                \Illuminate\Validation\Rule::unique('brands', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+                \Illuminate\Validation\Rule::unique('brands', 'name')
+                    ->where(function ($query) {
+                        $user = auth()->user();
+                        if ($user && $user->isDemo()) {
+                            return $query->where('subscriber_id', $user->id);
+                        }
+                        return $query->whereNull('subscriber_id');
+                    })
+                    ->whereNull('deleted_at')
             ],
             'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'status'    => 'required',
@@ -105,7 +113,13 @@ class BrandController extends Controller
                 'required',
                 \Illuminate\Validation\Rule::unique('brands', 'name')
                     ->ignore($brand->id)
-                    ->whereNull('subscriber_id')
+                    ->where(function ($query) {
+                        $user = auth()->user();
+                        if ($user && $user->isDemo()) {
+                            return $query->where('subscriber_id', $user->id);
+                        }
+                        return $query->whereNull('subscriber_id');
+                    })
                     ->whereNull('deleted_at')
             ],
             'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
@@ -169,7 +183,15 @@ class BrandController extends Controller
         $request->validate([
             'name' => [
                 'required',
-                \Illuminate\Validation\Rule::unique('brands', 'name')->whereNull('subscriber_id')->whereNull('deleted_at')
+                \Illuminate\Validation\Rule::unique('brands', 'name')
+                    ->where(function ($query) {
+                        $user = auth()->user();
+                        if ($user && $user->isDemo()) {
+                            return $query->where('subscriber_id', $user->id);
+                        }
+                        return $query->whereNull('subscriber_id');
+                    })
+                    ->whereNull('deleted_at')
             ],
         ]);
  

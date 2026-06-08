@@ -98,7 +98,9 @@ class User extends Authenticatable
         return $this->email === 'demo' || 
                $this->email === 'demo@catasky.com' || 
                str_contains(strtolower($this->email), 'demo') || 
-               str_contains(strtolower($this->name), 'demo');
+               str_contains(strtolower($this->name), 'demo') ||
+               $this->hasRole('Demo') ||
+               $this->hasRole('demo');
     }
 
     public function hasActiveSubscription(): bool
@@ -120,8 +122,7 @@ class User extends Authenticatable
     public function notifications()
     {
         if ($this->hasRole('Admin') || $this->hasRole('admin')) {
-            $superAdmin = self::role('Super Admin')->first() 
-                ?? self::role('super-admin')->first() 
+            $superAdmin = self::whereHas('roles', fn($q) => $q->whereIn('name', ['Super Admin', 'super-admin']))->first() 
                 ?? self::where('email', 'admin@catasky.com')->first()
                 ?? self::find(1);
             if ($superAdmin && $superAdmin->id !== $this->id) {
@@ -134,8 +135,7 @@ class User extends Authenticatable
     public function unreadNotifications()
     {
         if ($this->hasRole('Admin') || $this->hasRole('admin')) {
-            $superAdmin = self::role('Super Admin')->first() 
-                ?? self::role('super-admin')->first() 
+            $superAdmin = self::whereHas('roles', fn($q) => $q->whereIn('name', ['Super Admin', 'super-admin']))->first() 
                 ?? self::where('email', 'admin@catasky.com')->first()
                 ?? self::find(1);
             if ($superAdmin && $superAdmin->id !== $this->id) {

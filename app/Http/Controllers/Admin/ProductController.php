@@ -33,7 +33,7 @@ class ProductController extends Controller
         $user = auth()->user();
         $isDemo = $user && $user->isDemo();
 
-        $subscriberProducts = ($isDemo || ! $user?->hasRole('Super Admin'))
+        $subscriberProducts = ($isDemo || ! ($user && $user->isAdmin()))
             ? collect()
             : \App\Models\SubscriberProduct::with(['user.subscriberProfile'])->latest()->get();
 
@@ -1164,7 +1164,12 @@ class ProductController extends Controller
     private function productTenantId(): ?int
     {
         $user = auth()->user();
-        if (!$user || $user->hasRole('Super Admin')) {
+        if (!$user) {
+            return null;
+        }
+
+        $isDemo = method_exists($user, 'isDemo') && $user->isDemo();
+        if ($user->isAdmin() && !$isDemo) {
             return null;
         }
 
@@ -1178,7 +1183,8 @@ class ProductController extends Controller
             return $query->whereNull('subscriber_id');
         }
 
-        if ($user->hasRole('Super Admin')) {
+        $isDemo = method_exists($user, 'isDemo') && $user->isDemo();
+        if ($user->isAdmin() && !$isDemo) {
             return $query;
         }
 
@@ -1194,7 +1200,7 @@ class ProductController extends Controller
     {
         $query = ProductImportLog::where('scope', 'admin');
 
-        return auth()->user()?->hasRole('Super Admin')
+        return (auth()->user() && auth()->user()->isAdmin())
             ? $query
             : $query->where('user_id', auth()->id());
     }

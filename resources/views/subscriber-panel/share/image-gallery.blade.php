@@ -376,10 +376,23 @@
                             <img id="main-gallery-img" src="{{ $product->preview_image_url }}" alt="" class="active-img" loading="eager" decoding="async">
                             
                             @php 
-                                $allImages = collect([$product->preview_image_url])
+                                $tempImages = collect([$product->preview_image_url])
                                     ->concat($product->images->pluck('preview_url'))
                                     ->filter()
                                     ->values();
+                                
+                                $shownUrls = [];
+                                $shownBasenames = [];
+                                $allImages = collect();
+
+                                foreach ($tempImages as $url) {
+                                    $basename = basename(parse_url($url, PHP_URL_PATH));
+                                    if (!in_array($url, $shownUrls) && !in_array($basename, $shownBasenames)) {
+                                        $shownUrls[] = $url;
+                                        $shownBasenames[] = $basename;
+                                        $allImages->push($url);
+                                    }
+                                }
                             @endphp
 
                             @if($allImages->count() > 1)
@@ -427,10 +440,21 @@
                     <div class="product-sidebar-list">
                         @foreach($catalogProducts as $idx => $prod)
                             @php 
-                                $pImages = collect([$prod->thumbnail_url])
+                                $tempImages = collect([$prod->thumbnail_url])
                                     ->concat($prod->images->pluck('image_url'))
                                     ->filter()
                                     ->values();
+                                $shownUrls = [];
+                                $shownBasenames = [];
+                                $pImages = collect();
+                                foreach ($tempImages as $url) {
+                                    $basename = basename(parse_url($url, PHP_URL_PATH));
+                                    if (!in_array($url, $shownUrls) && !in_array($basename, $shownBasenames)) {
+                                        $shownUrls[] = $url;
+                                        $shownBasenames[] = $basename;
+                                        $pImages->push($url);
+                                    }
+                                }
                             @endphp
                             @if($pImages->count() > 0)
                                 <div class="product-sidebar-item {{ $idx === 0 ? 'active' : '' }}" onclick="selectCatalogProduct({{ $prod->id }}, this)">
@@ -535,12 +559,35 @@
             const p = catalogProducts[id];
             if(!p) return;
 
-            // Collect images
-            images = [];
-            if(p.preview_image_url || p.thumbnail_url) images.push(p.preview_image_url || p.thumbnail_url);
+            // Collect and deduplicate images
+            const rawImages = [];
+            if(p.preview_image_url || p.thumbnail_url) rawImages.push(p.preview_image_url || p.thumbnail_url);
             if(p.images && p.images.length > 0) {
-                p.images.forEach(img => images.push(img.preview_url || img.image_url));
+                p.images.forEach(img => rawImages.push(img.preview_url || img.image_url));
             }
+            
+            images = [];
+            const shownUrls = new Set();
+            const shownBasenames = new Set();
+            
+            rawImages.forEach(url => {
+                if (!url) return;
+                let basename = '';
+                try {
+                    const urlObj = new URL(url, window.location.origin);
+                    const parts = urlObj.pathname.split('/');
+                    basename = parts[parts.length - 1];
+                } catch(e) {
+                    const parts = url.split('/');
+                    basename = parts[parts.length - 1];
+                }
+                
+                if (!shownUrls.has(url) && !shownBasenames.has(basename)) {
+                    shownUrls.add(url);
+                    shownBasenames.add(basename);
+                    images.push(url);
+                }
+            });
 
             // Set titles
             document.getElementById('gallery-prod-title').textContent = p.name;

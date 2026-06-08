@@ -20,7 +20,7 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
             ->orderBy('id');
 
         $user = auth()->user();
-        if ($user && $user->hasRole('Super Admin')) {
+        if ($user && $user->isAdmin()) {
             return $query;
         }
 

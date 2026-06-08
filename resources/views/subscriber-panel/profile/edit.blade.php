@@ -1,6 +1,6 @@
 @extends('subscriber-panel.layouts.app')
 
-@section('title', 'Store Branding & B2B Profile Settings')
+@section('title', 'Catalog Branding & B2B Profile Settings')
 
 @push('css')
 <style>
@@ -313,7 +313,7 @@
         <div class="col-12">
             <div class="pill-tab-container">
                 <button class="pill-tab-btn active" id="tab-btn-store" data-bs-toggle="pill" data-bs-target="#panel-store" type="button" role="tab">
-                    <i class="bi bi-shop fs-5"></i> Store Branding
+                    <i class="bi bi-shop fs-5"></i> Catalog Branding
                 </button>
                 <button class="pill-tab-btn" id="tab-btn-personal" data-bs-toggle="pill" data-bs-target="#panel-personal" type="button" role="tab">
                     <i class="bi bi-person-badge fs-5"></i> Company Profile
@@ -331,7 +331,7 @@
         <div class="col-12">
             <div class="tab-content" id="pills-tabContent">
                 
-                {{-- Panel 1: Store Branding --}}
+                {{-- Panel 1: Catalog Branding --}}
                 <div class="tab-pane fade show active" id="panel-store" role="tabpanel">
                     
                     {{-- 1.1 Store Status Card Workflow --}}
@@ -340,7 +340,7 @@
                             <div class="workflow-icon-badge"><i class="bi bi-check-lg"></i></div>
                             <div class="flex-grow-1">
                                 <h5 class="fw-bold mb-1">Your store is Live!</h5>
-                                <p class="small opacity-90 mb-2">Congratulations, your store branding has been verified. Users can view your products and catalogs publicly.</p>
+                                <p class="small opacity-90 mb-2">Congratulations, your catalog branding has been verified. Users can view your products and catalogs publicly.</p>
                                 <div class="d-flex align-items-center gap-3 flex-wrap">
                                     <a href="{{ route('store.public', $profile->company_slug) }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-semibold"><i class="bi bi-box-arrow-up-right me-1"></i> Visit Catalog Front</a>
                                     <div class="input-group input-group-sm" style="max-width:320px;">
@@ -355,7 +355,7 @@
                             <div class="workflow-icon-badge"><i class="bi bi-clock-history"></i></div>
                             <div class="flex-grow-1">
                                 <h5 class="fw-bold mb-1">Store configuration pending approval</h5>
-                                <p class="small opacity-90 mb-0">Our administrators are currently reviewing your store branding assets, logos, and company verification files. You will be notified immediately once it is active.</p>
+                                <p class="small opacity-90 mb-0">Our administrators are currently reviewing your catalog branding assets, logos, and company verification files. You will be notified immediately once it is active.</p>
                             </div>
                         </div>
                     @elseif($storeStatus === 'rejected')
@@ -370,7 +370,7 @@
                                     <input type="hidden" name="name" value="{{ $user->name }}">
                                     <input type="hidden" name="company_name" value="{{ $profile->company_name }}">
                                     <input type="hidden" name="submit_store" value="1">
-                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3.5 py-2 fw-semibold"><i class="bi bi-arrow-clockwise me-1"></i> Re-submit Store Branding</button>
+                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3.5 py-2 fw-semibold"><i class="bi bi-arrow-clockwise me-1"></i> Re-submit Catalog Branding</button>
                                 </form>
                             </div>
                         </div>
@@ -391,7 +391,7 @@
                         </div>
                     @endif
 
-                    {{-- 1.2 Store Branding Assets Form --}}
+                    {{-- 1.2 Catalog Branding Assets Form --}}
                     <div class="premium-card">
                         <div class="card-header bg-transparent py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
                             <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-palette-fill text-primary me-2"></i>Storefront Identity & Design</h5>
@@ -490,7 +490,7 @@
 
                                 <div class="border-top pt-4 mt-3 d-flex justify-content-end">
                                     <button type="submit" class="btn btn-premium-action">
-                                        <i class="bi bi-save me-2"></i> Save Storefront Branding
+                                        <i class="bi bi-save me-2"></i> Save Catalog Branding
                                     </button>
                                 </div>
                             </form>

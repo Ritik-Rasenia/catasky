@@ -184,11 +184,13 @@
     <div class="row mb-5">
         <div class="col-6">
             <div class="invoice-meta-label" style="margin-bottom:8px;">Billed From</div>
-            <h6 class="fw-bold mb-1 text-dark">CataSky Inc.</h6>
+            <h6 class="fw-bold mb-1 text-dark">SAKSHAM MARKETING</h6>
             <div class="text-muted" style="font-size:0.85rem; line-height:1.5;">
-                Suite 500, Tech Park Avenue<br>
-                Silicon District, IN 560001<br>
-                billing@catasky.com
+                Legal Name: PUNEESH NAGPAL<br>
+                279B, Sant Nagar, East of Kailash,<br>
+                New Delhi - 110065<br>
+                PAN: ABOPN8619H<br>
+                GSTIN: 07ABOPN8619H1Z5
             </div>
         </div>
         <div class="col-6">
@@ -198,6 +200,9 @@
                 {{ $profile?->address ?: 'Subscriber Account Address' }}<br>
                 @if($profile?->city){{ $profile->city }}, {{ $profile->state }} @endif {{ $profile?->pincode }}<br>
                 {{ $profile?->email_for_inquiries ?: $user->email }}
+                @if($profile?->gst_number)
+                    <br><strong>GSTIN:</strong> {{ $profile->gst_number }}
+                @endif
             </div>
         </div>
     </div>
@@ -232,8 +237,8 @@
             <span class="text-dark fw-bold">₹{{ number_format($invoice->subtotal, 2) }}</span>
         </div>
         <div class="d-flex justify-content-between align-items-center mb-3" style="font-size:0.88rem;">
-            <span class="text-muted">Taxes & Fees (0%):</span>
-            <span class="text-success fw-bold">₹0.00</span>
+            <span class="text-muted">Taxes & Fees ({{ $invoice->tax > 0 ? '18% GST' : '0%' }}):</span>
+            <span class="text-{{ $invoice->tax > 0 ? 'danger' : 'success' }} fw-bold">₹{{ number_format($invoice->tax, 2) }}</span>
         </div>
         <div class="d-flex justify-content-between align-items-center pt-2 border-top" style="border-color:#E2E8F0;">
             <span class="fw-bold text-dark fs-5">Total Paid:</span>

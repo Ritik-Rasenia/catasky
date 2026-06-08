@@ -210,7 +210,7 @@
 
     <div class="sidebar-header">
         <div class="sidebar-logo">
-            @if($setting->logo)
+            @if($setting && $setting->logo)
                 <img src="{{ asset('uploads/settings/' . $setting->logo) }}" alt="{{ $setting->site_title ?? 'Catasky' }}" class="sidebar-logo-img" style="width:150px;margin:auto;" />
             @else
                 <span class="sidebar-logo-badge">

@@ -13,23 +13,31 @@
     
     @php
         $profile = auth()->user()->subscriberProfile;
-        $visitUrl = $profile && $profile->company_slug ? route('store.public', $profile->company_slug) : route('home');
-        $unreadNotifications = auth()->user()->unreadNotifications()->latest()->take(5)->get();
-        $unreadCount = auth()->user()->unreadNotifications()->count();
         $currentUser = auth()->user();
         $currentRole = $currentUser?->roles?->pluck('name')->first() ?? 'User';
+
+        // Role-based Visit URL:
+        // Subscribers → their own public store
+        // Admin, Super Admin, Demo → /demo route
+        if ($currentUser->isSubscriber() && $profile && $profile->company_slug) {
+            $visitUrl = route('subscriber_store', $profile->company_slug);
+        } else {
+            $visitUrl = route('demo');
+        }
+
+        $unreadNotifications = auth()->user()->unreadNotifications()->latest()->take(5)->get();
+        $unreadCount = auth()->user()->unreadNotifications()->count();
     @endphp
 
     <div class="d-flex align-items-center gap-2">
-        <!-- Live Frontend Link -->
-        <a href="{{ $visitUrl }}" target="_blank" class="btn btn-white btn-sm rounded-pill px-3 d-none d-lg-flex align-items-center gap-2 me-2 border text-muted" title="View Site">
-            <i class="bi bi-box-arrow-up-right"></i> View Site
+        <!-- Live Frontend Link (Desktop pill button) -->
+        <a href="{{ $visitUrl }}" target="_blank" class="btn btn-white btn-sm rounded-pill px-3 d-none d-lg-flex align-items-center gap-2 me-2 border text-muted" title="Visit Catalogue Front">
+            <i class="bi bi-box-arrow-up-right"></i> Visit Catalogue Front
         </a>
-        <a href="{{ $visitUrl }}" target="_blank" class="btn btn-light rounded-circle p-0 d-flex d-lg-none align-items-center justify-content-center me-1" style="width: 40px; height: 40px;" title="View Site">
+        <!-- Live Frontend Link (Mobile icon button) -->
+        <a href="{{ $visitUrl }}" target="_blank" class="btn btn-light rounded-circle p-0 d-flex d-lg-none align-items-center justify-content-center me-1" style="width: 40px; height: 40px;" title="Visit Catalogue Front">
             <i class="bi bi-box-arrow-up-right"></i>
         </a>
-
-        
 
         <!-- Notifications with pulse badge -->
         <div class="dropdown me-2">
@@ -101,7 +109,7 @@
                 </div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4 p-2" aria-labelledby="userDropdown" style="min-width: 200px;">
-                <li class="d-lg-none"><a class="dropdown-item rounded-3 py-2" href="{{ $visitUrl }}" target="_blank"><i class="bi bi-box-arrow-up-right me-2"></i> View Site</a></li>
+                <li class="d-lg-none"><a class="dropdown-item rounded-3 py-2" href="{{ $visitUrl }}" target="_blank"><i class="bi bi-box-arrow-up-right me-2"></i> Visit Catalogue Front</a></li>
                 <li class="d-lg-none"><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item rounded-3 py-2" href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Dashboard Overview</a></li>
                 <li><a class="dropdown-item rounded-3 py-2" href="{{ route('subscriber.profile.edit') }}"><i class="bi bi-person me-2"></i> Profile</a></li>

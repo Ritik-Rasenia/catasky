@@ -311,10 +311,25 @@
                         <img id="main-active-img" src="{{ $product->preview_image_url }}" srcset="{{ $product->thumbnail_srcset }}" sizes="(max-width: 767px) 100vw, 42vw" alt="" loading="eager" decoding="async" style="width:100%;aspect-ratio:1/1;object-fit:cover;">
                     </div>
                     @if($product->images->count() > 0 && ($settings['show_images'] ?? true))
+                    @php
+                        $mainBasename = basename(parse_url($product->thumbnail_url, PHP_URL_PATH));
+                        $shownUrls = [$product->thumbnail_url];
+                        $shownBasenames = [$mainBasename];
+                    @endphp
                     <div class="d-flex gap-2 overflow-x-auto mt-2 pb-1">
                         <img src="{{ $product->thumbnail_url }}" onclick="setGalleryActive(this.src)" loading="lazy" decoding="async" style="height:55px;width:55px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--primary);">
                         @foreach($product->images as $img)
-                        <img src="{{ $img->image_url }}" onclick="setGalleryActive(this.src)" loading="lazy" decoding="async" style="height:55px;width:55px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--border);">
+                            @php
+                                $imgUrl = $img->image_url;
+                                if (!$imgUrl) continue;
+                                $imgBasename = basename(parse_url($imgUrl, PHP_URL_PATH));
+                                if (in_array($imgUrl, $shownUrls) || in_array($imgBasename, $shownBasenames)) {
+                                    continue;
+                                }
+                                $shownUrls[] = $imgUrl;
+                                $shownBasenames[] = $imgBasename;
+                            @endphp
+                            <img src="{{ $imgUrl }}" onclick="setGalleryActive(this.src)" loading="lazy" decoding="async" style="height:55px;width:55px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--border);">
                         @endforeach
                     </div>
                     @endif

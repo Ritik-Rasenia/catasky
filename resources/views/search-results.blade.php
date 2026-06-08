@@ -12,7 +12,7 @@
     </div>
 </section>
 
-<!-- Catalogue Grid Section -->
+<!-- Catalog Grid Section -->
 <section class="py-5">
     <div class="container">
         <!-- Products Results Area -->

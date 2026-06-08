@@ -67,16 +67,16 @@ class ProductController extends Controller
             ],
             'category_id'       => 'nullable|array',
             'category_id.*'     => [
-                \Illuminate\Validation\Rule::exists('categories', 'id')->where('subscriber_id', auth()->id()),
+                \Illuminate\Validation\Rule::exists('categories', 'id')->where(fn ($q) => $q->where('subscriber_id', auth()->id())->orWhereNull('subscriber_id')),
             ],
             'subcategory_id'    => 'nullable|array',
             'subcategory_id.*'  => [
-                \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('subscriber_id', auth()->id()),
+                \Illuminate\Validation\Rule::exists('subcategories', 'id')->where(fn ($q) => $q->where('subscriber_id', auth()->id())->orWhereNull('subscriber_id')),
             ],
             'child_category_id' => 'nullable|exists:child_categories,id',
             'brand_id'          => 'nullable|array',
             'brand_id.*'        => [
-                \Illuminate\Validation\Rule::exists('brands', 'id')->where('subscriber_id', auth()->id()),
+                \Illuminate\Validation\Rule::exists('brands', 'id')->where(fn ($q) => $q->where('subscriber_id', auth()->id())->orWhereNull('subscriber_id')),
             ],
             'status'            => 'nullable|in:active,inactive,draft',
             'mrp'               => 'nullable|numeric|min:0',
@@ -211,16 +211,16 @@ class ProductController extends Controller
             ],
             'category_id'       => 'nullable|array',
             'category_id.*'     => [
-                \Illuminate\Validation\Rule::exists('categories', 'id')->where('subscriber_id', auth()->id()),
+                \Illuminate\Validation\Rule::exists('categories', 'id')->where(fn ($q) => $q->where('subscriber_id', auth()->id())->orWhereNull('subscriber_id')),
             ],
             'subcategory_id'    => 'nullable|array',
             'subcategory_id.*'  => [
-                \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('subscriber_id', auth()->id()),
+                \Illuminate\Validation\Rule::exists('subcategories', 'id')->where(fn ($q) => $q->where('subscriber_id', auth()->id())->orWhereNull('subscriber_id')),
             ],
             'child_category_id' => 'nullable|exists:child_categories,id',
             'brand_id'          => 'nullable|array',
             'brand_id.*'        => [
-                \Illuminate\Validation\Rule::exists('brands', 'id')->where('subscriber_id', auth()->id()),
+                \Illuminate\Validation\Rule::exists('brands', 'id')->where(fn ($q) => $q->where('subscriber_id', auth()->id())->orWhereNull('subscriber_id')),
             ],
             'status'            => 'nullable|in:active,inactive,draft',
             'mrp'               => 'nullable|numeric|min:0',
@@ -407,7 +407,8 @@ class ProductController extends Controller
         // Prefer category-level attributes as a fallback when no subcategory specified
         $categoryAttributes = \App\Models\CategoryAttribute::where('category_id', $categoryId)
             ->with(['attribute' => function($q) {
-                $q->where('is_active', true)
+                $q->withoutGlobalScope('tenant')
+                  ->where('is_active', true)
                   ->where(function($query) {
                       $query->where('approval_status', 'approved')
                             ->orWhere(function($subq) {
@@ -480,7 +481,8 @@ class ProductController extends Controller
         }
         $subcatAttrs = \App\Models\SubcategoryAttribute::where('subcategory_id', $subcategoryId)
             ->with(['attribute' => function($q) {
-                $q->where('is_active', true)
+                $q->withoutGlobalScope('tenant')
+                  ->where('is_active', true)
                   ->where(function($query) {
                       $query->where('approval_status', 'approved')
                             ->orWhere(function($subq) {

@@ -4,7 +4,7 @@
         $user = auth()->user();
         $sub = $user ? $user->activeSubscription() : null;
         $plan = $sub ? $sub->plan : null;
-        $isEnterprise = $plan && ($plan->slug === 'enterprise' || $plan->custom_branding);
+        $isEnterprise = $plan && $plan->slug === 'enterprise';
 
         $isActive = function (array $patterns): bool {
             foreach ($patterns as $pattern) {

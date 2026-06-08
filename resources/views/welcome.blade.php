@@ -89,7 +89,7 @@ $demoProducts = [
                     </a>
                     <a href="{{ route('demo') }}" class="btn-hero-outline" id="watch-demo-btn">
                         <i class="bi bi-search text-primary"></i>
-                        Explore Catalogue
+                        Explore Catalog
                     </a>
                 </div>
 
@@ -123,7 +123,7 @@ $demoProducts = [
                             </div>
                             <div>
                                 <div style="font-size:0.85rem;font-weight:800;color:#1E293B;">+142% Views</div>
-                                <div style="font-size:0.7rem;color:#94A3B8;">Catalogue Analytics</div>
+                                <div style="font-size:0.7rem;color:#94A3B8;">Catalog Analytics</div>
                             </div>
                         </div>
                     </div>
@@ -161,7 +161,7 @@ $demoProducts = [
                         <div class="p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <div style="font-size:0.75rem;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;">Your Catalogue</div>
+                                    <div style="font-size:0.75rem;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;">Your Catalog</div>
                                     <div style="font-size:1rem;font-weight:800;color:#1E293B;">B2B Summer Digest 2026</div>
                                 </div>
                                 <span class="badge" style="background:rgba(16,185,129,0.1);color:#10B981;font-size:0.72rem;padding:5px 12px;border-radius:100px;font-weight:700;">Active</span>
@@ -216,7 +216,7 @@ $demoProducts = [
             </div>
             <div class="trust-stat animate-fade-in">
                 <div class="trust-stat-num" data-target="85000">85K+</div>
-                <div class="trust-stat-label">Catalogues Shared</div>
+                <div class="trust-stat-label">Catalogs Shared</div>
             </div>
             <div class="trust-stat animate-fade-in">
                 <div class="trust-stat-num" data-target="320">320K+</div>
@@ -243,7 +243,7 @@ $demoProducts = [
             <div class="col-lg-5 animate-fade-in">
                 <div class="section-tag">What is Catasky?</div>
                 <h2 class="section-heading">Product Sharing,<br><span class="text-gradient">Reinvented</span></h2>
-                <p class="section-sub" style="text-align:left;">Catasky is not just another catalogue platform. It is a modern <strong>sales conversion tool</strong> designed to help businesses:</p>
+                <p class="section-sub" style="text-align:left;">Catasky is not just another catalog platform. It is a modern <strong>sales conversion tool</strong> designed to help businesses:</p>
                 <div class="d-flex flex-column gap-3 mt-4">
                     @foreach([
                         ['icon'=>'bi-stars','color'=>'#1D6FEB','text'=>'Showcase products beautifully'],
@@ -262,7 +262,7 @@ $demoProducts = [
                 <p class="mt-4" style="font-size:0.9rem;color:#64748B;line-height:1.7;">Unlike cluttered lead-generation marketplaces, Catasky focuses on one thing: <strong style="color:#1D6FEB;">helping sales teams convert faster.</strong></p>
             </div>
             <div class="col-lg-7 animate-fade-in">
-                <div class="pdf-catalogue-grid">
+                <div class="pdf-catalog-grid">
                     @foreach($demoProducts as $dp)
                     <div class="pdf-product-card">
                         <span class="pdf-watermark-tag">CATASKY</span>
@@ -311,7 +311,7 @@ $demoProducts = [
                     </div>
                     <div class="d-flex flex-column gap-3">
                         @foreach([
-                            'Large PDF catalogues nobody reads',
+                            'Large PDF catalogs nobody reads',
                             'Manual product selection every time',
                             'Endless WhatsApp forwarding',
                             'Repeated client follow-ups',
@@ -362,7 +362,7 @@ $demoProducts = [
 <section id="features" class="home-section home-section-soft">
     <div class="container">
         <div class="text-center mb-5 animate-fade-in">
-            <div class="section-tag">Catalogue Capabilities</div>
+            <div class="section-tag">Catalog Capabilities</div>
             <h2 class="section-heading">Designed for <span class="text-gradient">Modern Sales Teams</span></h2>
             <p class="section-sub">Everything your team needs to present, share, and close — all in one place.</p>
         </div>
@@ -374,7 +374,7 @@ $demoProducts = [
                         <i class="bi bi-grid-3x3-gap-fill"></i>
                     </div>
                     <h5>Smart Product Browsing</h5>
-                    <p>Beautiful catalogue experience with fast product discovery, intuitive navigation, and instant search.</p>
+                    <p>Beautiful catalog experience with fast product discovery, intuitive navigation, and instant search.</p>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4 animate-fade-in">
@@ -444,7 +444,7 @@ $demoProducts = [
                                     ['icon'=>'bi-eye-fill','color'=>'#1D6FEB','label'=>'Viewed Products'],
                                     ['icon'=>'bi-graph-up-arrow','color'=>'#10B981','label'=>'Customer Engagement'],
                                     ['icon'=>'bi-star-fill','color'=>'#F59E0B','label'=>'Popular Selections'],
-                                    ['icon'=>'bi-file-earmark-pdf-fill','color'=>'#EF4444','label'=>'Shared Catalogues'],
+                                    ['icon'=>'bi-file-earmark-pdf-fill','color'=>'#EF4444','label'=>'Shared Catalogs'],
                                     ['icon'=>'bi-lightning-fill','color'=>'#0284C7','label'=>'Conversion Insights'],
                                 ] as $stat)
                                 <div class="col-6 col-md-4">
@@ -470,12 +470,12 @@ $demoProducts = [
     <div class="container">
         <div class="text-center mb-5 animate-fade-in">
             <div class="section-tag">Simple Workflow</div>
-            <h2 class="section-heading">Go from Products to <span class="text-gradient">Shared Catalogue</span> in 3 Steps</h2>
+            <h2 class="section-heading">Go from Products to <span class="text-gradient">Shared Catalog</span> in 3 Steps</h2>
         </div>
         <div class="row g-4 justify-content-center">
             @foreach([
                 ['step'=>'01','icon'=>'bi-box-seam','color'=>'#1D6FEB','bg'=>'rgba(29,111,235,0.08)','title'=>'Add Your Products','desc'=>'Upload products with images, variants, specifications, pricing, and brand details into your Catasky account.'],
-                ['step'=>'02','icon'=>'bi-check2-all','color'=>'#10B981','bg'=>'rgba(16,185,129,0.08)','title'=>'Select & Curate','desc'=>'Pick products across categories with one click. Build a focused, curated catalogue selection for your buyer.'],
+                ['step'=>'02','icon'=>'bi-check2-all','color'=>'#10B981','bg'=>'rgba(16,185,129,0.08)','title'=>'Select & Curate','desc'=>'Pick products across categories with one click. Build a focused, curated catalog selection for your buyer.'],
                 ['step'=>'03','icon'=>'bi-send-fill','color'=>'#0284C7','bg'=>'rgba(2,132,199,0.08)','title'=>'Export & Share','desc'=>'Generate a branded PDF, WhatsApp image cards, or a shareable link and send it to your client instantly.'],
             ] as $step)
             <div class="col-md-4 animate-fade-in">
@@ -557,7 +557,7 @@ $demoProducts = [
                     <div style="font-size:3rem; font-weight:900; color:#1D6FEB; line-height:1; margin-bottom:16px;">The Future<br>of Product Sharing</div>
                     <p style="color:#64748B;font-size:0.95rem;line-height:1.8; margin-bottom:24px;">Catasky combines the simplicity of modern SaaS platforms with the power of smart product presentation.</p>
                     <div class="d-flex flex-column gap-2">
-                        @foreach(['No clutter.','No complicated workflows.','No outdated catalogues.','Just a smarter way to share products.'] as $promise)
+                        @foreach(['No clutter.','No complicated workflows.','No outdated catalogs.','Just a smarter way to share products.'] as $promise)
                         <div style="padding:10px 20px;background:white;border-radius:12px;font-size:0.9rem;font-weight:600;color:#1E293B;border:1.5px solid rgba(29,111,235,0.1);">{{ $promise }}</div>
                         @endforeach
                     </div>
@@ -689,9 +689,9 @@ $demoProducts = [
         </div>
         <div class="row g-4">
             @foreach([
-                ['name'=>'Rahul Sharma','role'=>'Sales Head, TechGifts Pvt Ltd','text'=>'"Catasky completely transformed how we share our product catalogue. Our clients are impressed by the professional PDFs, and our close rate has jumped by 40%."','color'=>'#1D6FEB','initial'=>'R'],
+                ['name'=>'Rahul Sharma','role'=>'Sales Head, TechGifts Pvt Ltd','text'=>'"Catasky completely transformed how we share our product catalog. Our clients are impressed by the professional PDFs, and our close rate has jumped by 40%."','color'=>'#1D6FEB','initial'=>'R'],
                 ['name'=>'Priya Mehta','role'=>'Procurement Manager, EventCo','text'=>'"The WhatsApp sharing feature is a game-changer. I can send a curated selection of 10 products with prices and images in under 2 minutes. Incredible tool."','color'=>'#10B981','initial'=>'P'],
-                ['name'=>'Suresh Kumar','role'=>'MD, BrandMerch Solutions','text'=>'"We tried 5 different tools before Catasky. Nothing came close to this level of polish. The PDF output looks exactly like a printed catalogue. Worth every rupee."','color'=>'#0284C7','initial'=>'S'],
+                ['name'=>'Suresh Kumar','role'=>'MD, BrandMerch Solutions','text'=>'"We tried 5 different tools before Catasky. Nothing came close to this level of polish. The PDF output looks exactly like a printed catalog. Worth every rupee."','color'=>'#0284C7','initial'=>'S'],
             ] as $t)
             <div class="col-md-4 animate-fade-in">
                 <div class="testimonial-card">
@@ -729,7 +729,7 @@ $demoProducts = [
                         Start Sharing Smarter,<br>Faster, <span style="color:#93C5FD;">More Professionally</span>
                     </h2>
                     <p style="color:rgba(255,255,255,0.7);font-size:1rem;line-height:1.7;max-width:480px;margin:0;">
-                        Join thousands of B2B sales teams who use Catasky to create, share and close product catalogues in seconds — not hours.
+                        Join thousands of B2B sales teams who use Catasky to create, share and close product catalogs in seconds — not hours.
                     </p>
                 </div>
                 <div class="col-lg-5">
@@ -741,7 +741,7 @@ $demoProducts = [
                                 <i class="bi bi-rocket-takeoff-fill"></i> Start Free Trial
                             </a>
                             <a href="{{ route('demo') }}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:transparent;color:rgba(255,255,255,0.8);border-radius:14px;font-weight:600;border:1.5px solid rgba(255,255,255,0.2);text-decoration:none;transition:all 0.3s ease;font-size:0.95rem;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                                <i class="bi bi-search"></i> Explore Catalogue
+                                <i class="bi bi-search"></i> Explore Catalog
                             </a>
                         </div>
                     </div>

@@ -109,22 +109,23 @@ class ProductModuleIsolationTest extends TestCase
             ])
             ->assertSessionHasErrors('name');
 
+        // Under the new requirement, Admin has global access to all products.
+        // Therefore, secondAdmin sees firstProduct's name and gets a duplicate error.
         $this->actingAs($secondAdmin)
             ->post(route('admin.products.store'), [
                 'name' => 'Admin Scoped Product',
                 'sku' => 'ADMIN-SKU-2',
                 'status' => 1,
             ])
-            ->assertRedirect(route('admin.products.index'));
+            ->assertSessionHasErrors('name');
 
+        // secondAdmin can access firstProduct edit page successfully (not 404).
         $this->actingAs($secondAdmin)
             ->get(route('admin.products.edit', $firstProduct->id))
-            ->assertNotFound();
-
-        $this->assertDatabaseCount('products', 2);
+            ->assertOk();
     }
 
-    public function test_admin_export_query_only_contains_current_admin_products(): void
+    public function test_admin_export_query_contains_all_products_because_admin_has_global_access(): void
     {
         $firstAdmin = User::factory()->create();
         $firstAdmin->assignRole('Admin');
@@ -152,7 +153,7 @@ class ProductModuleIsolationTest extends TestCase
 
         $products = (new ProductsExport($firstAdmin->id))->query()->get();
 
-        $this->assertCount(1, $products);
-        $this->assertSame('Export Mine', $products->first()->name);
+        // Admin has global access to see/export all products.
+        $this->assertCount(2, $products);
     }
 }

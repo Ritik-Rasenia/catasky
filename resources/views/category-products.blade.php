@@ -43,7 +43,7 @@
     </div>
 </section>
 
-<!-- Catalogue Grid & Filters Section -->
+<!-- Catalog Grid & Filters Section -->
 <section class="py-5">
     <div class="container">
         <div class="row g-4">
@@ -345,11 +345,11 @@
                                     @if(isset($profile) && $profile->company_slug === 'demo')
                                         Reset Demo
                                     @else
-                                        Reset Catalogue
+                                        Reset Catalog
                                     @endif
                                 </a>
                             @else
-                                <a href="{{ route('catalogue') }}" class="btn btn-premium btn-premium-primary mt-3">Reset Catalogue</a>
+                                <a href="{{ route('catalogue') }}" class="btn btn-premium btn-premium-primary mt-3">Reset Catalog</a>
                             @endif
                         </div>
                     @endforelse

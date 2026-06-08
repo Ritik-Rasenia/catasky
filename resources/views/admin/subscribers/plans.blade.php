@@ -367,7 +367,7 @@
                 $('#edit_features').val('');
             }
 
-            $('#editPlanForm').attr('action', window.baseUrl + '/admin/subscription-plans/' + plan.id);
+            $('#editPlanForm').attr('action', window.baseUrl + '/dashboard/subscription-plans/' + plan.id);
             $('#editPlanModal').modal('show');
         });
     });

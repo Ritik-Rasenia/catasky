@@ -12,9 +12,9 @@
                 @if(isset($profile) && $profile->company_slug === 'demo')
                     <li class="breadcrumb-item"><a href="{{ route('demo') }}" class="text-secondary">Demo</a></li>
                 @elseif(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
-                    <li class="breadcrumb-item"><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-secondary">Catalogue</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-secondary">Catalog</a></li>
                 @else
-                    <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalogue</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalog</a></li>
                 @endif
                 @if($product->category)
                     <li class="breadcrumb-item"><a href="{{ isset($isSubscriberStore) && $isSubscriberStore && isset($profile) ? route('category.products', [$product->category->slug, 'company_slug' => $profile->company_slug]) : route('category.products', $product->category->slug) }}" class="text-secondary">{{ $product->category->name }}</a></li>
@@ -60,9 +60,31 @@
                                 </div>
                                 <!-- Loop other gallery images -->
                                 @if($product->images && $product->images->count() > 0)
+                                    @php
+                                        $mainBasename = basename(parse_url($product->thumbnail_url, PHP_URL_PATH));
+                                        $shownUrls = [$product->thumbnail_url];
+                                        $shownBasenames = [$mainBasename];
+                                    @endphp
                                     @foreach($product->images as $img)
                                         @php
-                                            $imgUrl = filter_var($img->image, FILTER_VALIDATE_URL) ? $img->image : asset('uploads/products/gallery/' . $img->image);
+                                            $isSubscriber = $product instanceof \App\Models\SubscriberProduct;
+                                            $rawImage = $isSubscriber ? $img->image_path : $img->image;
+                                            if (!$rawImage) continue;
+
+                                            if (filter_var($rawImage, FILTER_VALIDATE_URL)) {
+                                                $imgUrl = $rawImage;
+                                            } else {
+                                                $imgUrl = $isSubscriber 
+                                                    ? (str_starts_with($rawImage, 'uploads/') ? asset($rawImage) : asset('uploads/subscriber-products/' . $rawImage))
+                                                    : asset('uploads/products/gallery/' . $rawImage);
+                                            }
+                                            
+                                            $imgBasename = basename(parse_url($imgUrl, PHP_URL_PATH));
+                                            if (in_array($imgUrl, $shownUrls) || in_array($imgBasename, $shownBasenames)) {
+                                                continue;
+                                            }
+                                            $shownUrls[] = $imgUrl;
+                                            $shownBasenames[] = $imgBasename;
                                         @endphp
                                         <div class="gallery-thumb rounded-3 border p-1 bg-white cursor-pointer overflow-hidden position-relative" 
                                              onclick="changeMainImage('{{ $imgUrl }}', this)" 
