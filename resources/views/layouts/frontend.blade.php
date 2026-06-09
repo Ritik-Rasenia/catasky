@@ -4970,6 +4970,102 @@
     </script>
     @endif
 
+    {{-- ─── GLOBAL FRONTEND EVENT TRACKER (sendBeacon-first, no page reload) ─── --}}
+    <script>
+    /**
+     * trackEvent() - Global frontend-only event tracker.
+     *
+     * Usage:
+     *   trackEvent('pdf_download', { product_id: 123, file_type: 'pdf' });
+     *   trackEvent('whatsapp_share', { product_id: 456 });
+     *   trackEvent('product_view', { product_id: 789 });
+     *
+     * Events: pdf_download | image_download | whatsapp_share | other_share | product_view
+     *
+     * Uses sendBeacon for reliability (works even after page unload).
+     * Falls back to fetch with keepalive if sendBeacon is unavailable.
+     * Queues to localStorage if offline and retries on next page load.
+     */
+    (function() {
+        var TRACK_URL = '/api/track-event';
+        var QUEUE_KEY = '_catasky_fe_queue';
+
+        // Flush any queued events from previous page loads
+        function flushQueue() {
+            try {
+                var raw = localStorage.getItem(QUEUE_KEY);
+                if (!raw) return;
+                var queue = JSON.parse(raw);
+                if (!Array.isArray(queue) || queue.length === 0) return;
+                localStorage.removeItem(QUEUE_KEY);
+                queue.forEach(function(evt) { _send(evt); });
+            } catch(e) { localStorage.removeItem(QUEUE_KEY); }
+        }
+
+        function _send(payload) {
+            try {
+                if (navigator.sendBeacon) {
+                    var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                    var ok = navigator.sendBeacon(TRACK_URL, blob);
+                    if (!ok) { _queueLocally(payload); }
+                } else {
+                    fetch(TRACK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        keepalive: true
+                    }).catch(function() { _queueLocally(payload); });
+                }
+            } catch(e) {
+                _queueLocally(payload);
+            }
+        }
+
+        function _queueLocally(payload) {
+            try {
+                var raw = localStorage.getItem(QUEUE_KEY);
+                var queue = raw ? JSON.parse(raw) : [];
+                queue.push(payload);
+                // Cap at 50 events to avoid storage bloat
+                if (queue.length > 50) queue = queue.slice(-50);
+                localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+            } catch(e) {}
+        }
+
+        /**
+         * Public API: window.trackEvent(eventName, options)
+         * @param {string} eventName - pdf_download|image_download|whatsapp_share|other_share|product_view
+         * @param {object} options - { product_id, file_type, user_id, meta }
+         */
+        window.trackEvent = function(eventName, options) {
+            options = options || {};
+            var payload = {
+                event:      eventName,
+                product_id: options.product_id || null,
+                file_type:  options.file_type  || null,
+                user_id:    options.user_id    || null,
+                meta:       Object.assign({
+                    page:      window.location.pathname,
+                    referrer:  document.referrer,
+                    timestamp: new Date().toISOString()
+                }, options.meta || {})
+            };
+            _send(payload);
+        };
+
+        // Flush on load + on visibility change (catches back-forward cache)
+        flushQueue();
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') flushQueue();
+        });
+
+        // Flush remaining events before page unload
+        window.addEventListener('beforeunload', function() {
+            // sendBeacon handles this automatically for in-flight calls
+        });
+    })();
+    </script>
+
     {{-- ─── FRONTEND SHARE TRACKING ─────────────────────────────────────────── --}}
     @if(isset($profile) && isset($isSubscriberStore) && $isSubscriberStore)
     <script>
@@ -5017,6 +5113,32 @@
             }
         }
 
+        // Track download events to download_logs table (for Downloads KPI in analytics)
+        function trackDownload(fileType) {
+            var payload = {
+                session_id: sessionId,
+                user_id: SUBSCRIBER_USER_ID,
+                file_type: fileType || 'pdf',
+                _token: CSRF
+            };
+            // Use sendBeacon for reliability, fallback to fetch
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(API_BASE + '/download', new Blob([
+                    JSON.stringify(payload)
+                ], { type: 'application/json' }));
+            } else {
+                fetch(API_BASE + '/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    body: JSON.stringify(payload),
+                    keepalive: true
+                }).catch(function() {});
+            }
+        }
+
+        // Expose trackDownload globally so other scripts can call it
+        window._trackDownload = trackDownload;
+
         function getSelectedProductIds() {
             if (typeof selectedProducts !== 'undefined' && Array.isArray(selectedProducts)) {
                 return selectedProducts.map(function(p) { return p.id || p; });
@@ -5040,6 +5162,9 @@
             if (typeof _origSharePDFSystem === 'function') {
                 window.sharePDFSystem = async function() {
                     trackEngagement('pdf_share', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('other_share', { product_id: null, file_type: 'pdf', meta: { share_type: 'any_app', product_ids: getSelectedProductIds() } });
+                    }
                     return _origSharePDFSystem.apply(this, arguments);
                 };
             }
@@ -5049,6 +5174,9 @@
             if (typeof _origSharePDFOnWhatsApp === 'function') {
                 window.sharePDFOnWhatsApp = async function() {
                     trackEngagement('whatsapp_pdf_share', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('whatsapp_share', { product_id: null, file_type: 'pdf', meta: { product_ids: getSelectedProductIds() } });
+                    }
                     return _origSharePDFOnWhatsApp.apply(this, arguments);
                 };
             }
@@ -5058,6 +5186,9 @@
             if (typeof _origShareImageSystem === 'function') {
                 window.shareImageSystem = async function() {
                     trackEngagement('image_share', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('other_share', { product_id: null, file_type: 'image', meta: { share_type: 'any_app', product_ids: getSelectedProductIds() } });
+                    }
                     return _origShareImageSystem.apply(this, arguments);
                 };
             }
@@ -5067,15 +5198,35 @@
             if (typeof _origShareSeparateImages === 'function') {
                 window.shareSeparateImages = async function() {
                     trackEngagement('whatsapp_image_share', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('whatsapp_share', { product_id: null, file_type: 'image', meta: { product_ids: getSelectedProductIds() } });
+                    }
                     return _origShareSeparateImages.apply(this, arguments);
                 };
             }
 
-            // Wrap generatePDFCatalogue / downloadAllCards - track PDF download
+            // Wrap generatePDFCatalogue - track PDF download to download_logs
+            var _origGeneratePDF = window.generatePDFCatalogue;
+            if (typeof _origGeneratePDF === 'function') {
+                window.generatePDFCatalogue = function() {
+                    trackEngagement('pdf_download', { product_ids: getSelectedProductIds() });
+                    trackDownload('pdf');
+                    if (window.trackEvent) {
+                        window.trackEvent('pdf_download', { product_id: null, file_type: 'pdf', meta: { product_ids: getSelectedProductIds() } });
+                    }
+                    return _origGeneratePDF.apply(this, arguments);
+                };
+            }
+
+            // Wrap downloadAllCards - track image download to download_logs
             var _origDownloadAllCards = window.downloadAllCards;
             if (typeof _origDownloadAllCards === 'function') {
                 window.downloadAllCards = function() {
-                    trackEngagement('pdf_download', { product_ids: getSelectedProductIds() });
+                    trackEngagement('image_download', { product_ids: getSelectedProductIds() });
+                    trackDownload('image');
+                    if (window.trackEvent) {
+                        window.trackEvent('image_download', { product_id: null, file_type: 'image', meta: { product_ids: getSelectedProductIds() } });
+                    }
                     return _origDownloadAllCards.apply(this, arguments);
                 };
             }

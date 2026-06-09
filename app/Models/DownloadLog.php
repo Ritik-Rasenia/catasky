@@ -32,6 +32,18 @@ class DownloadLog extends Model
         return $this->belongsTo(SubscriberShareLink::class, 'subscriber_share_link_id');
     }
 
+    public function shareTrack()
+    {
+        return $this->hasOneThrough(
+            ShareTrack::class,
+            SubscriberShareLink::class,
+            'id',                          // Foreign key on subscriber_share_links
+            'subscriber_share_link_id',    // Foreign key on share_tracks
+            'subscriber_share_link_id',    // Local key on download_logs
+            'id'                           // Local key on subscriber_share_links
+        );
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

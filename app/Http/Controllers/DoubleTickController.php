@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\CatalogueShare;
 use App\Models\ShareTrackingLog;
+use App\Models\DownloadLog;
+use App\Models\EngagementLog;
 use App\Services\DoubleTickService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -144,6 +146,47 @@ class DoubleTickController extends Controller
             abort(404, 'Catalogue PDF not found.');
         }
 
+        // ── Backend Download Tracking ─────────────────────────────────────────
+        try {
+            $userId = Auth::id();
+            Log::info('[DownloadTracking] PDF download route hit', [
+                'filename' => $filename,
+                'ip'       => request()->ip(),
+                'user_id'  => $userId,
+            ]);
+
+            DownloadLog::create([
+                'visit_log_id'             => null,
+                'subscriber_share_link_id' => null,
+                'user_id'                  => $userId,
+                'ip_address'               => request()->ip(),
+                'file_type'                => 'pdf',
+                'downloaded_at'            => now(),
+            ]);
+
+            EngagementLog::create([
+                'visit_log_id'             => null,
+                'subscriber_share_link_id' => null,
+                'user_id'                  => $userId,
+                'event_type'               => 'pdf_download',
+                'subscriber_product_id'    => null,
+                'metadata'                 => [
+                    'filename' => $filename,
+                    'ip'       => request()->ip(),
+                    'source'   => 'direct_download_route',
+                ],
+            ]);
+
+            Log::info('[DownloadTracking] PDF download event created successfully', [
+                'user_id'    => $userId,
+                'event_type' => 'pdf_download',
+            ]);
+        } catch (\Exception $e) {
+            // Tracking must NEVER block the download
+            Log::error('[DownloadTracking] Failed to log PDF download: ' . $e->getMessage());
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         $filePath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
 
         return response()->file($filePath, [
@@ -234,6 +277,47 @@ class DoubleTickController extends Controller
         if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
             abort(404, 'Catalogue image not found.');
         }
+
+        // ── Backend Download Tracking ─────────────────────────────────────────
+        try {
+            $userId = Auth::id();
+            Log::info('[DownloadTracking] Image download route hit', [
+                'filename' => $filename,
+                'ip'       => request()->ip(),
+                'user_id'  => $userId,
+            ]);
+
+            DownloadLog::create([
+                'visit_log_id'             => null,
+                'subscriber_share_link_id' => null,
+                'user_id'                  => $userId,
+                'ip_address'               => request()->ip(),
+                'file_type'                => 'image',
+                'downloaded_at'            => now(),
+            ]);
+
+            EngagementLog::create([
+                'visit_log_id'             => null,
+                'subscriber_share_link_id' => null,
+                'user_id'                  => $userId,
+                'event_type'               => 'image_download',
+                'subscriber_product_id'    => null,
+                'metadata'                 => [
+                    'filename' => $filename,
+                    'ip'       => request()->ip(),
+                    'source'   => 'direct_download_route',
+                ],
+            ]);
+
+            Log::info('[DownloadTracking] Image download event created successfully', [
+                'user_id'    => $userId,
+                'event_type' => 'image_download',
+            ]);
+        } catch (\Exception $e) {
+            // Tracking must NEVER block the download
+            Log::error('[DownloadTracking] Failed to log Image download: ' . $e->getMessage());
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         $filePath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
         

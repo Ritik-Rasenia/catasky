@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Subscriber;
 
 use App\Http\Controllers\Controller;
+use App\Models\DownloadLog;
+use App\Models\EngagementLog;
 use App\Models\SubscriberShareLink;
 use App\Models\SubscriberProduct;
 use App\Models\SubscriberActivityLog;
 use App\Models\ShareTrack;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -248,6 +251,40 @@ class ShareController extends Controller
             ]);
 
         $link->increment('download_count');
+
+        // ── Backend Download Tracking ─────────────────────────────────────────
+        try {
+            DownloadLog::create([
+                'visit_log_id'             => null,
+                'subscriber_share_link_id' => $link->id,
+                'user_id'                  => $link->user_id,
+                'ip_address'               => request()->ip(),
+                'file_type'                => 'pdf',
+                'downloaded_at'            => now(),
+            ]);
+
+            EngagementLog::create([
+                'visit_log_id'             => null,
+                'subscriber_share_link_id' => $link->id,
+                'user_id'                  => $link->user_id,
+                'event_type'               => 'pdf_download',
+                'subscriber_product_id'    => $link->subscriber_product_id,
+                'metadata'                 => [
+                    'share_token' => $token,
+                    'ip'          => request()->ip(),
+                    'source'      => 'share_link_pdf_download',
+                ],
+            ]);
+
+            Log::info('[DownloadTracking] Share link PDF download event created', [
+                'link_id' => $link->id,
+                'user_id' => $link->user_id,
+            ]);
+        } catch (\Exception $e) {
+            // Tracking must NEVER block the download
+            Log::error('[DownloadTracking] Failed to log share PDF download: ' . $e->getMessage());
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         $filename = Str::slug($link->title ?? 'catalog') . '-' . date('Ymd') . '.pdf';
         return $pdf->download($filename);

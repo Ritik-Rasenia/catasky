@@ -123,7 +123,7 @@ class AnalyticsController extends Controller
             ->map(function ($row) {
                 $user = User::find($row->user_id);
                 $views = VisitLog::whereHas('shareTrack', fn($q) => $q->where('user_id', $row->user_id))->count();
-                $downloads = DownloadLog::whereHas('shareTrack', fn($q) => $q->where('user_id', $row->user_id))->count();
+                $downloads = DownloadLog::where('user_id', $row->user_id)->count();
                 $enquiries = Enquiry::whereHas('shareTrack', fn($q) => $q->where('user_id', $row->user_id))->count();
                 $engagements = EngagementLog::where('user_id', $row->user_id)->count();
                 return [

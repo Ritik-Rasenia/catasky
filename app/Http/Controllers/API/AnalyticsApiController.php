@@ -7,6 +7,8 @@ use App\Models\SubscriberShareLink;
 use App\Models\ShareTrack;
 use App\Models\VisitLog;
 use App\Models\ProductViewLog;
+use App\Models\DownloadLog;
+use App\Models\EngagementLog;
 use App\Models\SubscriberProduct;
 use App\Events\Analytics\VisitLogged;
 use App\Events\Analytics\ProductViewed;
@@ -14,6 +16,7 @@ use App\Events\Analytics\DownloadLogged;
 use App\Events\Analytics\OrderLogged;
 use App\Events\Analytics\EngagementLogged;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AnalyticsApiController extends Controller
@@ -154,26 +157,80 @@ class AnalyticsApiController extends Controller
 
     /**
      * Log a download click.
+     * Supports both share-link-based downloads (with token) and frontend store downloads (with user_id).
+     * Writes to BOTH download_logs (for Downloads KPI) and engagement_logs (for Engagement Events).
      */
     public function logDownload(Request $request)
     {
         $request->validate([
-            'session_id' => 'required|string',
-            'token'      => 'required|string|exists:subscriber_share_links,token',
+            'session_id' => 'nullable|string',
+            'token'      => 'nullable|string',
+            'user_id'    => 'nullable|integer',
             'file_type'  => 'required|string|in:pdf,brochure,catalog,image',
         ]);
 
-        $visitLog = VisitLog::where('session_id', $request->session_id)->first();
-        $shareLink = SubscriberShareLink::where('token', $request->token)->firstOrFail();
+        Log::info('[DownloadTracking] Download API hit', [
+            'session_id' => $request->session_id,
+            'token'      => $request->token ? 'present' : 'null',
+            'user_id'    => $request->user_id,
+            'file_type'  => $request->file_type,
+            'ip'         => $request->ip(),
+        ]);
 
-        DownloadLogged::dispatch(
-            $visitLog?->id,
-            $shareLink->id,
-            $shareLink->user_id,
-            $request->ip(),
-            $request->file_type,
-            now()
-        );
+        $visitLog = null;
+        if ($request->filled('session_id')) {
+            $visitLog = VisitLog::where('session_id', $request->session_id)->first();
+        }
+
+        $shareLinkId = null;
+        $userId = $request->input('user_id');
+
+        if ($request->filled('token')) {
+            $shareLink = SubscriberShareLink::where('token', $request->token)->first();
+            if ($shareLink) {
+                $shareLinkId = $shareLink->id;
+                $userId = $userId ?: $shareLink->user_id;
+            }
+        }
+
+        // ── Write directly to download_logs table (for Downloads KPI) ───────
+        try {
+            DownloadLog::create([
+                'visit_log_id'             => $visitLog?->id,
+                'subscriber_share_link_id' => $shareLinkId,
+                'user_id'                  => $userId,
+                'ip_address'               => $request->ip(),
+                'file_type'                => $request->file_type,
+                'downloaded_at'            => now(),
+            ]);
+
+            Log::info('[DownloadTracking] DownloadLog created successfully', [
+                'user_id'    => $userId,
+                'file_type'  => $request->file_type,
+                'share_link' => $shareLinkId,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DownloadTracking] Failed to create DownloadLog: ' . $e->getMessage());
+        }
+
+        // ── Write to engagement_logs table (for Engagement Events) ──────────
+        try {
+            $eventType = $request->file_type === 'image' ? 'image_download' : 'pdf_download';
+            EngagementLog::create([
+                'visit_log_id'             => $visitLog?->id,
+                'subscriber_share_link_id' => $shareLinkId,
+                'user_id'                  => $userId,
+                'event_type'               => $eventType,
+                'subscriber_product_id'    => null,
+                'metadata'                 => [
+                    'file_type' => $request->file_type,
+                    'ip'        => $request->ip(),
+                    'source'    => 'frontend_store_download',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DownloadTracking] Failed to create EngagementLog: ' . $e->getMessage());
+        }
 
         return response()->json(['success' => true]);
     }

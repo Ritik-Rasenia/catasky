@@ -603,6 +603,16 @@ Route::prefix('api/analytics')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Frontend-Only Event Tracking API (Public - no auth required)
+| Fires only from frontend JS via sendBeacon / fetch.
+| Admin & subscriber panels never call this route.
+|--------------------------------------------------------------------------
+*/
+Route::post('/api/track-event', [App\Http\Controllers\API\FrontendEventController::class, 'store'])
+    ->name('frontend.track-event');
+
+/*
+|--------------------------------------------------------------------------
 | API Notifications Routes (Linked to Enquiries)
 |--------------------------------------------------------------------------
 */

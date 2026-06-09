@@ -689,40 +689,46 @@ class ProductController extends Controller
                 continue;
             }
  
-            $name = trim($row['A'] ?? '');
-            $sku = trim($row['B'] ?? '');
-            $slug = trim($row['C'] ?? '');
-            $brand = trim($row['D'] ?? '');
-            $category = trim($row['E'] ?? '');
-            $subcategory = trim($row['F'] ?? '');
-            $mrpVal = trim($row['G'] ?? '');
-            $offerPriceVal = trim($row['H'] ?? '');
-            $moqVal = trim($row['I'] ?? '');
-            $stockVal = trim($row['J'] ?? '');
-            $stockStatusVal = trim($row['K'] ?? '');
-            $shortDesc = trim($row['L'] ?? '');
-            $fullDesc = trim($row['M'] ?? '');
-            $statusVal = trim($row['N'] ?? '');
-            $featuredVal = trim($row['O'] ?? '');
-            $featuredImageVal = trim($row['P'] ?? '');
-            $gallery1Val = trim($row['Q'] ?? '');
-            $gallery2Val = trim($row['R'] ?? '');
-            $gallery3Val = trim($row['S'] ?? '');
-            $tags = trim($row['T'] ?? '');
-            $metaTitle = trim($row['U'] ?? '');
-            $metaDescription = trim($row['V'] ?? '');
+            $name             = trim($row['A'] ?? '');
+            $sku              = trim($row['B'] ?? '');
+            $slug             = trim($row['C'] ?? '');
+            $partCode         = trim($row['D'] ?? '');  // Part Code (col D)
+            $partNumber       = trim($row['E'] ?? '');  // Part Number (col E)
+            $brand            = trim($row['F'] ?? '');
+            $category         = trim($row['G'] ?? '');
+            $subcategory      = trim($row['H'] ?? '');
+            $mrpVal           = trim($row['I'] ?? '');
+            $offerPriceVal    = trim($row['J'] ?? '');
+            $moqVal           = trim($row['K'] ?? '');
+            $stockVal         = trim($row['L'] ?? '');
+            $stockStatusVal   = trim($row['M'] ?? '');
+            $shortDesc        = trim($row['N'] ?? '');
+            $fullDesc         = trim($row['O'] ?? '');
+            $statusVal        = trim($row['P'] ?? '');
+            $featuredVal      = trim($row['Q'] ?? '');
+            $featuredImageVal = trim($row['R'] ?? '');
+            $gallery1Val      = trim($row['S'] ?? '');
+            $gallery2Val      = trim($row['T'] ?? '');
+            $gallery3Val      = trim($row['U'] ?? '');
+            $tags             = trim($row['V'] ?? '');
+            $weightVal        = trim($row['W'] ?? '');  // Weight (col W)
+            $colorsVal        = trim($row['X'] ?? '');  // Colors (col X)
+            $sizesVal         = trim($row['Y'] ?? '');  // Sizes (col Y)
+            $metaTitle        = trim($row['Z'] ?? '');
+            $metaDescription  = trim($row['AA'] ?? '');
+            $metaKeywords     = trim($row['AB'] ?? ''); // Meta Keywords (col AB)
  
-            // Row drawing checks (Embedded cell images)
+            // Row drawing checks (Embedded cell images) — Featured Image now col R
             $featuredImageSrc = '';
-            if (isset($extractedImages["P_{$rowIndex}"])) {
-                $featuredImageSrc = asset($tempDirName . '/' . $extractedImages["P_{$rowIndex}"]);
+            if (isset($extractedImages["R_{$rowIndex}"])) {
+                $featuredImageSrc = asset($tempDirName . '/' . $extractedImages["R_{$rowIndex}"]);
             } elseif ($featuredImageVal !== '') {
                 $featuredImageSrc = $featuredImageVal;
             }
  
-            // Gallery images preview sources
+            // Gallery images preview sources — Gallery cols S, T, U
             $gallerySrcs = [];
-            foreach (['Q', 'R', 'S'] as $col) {
+            foreach (['S', 'T', 'U'] as $col) {
                 if (isset($extractedImages["{$col}_{$rowIndex}"])) {
                     $gallerySrcs[] = asset($tempDirName . '/' . $extractedImages["{$col}_{$rowIndex}"]);
                 }
@@ -1090,6 +1096,8 @@ class ProductController extends Controller
             'Product Name',
             'SKU',
             'Slug',
+            'Part Code',
+            'Part Number',
             'Brand',
             'Category',
             'Subcategory',
@@ -1107,8 +1115,12 @@ class ProductController extends Controller
             'Gallery Image 2',
             'Gallery Image 3',
             'Tags',
+            'Weight',
+            'Colors',
+            'Sizes',
             'Meta Title',
             'Meta Description',
+            'Meta Keywords',
         ];
  
         $samples = [
@@ -1116,6 +1128,8 @@ class ProductController extends Controller
                 'Elite Leather Watch',
                 'ELITE-WATCH-01',
                 'elite-leather-watch',
+                '',
+                '',
                 'Titan',
                 'Fashion Accessories',
                 'Watches',
@@ -1133,13 +1147,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'watch, leather, premium, accessories',
+                '',
+                '',
+                '',
                 'Elite Leather Watch - Premium Accessories',
-                'Shop elite leather watches online at the best prices.'
+                'Shop elite leather watches online at the best prices.',
+                '',
             ],
             [
                 'Ergonomic Office Chair',
                 'ERG-CHAIR-02',
                 'ergonomic-office-chair',
+                '',
+                '',
                 'Featherlite, Steelcase',
                 'Furniture',
                 'Chairs',
@@ -1157,13 +1177,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'chair, office, ergonomic, furniture',
+                '',
+                '',
+                '',
                 'Ergonomic Office Chair - Dual Brand',
-                'Premium ergonomic chairs from top brands like Featherlite and Steelcase.'
+                'Premium ergonomic chairs from top brands like Featherlite and Steelcase.',
+                '',
             ],
             [
                 'Noise Cancelling Headphones',
                 'ANC-HEAD-03',
                 'noise-cancelling-headphones',
+                '',
+                '',
                 'Sony, Bose',
                 'Electronics, Audio Devices',
                 'Headphones',
@@ -1181,13 +1207,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'headphones, noise cancelling, electronics, audio',
+                '',
+                '',
+                '',
                 'Noise Cancelling Headphones - Electronics',
-                'Discover top noise cancelling headphones from Sony and Bose.'
+                'Discover top noise cancelling headphones from Sony and Bose.',
+                '',
             ],
             [
                 'Professional Sports Duffel Bag',
                 'SPORT-DUF-04',
                 'professional-sports-duffel-bag',
+                '',
+                '',
                 'Nike, Adidas',
                 'Sports Equipment, Travel Gear',
                 'Gym Bags, Travel Duffle Bags',
@@ -1205,13 +1237,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'duffel, gym bag, travel bag, nike, adidas',
+                '',
+                '',
+                '',
                 'Professional Sports Duffel Bag',
-                'High-grade sports and travel duffel bags from Nike and Adidas.'
+                'High-grade sports and travel duffel bags from Nike and Adidas.',
+                '',
             ],
             [
                 'Smart Fitness Tracker',
                 'FIT-TRACK-05',
                 'smart-fitness-tracker',
+                '',
+                '',
                 'Fitbit',
                 'Electronics',
                 'Wearables',
@@ -1229,13 +1267,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'fitness, tracker, band, wearable',
+                '',
+                '',
+                '',
                 'Smart Fitness Tracker',
-                'Stay active with the latest smart fitness tracker.'
+                'Stay active with the latest smart fitness tracker.',
+                '',
             ],
             [
                 'Gourmet Coffee Blend',
                 'COFFEE-BLEND-06',
                 'gourmet-coffee-blend',
+                '',
+                '',
                 'Blue Tokai',
                 'Beverages',
                 'Coffee',
@@ -1253,13 +1297,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'coffee, arabica, beverage, fresh roast',
+                '',
+                '',
+                '',
                 'Gourmet Coffee Blend - Blue Tokai',
-                'Experience the finest medium roast Arabica coffee beans.'
+                'Experience the finest medium roast Arabica coffee beans.',
+                '',
             ],
             [
                 'Stainless Steel Water Bottle',
                 'STEEL-BOTTLE-07',
                 'stainless-steel-water-bottle',
+                '',
+                '',
                 'Milton',
                 'Kitchenware',
                 'Bottles',
@@ -1277,13 +1327,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'bottle, stainless steel, kitchenware',
+                '',
+                '',
+                '',
                 'Stainless Steel Water Bottle',
-                'Keep your drinks hot or cold for 24 hours.'
+                'Keep your drinks hot or cold for 24 hours.',
+                '',
             ],
             [
                 'Minimalist Wireless Mouse',
                 'WIRELESS-MOUSE-08',
                 'minimalist-wireless-mouse',
+                '',
+                '',
                 'Logitech',
                 'Electronics',
                 'Computer Accessories',
@@ -1301,13 +1357,19 @@ class ProductController extends Controller
                 '',
                 '',
                 'mouse, wireless, computer accessories, logitech',
+                '',
+                '',
+                '',
                 'Minimalist Wireless Mouse',
-                'Silent wireless mouse with comfortable design.'
+                'Silent wireless mouse with comfortable design.',
+                '',
             ],
             [
                 'Organic Cotton T-Shirt',
                 'COTTON-TEE-09',
                 'organic-cotton-t-shirt',
+                '',
+                '',
                 'Zara',
                 'Apparel',
                 'T-Shirts',
@@ -1325,12 +1387,18 @@ class ProductController extends Controller
                 '',
                 '',
                 '',
+                '',
+                '',
+                '',
                 'Organic Cotton T-Shirt - Zara',
-                'Eco-friendly premium organic cotton tees.'
+                'Eco-friendly premium organic cotton tees.',
+                '',
             ],
             [
                 'Portable Power Bank',
                 'PORT-POWER-10',
+                '',
+                '',
                 '',
                 'Xiaomi',
                 'Electronics',
@@ -1350,14 +1418,18 @@ class ProductController extends Controller
                 '',
                 '',
                 '',
-                ''
+                '',
+                '',
+                '',
+                '',
+                '',
             ]
         ];
  
         $sheet->fromArray([$headers], null, 'A1');
         $sheet->fromArray($samples, null, 'A2');
  
-        $lastCol = 'V';
+        $lastCol = 'AB';
         $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
@@ -1366,14 +1438,15 @@ class ProductController extends Controller
             ],
         ]);
  
-        $sheet->getStyle('P1:S1')->applyFromArray([
+        // Highlight image columns (Featured Image = R, Gallery = S, T, U)
+        $sheet->getStyle('R1:U1')->applyFromArray([
             'fill' => [
                 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '06B6D4'],
             ],
         ]);
  
-        for ($col = 1; $col <= 22; $col++) {
+        for ($col = 1; $col <= 28; $col++) {
             $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
             $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
