@@ -43,7 +43,9 @@ class Enquiry extends Model
         'email',
         'phone',
         'subject',
-        'message'
+        'message',
+        'visit_log_id',
+        'share_track_id'
     ];
 
     public function product()
@@ -59,5 +61,15 @@ class Enquiry extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function visitLog()
+    {
+        return $this->belongsTo(VisitLog::class, 'visit_log_id');
+    }
+
+    public function shareTrack()
+    {
+        return $this->belongsTo(ShareTrack::class, 'share_track_id');
     }
 }

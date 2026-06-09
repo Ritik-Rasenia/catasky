@@ -327,12 +327,12 @@
 
                         {{-- Pricing --}}
                         <div class="d-flex align-items-baseline gap-2 mt-auto pt-3 border-top" style="border-color:rgba(255,255,255,0.06);">
-                            @if($prod->offer_price && ($settings['show_offer_price'] ?? true))
+                            @if($prod->offer_price && $prod->offer_price > 0 && ($settings['show_offer_price'] ?? true))
                                 <div class="fw-bold fs-5 text-primary" style="font-family:'Outfit', sans-serif; color:var(--primary) !important;">₹{{ number_format($prod->offer_price, 2) }}</div>
-                                @if($prod->mrp && ($settings['show_mrp'] ?? true))
+                                @if($prod->mrp && $prod->mrp > 0 && ($settings['show_mrp'] ?? true))
                                     <div class="text-muted text-decoration-line-through" style="font-size:0.75rem;">₹{{ number_format($prod->mrp, 2) }}</div>
                                 @endif
-                            @elseif($prod->mrp && ($settings['show_mrp'] ?? true))
+                            @elseif($prod->mrp && $prod->mrp > 0 && ($settings['show_mrp'] ?? true))
                                 <div class="fw-bold fs-5 text-white" style="font-family:'Outfit', sans-serif;">₹{{ number_format($prod->mrp, 2) }}</div>
                             @else
                                 <div class="text-muted italic" style="font-size:0.78rem;">Contact for pricing</div>
@@ -399,14 +399,15 @@ function openProductDetail(productId) {
     // Price block
     const priceBlock = document.getElementById('modal-price-block');
     priceBlock.innerHTML = '';
-    
-    if (p.offer_price) {
-        priceBlock.innerHTML = `<div class="fw-bold text-primary" style="font-family:'Outfit',sans-serif;font-size:1.8rem;color:var(--primary) !important;">₹${parseFloat(p.offer_price).toFixed(2)}</div>`;
-        if (p.mrp) {
-            priceBlock.innerHTML += `<div class="text-muted text-decoration-line-through" style="font-size:1rem;margin-bottom:4px;">₹${parseFloat(p.mrp).toFixed(2)}</div>`;
+    const _sMrp = Number(p.mrp); const _sHasMrp = !isNaN(_sMrp) && _sMrp > 0;
+    const _sOffer = Number(p.offer_price); const _sHasOffer = !isNaN(_sOffer) && _sOffer > 0;
+    if (_sHasOffer) {
+        priceBlock.innerHTML = `<div class="fw-bold text-primary" style="font-family:'Outfit',sans-serif;font-size:1.8rem;color:var(--primary) !important;">₹${_sOffer.toFixed(2)}</div>`;
+        if (_sHasMrp) {
+            priceBlock.innerHTML += `<div class="text-muted text-decoration-line-through" style="font-size:1rem;margin-bottom:4px;">₹${_sMrp.toFixed(2)}</div>`;
         }
-    } else if (p.mrp) {
-        priceBlock.innerHTML = `<div class="fw-bold text-white" style="font-family:'Outfit',sans-serif;font-size:1.8rem;">₹${parseFloat(p.mrp).toFixed(2)}</div>`;
+    } else if (_sHasMrp) {
+        priceBlock.innerHTML = `<div class="fw-bold text-white" style="font-family:'Outfit',sans-serif;font-size:1.8rem;">₹${_sMrp.toFixed(2)}</div>`;
     } else {
         priceBlock.innerHTML = `<div class="text-muted italic" style="font-size:0.95rem;">Contact for pricing</div>`;
     }

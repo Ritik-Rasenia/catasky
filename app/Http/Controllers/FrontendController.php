@@ -50,7 +50,7 @@ class FrontendController extends Controller
     {
         $category = (object)['name' => 'All Products', 'id' => 0];
 
-        $query = Product::where('status', 1)->with([]);
+        $query = Product::where('status', 1)->where('subscriber_id', 3)->with([]);
 
         // Filter by selected product IDs (for catalogue sharing)
         $productIds = $request->input('products');
@@ -116,7 +116,7 @@ class FrontendController extends Controller
      */
     public function brands()
     {
-        $brands = Brand::where('status', 1)->get();
+        $brands = Brand::where('status', 1)->orderBy('name')->get();
         return view('brands', compact('brands'));
     }
 
@@ -125,7 +125,7 @@ class FrontendController extends Controller
      */
     public function categories()
     {
-        $categories = Category::where('status', 1)->withCount('products')->get();
+        $categories = Category::where('status', 1)->withCount('products')->orderBy('name')->get();
         return view('categories', compact('categories'));
     }
 
@@ -134,7 +134,7 @@ class FrontendController extends Controller
      */
     public function subcategories()
     {
-        $subcategories = Subcategory::with(['category', 'products'])->get();
+        $subcategories = Subcategory::with(['category', 'products'])->orderBy('name')->get();
         return view('subcategories', compact('subcategories'));
     }
 
@@ -631,7 +631,6 @@ class FrontendController extends Controller
             'product_id' => 'nullable|integer',
             'brand_id' => 'nullable|exists:brands,id',
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
             'phone' => 'required|string|max:50',
             'subject' => 'nullable|string|max:255',
             'message' => 'required|string'
@@ -682,11 +681,11 @@ class FrontendController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Thank you! Your B2B inquiry has been logged. Our corporate dispatch office will contact you shortly.'
+                'message' => 'Thank you! Your  inquiry has been logged. Our corporate dispatch office will contact you shortly.'
             ]);
         }
 
-        return back()->with('success', 'Thank you! Your B2B inquiry has been logged. Our corporate dispatch office will contact you shortly.');
+        return back()->with('success', 'Thank you! Your  inquiry has been logged. Our corporate dispatch office will contact you shortly.');
     }
 
     /**
@@ -1190,7 +1189,7 @@ class FrontendController extends Controller
             ->flatten()
             ->filter()
             ->unique();
-        $allCategories = \App\Models\Category::withoutGlobalScope('tenant')->whereIn('id', $categoryIds)->get();
+        $allCategories = \App\Models\Category::withoutGlobalScope('tenant')->whereIn('id', $categoryIds)->orderBy('name')->get();
 
         // Get all subcategories represented in this subscriber's active approved products (optionally filtered by category)
         $subQuery = \App\Models\SubscriberProduct::where('user_id', $profile->user_id)
@@ -1227,7 +1226,7 @@ class FrontendController extends Controller
             ->flatten()
             ->filter()
             ->unique();
-        $subcategories = \App\Models\Subcategory::withoutGlobalScope('tenant')->whereIn('id', $subcategoryIds)->get();
+        $subcategories = \App\Models\Subcategory::withoutGlobalScope('tenant')->whereIn('id', $subcategoryIds)->orderBy('name')->get();
 
         // Category object for header/title context
         if ($request->filled('category')) {
@@ -1274,7 +1273,7 @@ class FrontendController extends Controller
     }
 
     /**
-     * Submit B2B Product Review.
+     * Submit  Product Review.
      */
     public function submitReview(Request $request, $slug)
     {

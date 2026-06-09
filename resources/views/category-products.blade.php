@@ -7,7 +7,7 @@
 @php
     // Fetch all active categories dynamically in the view if not overridden by controller
     if (!isset($allCategories)) {
-        $allCategories = \App\Models\Category::where('status', 1)->whereNull('subscriber_id')->get();
+        $allCategories = \App\Models\Category::where(['status'=> 1,'subscriber_id'=> 3])->orderBy('name', 'asc')->get();
     }
 @endphp
 
@@ -43,7 +43,7 @@
     </div>
 </section>
 
-<!-- Catalog Grid & Filters Section -->
+<!-- Catalogue Grid & Filters Section -->
 <section class="py-5">
     <div class="container">
         <div class="row g-4">
@@ -63,8 +63,8 @@
                                 $currentSub = request()->query('subcategory');
                                 if (!isset($subcategories)) {
                                     $subcategories = isset($category->id) && $category->id > 0
-                                        ? \App\Models\Subcategory::where('category_id', $category->id)->get()
-                                        : \App\Models\Subcategory::take(10)->get();
+                                        ? \App\Models\Subcategory::where(['category_id'=> $category->id,'subscriber_id'=>3])->orderBy('name', 'asc')->get()
+                                        : \App\Models\Subcategory::where(['subscriber_id'=>3])->take(10)->orderBy('name', 'asc')->get();
                                 }
                             @endphp
                             
@@ -97,9 +97,9 @@
                                             ->flatten()
                                             ->filter()
                                             ->unique();
-                                        $brands = \App\Models\Brand::withoutGlobalScope('tenant')->whereIn('id', $brandIds)->get();
+                                        $brands = \App\Models\Brand::withoutGlobalScope('tenant')->whereIn('id', $brandIds)->orderBy('name', 'asc')->get();
                                     } else {
-                                        $brands = \App\Models\Brand::where('status', 1)->whereNull('subscriber_id')->get();
+                                        $brands = \App\Models\Brand::where('status', 1)->where('subscriber_id', 3)->orderBy('name', 'asc')->get();
                                     }
                                 }
                             @endphp
@@ -312,22 +312,41 @@
                                 <span class="small text-secondary mb-1" style="font-size:0.75rem; font-weight: 500;">
                                     {{ $product->category->name ?? 'Corporate Segment' }}
                                 </span>
-                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'">
+                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'" style="height:45px !important;">
                                     {{ $product->name }}
                                 </h6>
                                 
-                                <div class="product-meta mb-1">
-                                    <i class="bi bi-layers me-1 text-primary"></i> MOQ: {{ $product->moq ?? 100 }} pcs
-                                </div>
+                                <!--<div class="product-meta mb-1">-->
+                                <!--    <i class="bi bi-layers me-1 text-primary"></i> MOQ: {{ $product->moq ?? 100 }} pcs-->
+                                <!--</div>-->
 
-                                <div class="product-price-val mb-3" style="font-size: 0.8rem !important; font-weight: 700 !important; color: var(--primary) !important;">
-                                    @if($product->price)
-                                        ₹{{ number_format($product->price, 2) }}
+                                <div class="product-price-val mb-3" style="font-size: 0.8rem !important; font-weight: 700 !important;">
+    
+                                    @if($product->offer_price)
+                                
+                                        @if($product->mrp > 0)
+                                            <span style="text-decoration: line-through; color: #999;">
+                                                ₹{{ number_format($product->mrp, 2) }}
+                                            </span>
+                                        @endif
+                                    
+                                        <span style="color: var(--primary) !important; margin-left: 5px;">
+                                            ₹{{ number_format($product->offer_price, 2) }}
+                                        </span>
+                                    
+                                    @elseif($product->mrp > 0)
+                                    
+                                        <span style="color: var(--primary) !important;">
+                                            ₹{{ number_format($product->mrp, 2) }}
+                                        </span>
+                                
                                     @else
+                                
                                         {{ $product->variant ?: '' }}
+                                
                                     @endif
+                                
                                 </div>
-
                                 <div class="product-price-row pt-2" style="border-top: 1px dashed var(--border); display: flex; justify-content: center; width: 100%;">
                                     <button class="btn btn-premium btn-premium-outline select-btn-main w-100 py-2 px-3" onclick="toggleSelection('{{ $product->id }}', this)">
                                         <i class="bi bi-bag-plus"></i> Select
@@ -342,7 +361,7 @@
                             <p class="text-secondary mx-auto" style="max-width: 350px;">We couldn't locate any product matching the active subcategory or price tiers.</p>
                             @if(isset($isSubscriberStore) && $isSubscriberStore)
                                 <a href="javascript:void(0)" onclick="resetFilters()" class="btn btn-premium btn-premium-primary mt-3">
-                                    @if(isset($profile) && $profile->company_slug === 'demo')
+                                    @if(isset($profile) && ($profile->company_slug === 'demo' || $profile->user_id == 3 || request()->is('demo*')))
                                         Reset Demo
                                     @else
                                         Reset Catalog
@@ -368,23 +387,12 @@
 
 <style>
     .product-image-container {
-        background: #f8fafc !important;
-        border: 1px solid rgba(226, 232, 240, 0.8) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-        padding: 10px !important;
-        aspect-ratio: 1/1 !important;
-        position: relative !important;
+        background: #ffffff !important;
     }
     .product-image-container img {
-        max-width: 90% !important;
-        max-height: 90% !important;
-        width: auto !important;
-        height: auto !important;
+        width: 100% !important;
+        height: 100% !important;
         object-fit: contain !important;
-        transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     }
 
     /* Desktop Sticky Sidebar styling to prevent overflowing footer & scroll internally */
@@ -487,13 +495,8 @@
             margin-bottom: 8px !important;
             aspect-ratio: 1/1 !important;
             height: auto !important;
-            padding: 8px !important;
         }
         .product-image-container img {
-            max-width: 90% !important;
-            max-height: 90% !important;
-            width: auto !important;
-            height: auto !important;
             object-fit: contain !important;
         }
         .product-title {

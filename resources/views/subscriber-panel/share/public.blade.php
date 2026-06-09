@@ -346,13 +346,13 @@
 
                     {{-- Pricing --}}
                     <div class="d-flex align-items-baseline gap-3 mb-3">
-                        @if($product->offer_price && ($settings['show_offer_price'] ?? true))
+                        @if($product->offer_price && $product->offer_price > 0 && ($settings['show_offer_price'] ?? true))
                             <div style="font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800;color:var(--primary);">₹{{ number_format($product->offer_price, 2) }}</div>
-                            @if($product->mrp && ($settings['show_mrp'] ?? true))
+                            @if($product->mrp && $product->mrp > 0 && ($settings['show_mrp'] ?? true))
                                 <div style="font-size:1rem;color:var(--text-muted);text-decoration:line-through;">₹{{ number_format($product->mrp, 2) }}</div>
                                 <span class="badge-discount">{{ $product->discount_percentage }}% OFF</span>
                             @endif
-                        @elseif($product->mrp && ($settings['show_mrp'] ?? true))
+                        @elseif($product->mrp && $product->mrp > 0 && ($settings['show_mrp'] ?? true))
                             <div style="font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800;color:white;">₹{{ number_format($product->mrp, 2) }}</div>
                         @else
                             <div style="color:var(--text-muted);font-style:italic;">Contact Subscriber for Pricing</div>
@@ -424,17 +424,17 @@
         
         <div class="d-flex align-items-center gap-2">
             @if($settings['allow_download'] ?? true)
-                <a href="{{ route('subscriber.share.pdf', $link->token) }}" class="btn-floating btn-floating-primary">
+                <a href="{{ route('subscriber.share.pdf', $link->token) }}" class="btn-floating btn-floating-primary" data-track-download="pdf">
                     <i class="bi bi-file-pdf"></i> Download PDF
                 </a>
             @endif
             
-            <a href="{{ route('subscriber.share.gallery', $link->token) }}" class="btn-floating btn-floating-outline d-none d-sm-inline-flex">
+            <a href="{{ route('subscriber.share.gallery', $link->token) }}" class="btn-floating btn-floating-outline d-none d-sm-inline-flex" data-track-engagement="catalogue_open">
                 <i class="bi bi-images"></i> Images
             </a>
 
             @if(($settings['show_contact'] ?? true) && $profile?->phone)
-                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $profile->phone) }}" target="_blank" class="btn-floating btn-floating-outline" style="border-color:#25D366;color:#25D366 !important;">
+                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $profile->phone) }}" target="_blank" class="btn-floating btn-floating-outline" style="border-color:#25D366;color:#25D366 !important;" data-track-engagement="whatsapp_click">
                     <i class="bi bi-whatsapp"></i> Chat
                 </a>
             @endif
@@ -503,9 +503,11 @@ const cShowMrp = {{ ($settings['show_mrp'] ?? true) ? 'true' : 'false' }};
 const cShowDescription = {{ ($settings['show_description'] ?? true) ? 'true' : 'false' }};
 
 function productCard(product) {
-    const price = product.offer_price && cShowOffer
-        ? `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:var(--primary);font-size:1.05rem;">Rs. ${Number(product.offer_price).toLocaleString('en-IN')}</div>${product.mrp && cShowMrp ? `<div style="font-size:0.75rem;color:var(--text-muted);text-decoration:line-through;">Rs. ${Number(product.mrp).toLocaleString('en-IN')}</div>` : ''}`
-        : (product.mrp && cShowMrp ? `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:var(--text);font-size:1.05rem;">Rs. ${Number(product.mrp).toLocaleString('en-IN')}</div>` : `<div style="color:var(--text-muted);font-style:italic;font-size:0.8rem;">Contact for Price</div>`);
+    const _mrpVal = Number(product.mrp); const _hasMrp = !isNaN(_mrpVal) && _mrpVal > 0;
+    const _offerVal = Number(product.offer_price); const _hasOffer = !isNaN(_offerVal) && _offerVal > 0;
+    const price = _hasOffer && cShowOffer
+        ? `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:var(--primary);font-size:1.05rem;">Rs. ${_offerVal.toLocaleString('en-IN')}</div>${_hasMrp && cShowMrp ? `<div style="font-size:0.75rem;color:var(--text-muted);text-decoration:line-through;">Rs. ${_mrpVal.toLocaleString('en-IN')}</div>` : ''}`
+        : (_hasMrp && cShowMrp ? `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:var(--text);font-size:1.05rem;">Rs. ${_mrpVal.toLocaleString('en-IN')}</div>` : `<div style="color:var(--text-muted);font-style:italic;font-size:0.8rem;">Contact for Price</div>`);
 
     return `
         <div class="col-sm-6 col-md-4 col-lg-3">
@@ -578,14 +580,16 @@ function openProductDetail(productId) {
     
     const showOffer = {{ ($settings['show_offer_price'] ?? true) ? 'true' : 'false' }};
     const showMrp = {{ ($settings['show_mrp'] ?? true) ? 'true' : 'false' }};
+    const _mMrp = Number(p.mrp); const _mHasMrp = !isNaN(_mMrp) && _mMrp > 0;
+    const _mOffer = Number(p.offer_price); const _mHasOffer = !isNaN(_mOffer) && _mOffer > 0;
 
-    if (p.offer_price && showOffer) {
-        priceBlock.innerHTML = `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:var(--primary);font-size:1.6rem;">₹${parseFloat(p.offer_price).toFixed(2)}</div>`;
-        if (p.mrp && showMrp) {
-            priceBlock.innerHTML += `<div style="font-size:0.95rem;color:var(--text-muted);text-decoration:line-through;">₹${parseFloat(p.mrp).toFixed(2)}</div>`;
+    if (_mHasOffer && showOffer) {
+        priceBlock.innerHTML = `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:var(--primary);font-size:1.9rem;">₹${_mOffer.toFixed(2)}</div>`;
+        if (_mHasMrp && showMrp) {
+            priceBlock.innerHTML += `<div style="font-size:0.95rem;color:var(--text-muted);text-decoration:line-through;">₹${_mMrp.toFixed(2)}</div>`;
         }
-    } else if (p.mrp && showMrp) {
-        priceBlock.innerHTML = `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:white;font-size:1.6rem;">₹${parseFloat(p.mrp).toFixed(2)}</div>`;
+    } else if (_mHasMrp && showMrp) {
+        priceBlock.innerHTML = `<div style="font-family:'Outfit',sans-serif;font-weight:800;color:white;font-size:1.6rem;">₹${_mMrp.toFixed(2)}</div>`;
     } else {
         priceBlock.innerHTML = `<div style="color:var(--text-muted);font-style:italic;font-size:0.9rem;">Contact for pricing</div>`;
     }
@@ -617,8 +621,131 @@ function openProductDetail(productId) {
 
     const modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
     modal.show();
+
+    // Track product detail view
+    if (window._analyticsSessionId) {
+        fetch('/api/analytics/product-view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: JSON.stringify({
+                session_id: window._analyticsSessionId,
+                product_id: productId,
+                browse_order: window._analyticsBrowseOrder = (window._analyticsBrowseOrder || 0) + 1
+            })
+        }).catch(() => {});
+    }
 }
 @endif
+
+/* ─── ANALYTICS TRACKING ───────────────────────────────────────────────── */
+(function() {
+    const SHARE_TOKEN = '{{ $link->token }}';
+    const TRACK_TOKEN = '{{ $trackingToken ?? '' }}';
+    const API_BASE = '/api/analytics';
+    const CSRF = '{{ csrf_token() }}';
+
+    // Generate or retrieve visitor UUID (persistent across visits)
+    function getVisitorUuid() {
+        let uuid = localStorage.getItem('_catasky_visitor');
+        if (!uuid) {
+            uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+            localStorage.setItem('_catasky_visitor', uuid);
+        }
+        return uuid;
+    }
+
+    const visitorUuid = getVisitorUuid();
+    const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    window._analyticsSessionId = sessionId;
+    let heartbeatTimer = null;
+    let activeProductId = null;
+
+    function apiPost(endpoint, data) {
+        return fetch(API_BASE + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify(data)
+        }).catch(() => {});
+    }
+
+    // 1. Log initial visit
+    apiPost('/visit', {
+        token: SHARE_TOKEN,
+        track_token: TRACK_TOKEN || null,
+        visitor_uuid: visitorUuid,
+        session_id: sessionId,
+        referrer: document.referrer || null
+    });
+
+    // 2. Heartbeat every 10 seconds
+    heartbeatTimer = setInterval(function() {
+        apiPost('/heartbeat', {
+            session_id: sessionId,
+            active_product_id: activeProductId,
+            seconds: 10
+        });
+    }, 10000);
+
+    // 3. Track product detail opens (hook into existing function)
+    const _origOpenDetail = window.openProductDetail;
+    if (typeof _origOpenDetail === 'function') {
+        window.openProductDetail = function(productId) {
+            activeProductId = productId;
+            _origOpenDetail(productId);
+        };
+    }
+
+    // 4. Download tracking
+    document.querySelectorAll('[data-track-download]').forEach(function(el) {
+        el.addEventListener('click', function() {
+            apiPost('/download', {
+                session_id: sessionId,
+                token: SHARE_TOKEN,
+                file_type: el.dataset.trackDownload || 'pdf'
+            });
+        });
+    });
+
+    // 5. Engagement tracking for WhatsApp, call, enquiry links
+    document.querySelectorAll('[data-track-engagement]').forEach(function(el) {
+        el.addEventListener('click', function() {
+            apiPost('/engagement', {
+                session_id: sessionId,
+                token: SHARE_TOKEN,
+                event_type: el.dataset.trackEngagement,
+                product_id: el.dataset.productId || null
+            });
+        });
+    });
+
+    // 6. Visibility change - pause/resume heartbeat
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        } else if (!heartbeatTimer) {
+            heartbeatTimer = setInterval(function() {
+                apiPost('/heartbeat', {
+                    session_id: sessionId,
+                    active_product_id: activeProductId,
+                    seconds: 10
+                });
+            }, 10000);
+        }
+    });
+
+    // 7. Final heartbeat on page unload
+    window.addEventListener('beforeunload', function() {
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(API_BASE + '/heartbeat', new Blob([
+                JSON.stringify({ session_id: sessionId, seconds: 5, _token: CSRF })
+            ], { type: 'application/json' }));
+        }
+    });
+})();
 </script>
 </body>
 </html>

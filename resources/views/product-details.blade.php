@@ -12,9 +12,9 @@
                 @if(isset($profile) && $profile->company_slug === 'demo')
                     <li class="breadcrumb-item"><a href="{{ route('demo') }}" class="text-secondary">Demo</a></li>
                 @elseif(isset($isSubscriberStore) && $isSubscriberStore && isset($profile))
-                    <li class="breadcrumb-item"><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-secondary">Catalog</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('subscriber_store', $profile->company_slug) }}" class="text-secondary">Catalogue</a></li>
                 @else
-                    <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalog</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('catalogue') }}" class="text-secondary">Catalogue</a></li>
                 @endif
                 @if($product->category)
                     <li class="breadcrumb-item"><a href="{{ isset($isSubscriberStore) && $isSubscriberStore && isset($profile) ? route('category.products', [$product->category->slug, 'company_slug' => $profile->company_slug]) : route('category.products', $product->category->slug) }}" class="text-secondary">{{ $product->category->name }}</a></li>
@@ -205,7 +205,7 @@
                             @if($product->tax)
                                 <div class="col-sm-6 col-12">
                                     <div class="small text-secondary">Tax Detail</div>
-                                    <div class="fw-semibold text-dark">{{ $product->tax }}% B2B Tax</div>
+                                    <div class="fw-semibold text-dark">{{ $product->tax }}% Tax</div>
                                 </div>
                             @endif
                         </div>
@@ -233,7 +233,7 @@
                     <div class="card border-0 rounded-4  overflow-hidden bg-white">
                         <div class="card-header bg-dark p-4 border-0 position-relative text-white overflow-hidden">
                             <div class="position-relative z-index-1">
-                                <h5 class="fw-bold mb-1 text-white" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-send-fill text-primary me-2"></i> B2B Corporate Inquiry</h5>
+                                <h5 class="fw-bold mb-1 text-white" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-send-fill text-primary me-2"></i> Inquiry Form</h5>
                                 <p class="mb-0 small text-white-50">Submit queries directly to our verified dispatch office for corporate bulk discounts.</p>
                             </div>
                             <div class="position-absolute end-0 bottom-0 opacity-10" style="transform: translate(20px, 20px);">
@@ -259,8 +259,8 @@
                                         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-12">
-                                        <label for="email" class="form-label small fw-bold text-secondary">Business Email <span class="text-danger">*</span></label>
-                                        <input type="email" class="form-control rounded-3 p-2-5 @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" placeholder="corporate@company.com" required>
+                                        <label for="email" class="form-label small fw-bold text-secondary">Email</label>
+                                        <input type="email" class="form-control rounded-3 p-2-5 @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" placeholder="corporate@company.com">
                                         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-12">
@@ -270,7 +270,7 @@
                                     </div>
                                     <div class="col-12 mt-4">
                                         <button type="submit" class="btn btn-premium w-100 py-3 rounded-pill fw-bold text-white d-flex align-items-center justify-content-center gap-2" style="background: var(--primary-gradient); border: none; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);">
-                                            <i class="bi bi-send-check"></i> Dispatch Corporate Inquiry
+                                            <i class="bi bi-send-check"></i> Send Message
                                         </button>
                                     </div>
                                 </div>

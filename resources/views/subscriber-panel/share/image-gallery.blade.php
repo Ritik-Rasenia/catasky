@@ -782,5 +782,82 @@
     document.getElementById('btn-generate-current').addEventListener('click', () => generateImageBatch(1));
     document.getElementById('btn-generate-bulk').addEventListener('click', () => generateImageBatch());
 </script>
+
+/* ─── ANALYTICS TRACKING (Image Gallery) ─────────────────────────────── */
+<script>
+(function() {
+    const SHARE_TOKEN = '{{ $link->token }}';
+    const TRACK_TOKEN = '{{ $trackingToken ?? '' }}';
+    const API_BASE = '/api/analytics';
+    const CSRF = '{{ csrf_token() }}';
+
+    function getVisitorUuid() {
+        let uuid = localStorage.getItem('_catasky_visitor');
+        if (!uuid) {
+            uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+            localStorage.setItem('_catasky_visitor', uuid);
+        }
+        return uuid;
+    }
+
+    const visitorUuid = getVisitorUuid();
+    const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    window._analyticsSessionId = sessionId;
+    let heartbeatTimer = null;
+
+    function apiPost(endpoint, data) {
+        return fetch(API_BASE + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify(data)
+        }).catch(() => {});
+    }
+
+    // Log visit
+    apiPost('/visit', {
+        token: SHARE_TOKEN,
+        track_token: TRACK_TOKEN || null,
+        visitor_uuid: visitorUuid,
+        session_id: sessionId,
+        referrer: document.referrer || null
+    });
+
+    // Heartbeat
+    heartbeatTimer = setInterval(function() {
+        apiPost('/heartbeat', { session_id: sessionId, seconds: 10 });
+    }, 10000);
+
+    // Track image generation as engagement
+    document.getElementById('btn-generate-current')?.addEventListener('click', function() {
+        apiPost('/engagement', { session_id: sessionId, token: SHARE_TOKEN, event_type: 'product_detail_open' });
+    });
+    document.getElementById('btn-generate-bulk')?.addEventListener('click', function() {
+        apiPost('/engagement', { session_id: sessionId, token: SHARE_TOKEN, event_type: 'product_detail_open' });
+    });
+
+    // Visibility
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        } else if (!heartbeatTimer) {
+            heartbeatTimer = setInterval(function() {
+                apiPost('/heartbeat', { session_id: sessionId, seconds: 10 });
+            }, 10000);
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(API_BASE + '/heartbeat', new Blob([
+                JSON.stringify({ session_id: sessionId, seconds: 5, _token: CSRF })
+            ], { type: 'application/json' }));
+        }
+    });
+})();
+</script>
 </body>
 </html>

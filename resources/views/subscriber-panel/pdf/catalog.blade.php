@@ -16,7 +16,7 @@
         $watermarkText = $template?->watermark_text ?: $companyName;
         $showWatermark = $template?->show_watermark ?? false;
         
-        $publicUrl = route('subscriber.share.public', $link->token);
+        $publicUrl = route('subscriber.share.public', $link->token) . (isset($trackingToken) ? '?track=' . $trackingToken : '');
         $qrCodeUrl = "https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=" . urlencode($publicUrl);
     @endphp
     <title>{{ $link->title }} | {{ $companyName }}</title>
@@ -382,6 +382,10 @@
                 <div class="cover-qr-text">Scan to view active interactive details and pricing online</div>
             </div>
         @endif
+
+        <div style="margin-top: 35px; text-align: center;">
+            <a href="{{ route('track.catalogue.open', ['ref' => $link->token, 'tk' => $trackingToken ?? '']) }}" style="display: inline-block; padding: 12px 24px; background-color: {{ $brandColor }}; color: white; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 13px;">View Full Collection Online →</a>
+        </div>
     </div>
 
     {{-- Insert page break to start list --}}
@@ -476,6 +480,10 @@
                         <h4 style="margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: {{ $brandColor }}">Description</h4>
                         <p style="margin-bottom: 20px; color:#475569; font-size:12px; line-height: 1.6;">{!! nl2br(e($prod->full_description)) !!}</p>
                     @endif
+
+                    <div style="margin-top: 15px;">
+                        <a href="{{ route('track.pdf.click', ['product' => $prod->slug, 'ref' => $link->token, 'tk' => $trackingToken ?? '']) }}" style="display: inline-block; padding: 8px 16px; background-color: {{ $brandColor }}; color: white; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 11px;">View Full Details Online →</a>
+                    </div>
                 </td>
 
                 {{-- Product Thumbnail (Right) --}}

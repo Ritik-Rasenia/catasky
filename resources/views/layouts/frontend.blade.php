@@ -431,90 +431,64 @@
             100% { background-position: 200% 50%; }
         }
 
-        /* Premium Floating PWA Install Button Styling */
-        .floating-pwa-btn {
-            position: fixed;
-            bottom: 32px;
-            right: 32px;
-            z-index: 1040;
+        /* Navbar PWA Install Button */
+        .header-pwa-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            padding: 14px 26px;
-            border-radius: 50px;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: 30px;
             background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
             color: #ffffff !important;
             font-family: 'Outfit', 'Poppins', sans-serif;
-            font-size: 15px;
-            font-weight: 600;
-            text-decoration: none !important;
-            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+            font-size: 0.82rem;
+            font-weight: 700;
             border: 1.5px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
+            text-decoration: none !important;
+            white-space: nowrap;
         }
-
-        /* If enquiry button is present before the PWA button, shift PWA button up */
-        .floating-enquiry-btn ~ .floating-pwa-btn {
-            bottom: 100px;
-        }
-
-        .floating-pwa-btn i {
-            font-size: 18px;
+        .header-pwa-btn i {
+            font-size: 15px;
             transition: transform 0.3s ease;
         }
-
-        .floating-pwa-btn:hover {
-            transform: translateY(-6px) scale(1.04);
-            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.5);
+        .header-pwa-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
             background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
-            border-color: rgba(255, 255, 255, 0.4);
             color: #ffffff !important;
         }
-
-        .floating-pwa-btn:hover i {
+        .header-pwa-btn:hover i {
             transform: rotate(-10deg) scale(1.15);
         }
-
-        .floating-pwa-btn:active {
-            transform: translateY(-2px) scale(0.98);
+        .header-pwa-btn:active {
+            transform: scale(0.97);
         }
-
-        /* Pulsing attention-getter animation */
-        @keyframes pwaPulse {
-            0% {
-                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35), 0 0 0 0 rgba(99, 102, 241, 0.45);
-            }
-            70% {
-                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35), 0 0 0 12px rgba(99, 102, 241, 0);
-            }
-            100% {
-                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35), 0 0 0 0 rgba(99, 102, 241, 0);
-            }
+        /* Mobile: icon-only compact version */
+        .header-pwa-btn-mobile {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: #ffffff !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
         }
-
-        .floating-pwa-btn {
-            animation: pwaPulse 2.5s infinite ease-in-out;
-        }
-
-        @media (max-width: 576px) {
-            .floating-pwa-btn {
-                bottom: 90px;
-                right: 20px;
-                padding: 12px 20px;
-                font-size: 13.5px;
-                box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-            }
-            .floating-pwa-btn i {
-                font-size: 16px;
-            }
-            /* If enquiry button is present before the PWA button, shift PWA button up on mobile */
-            .floating-enquiry-btn ~ .floating-pwa-btn {
-                bottom: 155px;
-            }
+        .header-pwa-btn-mobile:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.55);
+            color: #ffffff !important;
         }
     </style>
 </head>
@@ -547,6 +521,11 @@
                 <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal">
                     <i class="bi bi-search"></i>
                 </button>
+                @if(Auth::check() && Auth::user()->hasRole('Subscriber') && isset($isSubscriberStore) && $isSubscriberStore)
+                <button id="pwa-install-btn-mobile" class="header-pwa-btn-mobile">
+                    <i class="bi bi-phone-vibrate"></i>
+                </button>
+                @endif
                 <button class="navbar-toggler nav-icon-btn" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <i class="bi bi-list"></i>
                 </button>
@@ -600,6 +579,11 @@
                     <button class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#searchModal" title="Search Catalog">
                         <i class="bi bi-search"></i>
                     </button>
+                    @if(Auth::check() && Auth::user()->hasRole('Subscriber') && isset($isSubscriberStore) && $isSubscriberStore)
+                    <button id="pwa-install-btn" class="header-pwa-btn">
+                        <i class="bi bi-phone-vibrate"></i>
+                    </button>
+                    @endif
 
                     @auth
                         <div class="dropdown">
@@ -832,7 +816,7 @@
             </button>
             <!-- Center button: Share PDF -->
             <button class="bar-pill-btn pdf-btn" onclick="openSharingModal('pdf')" title="Open PDF Specifications">
-                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Details PDF
+                <i class="bi bi-file-earmark-pdf-fill me-2"></i>PDF Share
             </button>
             <!-- Right button: Share Image -->
             <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
@@ -4856,18 +4840,7 @@
     </a>
     @endif
 
-    @if(Auth::check() && Auth::user()->hasRole('Subscriber') && isset($isSubscriberStore) && $isSubscriberStore)
-    <!-- Desktop Floating PWA Install Button -->
-    <button id="pwa-install-btn" class="floating-pwa-btn d-none d-lg-flex shadow-lg" title="Install App">
-        <i class="bi bi-phone-vibrate"></i>
-        <span>Install App</span>
-    </button>
-    <!-- Mobile Floating PWA Install Button -->
-    <button id="pwa-install-btn-mobile" class="floating-pwa-btn d-flex d-lg-none shadow-lg" title="Install App">
-        <i class="bi bi-phone-vibrate"></i>
-        <span>Install App</span>
-    </button>
-    @endif
+    {{-- PWA install buttons moved to header navbar --}}
 
     @stack('scripts')
     <script>
@@ -4904,7 +4877,7 @@
                 const icon = installed
                     ? '<i class="bi bi-check-circle-fill text-success"></i>'
                     : '<i class="bi bi-phone-vibrate text-white"></i>';
-                const label = installed ? ' Installed' : ' Install App';
+                const label = installed ? ' Installed' : '';
                 
                 if (installBtnDesktop) {
                     installBtnDesktop.innerHTML = icon + '<span>' + label + '</span>';
@@ -4994,6 +4967,165 @@
             // Initial check
             updateInstallButtonState();
         })();
+    </script>
+    @endif
+
+    {{-- ─── FRONTEND SHARE TRACKING ─────────────────────────────────────────── --}}
+    @if(isset($profile) && isset($isSubscriberStore) && $isSubscriberStore)
+    <script>
+    (function() {
+        const SUBSCRIBER_USER_ID = {{ $profile->user_id ?? 'null' }};
+        const COMPANY_SLUG = '{{ $profile->company_slug ?? '' }}';
+        const CSRF = '{{ csrf_token() }}';
+        const API_BASE = '/api/analytics';
+
+        function getVisitorUuid() {
+            let uuid = localStorage.getItem('_catasky_visitor');
+            if (!uuid) {
+                uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+                localStorage.setItem('_catasky_visitor', uuid);
+            }
+            return uuid;
+        }
+
+        const visitorUuid = getVisitorUuid();
+        const sessionId = 'fss_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        window._frontendSessionId = sessionId;
+
+        function trackEngagement(eventType, extraData) {
+            const payload = Object.assign({
+                session_id: sessionId,
+                user_id: SUBSCRIBER_USER_ID,
+                event_type: eventType,
+                metadata: { company_slug: COMPANY_SLUG, source: 'frontend_store' }
+            }, extraData || {});
+
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(API_BASE + '/engagement', new Blob([
+                    JSON.stringify(Object.assign(payload, { _token: CSRF }))
+                ], { type: 'application/json' }));
+            } else {
+                fetch(API_BASE + '/engagement', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    body: JSON.stringify(payload),
+                    keepalive: true
+                }).catch(function() {});
+            }
+        }
+
+        function getSelectedProductIds() {
+            if (typeof selectedProducts !== 'undefined' && Array.isArray(selectedProducts)) {
+                return selectedProducts.map(function(p) { return p.id || p; });
+            }
+            return [];
+        }
+
+        // Wait for all JS to load, then wrap existing share functions
+        function wrapShareFunctions() {
+            // Wrap openSharingModal - track when share modal opens
+            var _origOpenSharingModal = window.openSharingModal;
+            if (typeof _origOpenSharingModal === 'function') {
+                window.openSharingModal = function(tab) {
+                    trackEngagement('catalogue_open', { metadata: { tab: tab, company_slug: COMPANY_SLUG } });
+                    return _origOpenSharingModal.apply(this, arguments);
+                };
+            }
+
+            // Wrap sharePDFSystem - track PDF share to any app
+            var _origSharePDFSystem = window.sharePDFSystem;
+            if (typeof _origSharePDFSystem === 'function') {
+                window.sharePDFSystem = async function() {
+                    trackEngagement('pdf_share', { product_ids: getSelectedProductIds() });
+                    return _origSharePDFSystem.apply(this, arguments);
+                };
+            }
+
+            // Wrap sharePDFOnWhatsApp - track WhatsApp PDF share
+            var _origSharePDFOnWhatsApp = window.sharePDFOnWhatsApp;
+            if (typeof _origSharePDFOnWhatsApp === 'function') {
+                window.sharePDFOnWhatsApp = async function() {
+                    trackEngagement('whatsapp_pdf_share', { product_ids: getSelectedProductIds() });
+                    return _origSharePDFOnWhatsApp.apply(this, arguments);
+                };
+            }
+
+            // Wrap shareImageSystem - track image share to any app
+            var _origShareImageSystem = window.shareImageSystem;
+            if (typeof _origShareImageSystem === 'function') {
+                window.shareImageSystem = async function() {
+                    trackEngagement('image_share', { product_ids: getSelectedProductIds() });
+                    return _origShareImageSystem.apply(this, arguments);
+                };
+            }
+
+            // Wrap shareSeparateImages - track WhatsApp image share
+            var _origShareSeparateImages = window.shareSeparateImages;
+            if (typeof _origShareSeparateImages === 'function') {
+                window.shareSeparateImages = async function() {
+                    trackEngagement('whatsapp_image_share', { product_ids: getSelectedProductIds() });
+                    return _origShareSeparateImages.apply(this, arguments);
+                };
+            }
+
+            // Wrap generatePDFCatalogue / downloadAllCards - track PDF download
+            var _origDownloadAllCards = window.downloadAllCards;
+            if (typeof _origDownloadAllCards === 'function') {
+                window.downloadAllCards = function() {
+                    trackEngagement('pdf_download', { product_ids: getSelectedProductIds() });
+                    return _origDownloadAllCards.apply(this, arguments);
+                };
+            }
+
+            // Wrap shareWithDoubleTick - track DoubleTick WhatsApp shares
+            var _origShareWithDoubleTick = window.shareWithDoubleTick;
+            if (typeof _origShareWithDoubleTick === 'function') {
+                window.shareWithDoubleTick = function() {
+                    trackEngagement('whatsapp_click', { product_ids: getSelectedProductIds() });
+                    return _origShareWithDoubleTick.apply(this, arguments);
+                };
+            }
+
+            // Wrap sendPDFDirectly - track DoubleTick PDF direct shares
+            var _origSendPDFDirectly = window.sendPDFDirectly;
+            if (typeof _origSendPDFDirectly === 'function') {
+                window.sendPDFDirectly = function() {
+                    trackEngagement('whatsapp_pdf_share', { product_ids: getSelectedProductIds() });
+                    return _origSendPDFDirectly.apply(this, arguments);
+                };
+            }
+
+            // Wrap shareOnWhatsAppDirect - track generic WhatsApp link share
+            var _origShareOnWhatsAppDirect = window.shareOnWhatsAppDirect;
+            if (typeof _origShareOnWhatsAppDirect === 'function') {
+                window.shareOnWhatsAppDirect = function() {
+                    trackEngagement('whatsapp_click', { product_ids: getSelectedProductIds() });
+                    return _origShareOnWhatsAppDirect.apply(this, arguments);
+                };
+            }
+
+            // Wrap copyShareText - track copying links
+            var _origCopyShareText = window.copyShareText;
+            if (typeof _origCopyShareText === 'function') {
+                window.copyShareText = function() {
+                    trackEngagement('copy_link', { product_ids: getSelectedProductIds() });
+                    return _origCopyShareText.apply(this, arguments);
+                };
+            }
+        }
+
+        // Wait for DOM and all scripts to be ready
+        if (document.readyState === 'complete') {
+            setTimeout(wrapShareFunctions, 500);
+        } else {
+            window.addEventListener('load', function() {
+                setTimeout(wrapShareFunctions, 500);
+            });
+        }
+    })();
     </script>
     @endif
 </body>

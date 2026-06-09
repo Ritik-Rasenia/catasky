@@ -29,6 +29,8 @@ use App\Http\Controllers\Subscriber\ProfileController as SubscriberProfileContro
 use App\Http\Controllers\Subscriber\VariantController as SubscriberVariantController;
 use App\Http\Controllers\Subscriber\InventoryController as SubscriberInventoryController;
 use App\Http\Controllers\Subscriber\BulkUploadController as SubscriberBulkUploadController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\TrackingRedirectController;
 
 
 
@@ -199,6 +201,12 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/tracking-analytics', [App\Http\Controllers\DoubleTickController::class, 'analyticsDashboard'])
             ->name('tracking.analytics')
             ->middleware('permission:reports');
+
+        // Advanced Analytics
+        Route::get('/admin/analytics', [AnalyticsController::class, 'adminAnalytics'])->name('analytics')->middleware('permission:reports');
+        Route::get('/admin/analytics/timeline/{visitorUuid}', [AnalyticsController::class, 'activityTimeline'])->name('analytics.timeline')->middleware('permission:reports');
+        Route::get('/admin/analytics/export', [AnalyticsController::class, 'exportExcel'])->name('analytics.export')->middleware('permission:reports');
+        Route::get('/admin/analytics/realtime', [AnalyticsController::class, 'realtimeData'])->name('analytics.realtime')->middleware('permission:reports');
 
         // --- BRANDS (Granular Access) ---
         Route::group(['middleware' => ['permission:create-brands']], function () {
@@ -545,6 +553,12 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::post('/domain/verify', [\App\Http\Controllers\Subscriber\DomainController::class, 'verify'])->name('domain.verify');
         Route::delete('/domain/{domain}', [\App\Http\Controllers\Subscriber\DomainController::class, 'destroy'])->name('domain.destroy');
 
+        // Analytics
+        Route::get('/analytics', [AnalyticsController::class, 'subscriberAnalytics'])->name('analytics');
+        Route::get('/analytics/timeline/{visitorUuid}', [AnalyticsController::class, 'subscriberTimeline'])->name('analytics.timeline');
+        Route::get('/analytics/export', [AnalyticsController::class, 'subscriberExport'])->name('analytics.export');
+        Route::get('/analytics/realtime', [AnalyticsController::class, 'realtimeData'])->name('analytics.realtime');
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Subscriber\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Subscriber\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
@@ -564,6 +578,28 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
 Route::get('/s/{token}', [ShareController::class, 'publicView'])->name('subscriber.share.public');
 Route::get('/s/{token}/pdf', [ShareController::class, 'generatePdf'])->name('subscriber.share.pdf');
 Route::get('/s/{token}/gallery', [ShareController::class, 'imageGallery'])->name('subscriber.share.gallery');
+
+/*
+|--------------------------------------------------------------------------
+| Tracking Redirect Routes (Public - no auth required)
+|--------------------------------------------------------------------------
+*/
+Route::get('/track/pdf-click', [TrackingRedirectController::class, 'pdfProductClick'])->name('track.pdf.click');
+Route::get('/track/catalogue-open', [TrackingRedirectController::class, 'catalogueOpen'])->name('track.catalogue.open');
+
+/*
+|--------------------------------------------------------------------------
+| Analytics Tracking API (Public - no auth required)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('api/analytics')->group(function () {
+    Route::post('/visit', [App\Http\Controllers\API\AnalyticsApiController::class, 'logVisit'])->name('analytics.api.visit');
+    Route::post('/heartbeat', [App\Http\Controllers\API\AnalyticsApiController::class, 'heartbeat'])->name('analytics.api.heartbeat');
+    Route::post('/product-view', [App\Http\Controllers\API\AnalyticsApiController::class, 'logProductView'])->name('analytics.api.product-view');
+    Route::post('/download', [App\Http\Controllers\API\AnalyticsApiController::class, 'logDownload'])->name('analytics.api.download');
+    Route::post('/order', [App\Http\Controllers\API\AnalyticsApiController::class, 'logOrder'])->name('analytics.api.order');
+    Route::post('/engagement', [App\Http\Controllers\API\AnalyticsApiController::class, 'logEngagement'])->name('analytics.api.engagement');
+});
 
 /*
 |--------------------------------------------------------------------------

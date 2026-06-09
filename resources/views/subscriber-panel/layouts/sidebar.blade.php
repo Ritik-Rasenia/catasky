@@ -28,6 +28,7 @@
             // Subscriber-specific visibility rules
             $subscriberAllowed = [
                 'dashboard',
+                'subscriber.analytics',
                 'subscriber.products.index',
                 'subscriber.attributes.index',
                 'subscriber.attribute-groups.index',
@@ -80,6 +81,13 @@
                         'route'      => 'dashboard',
                         'permission' => 'dashboard.view',
                         'active'     => ['dashboard'],
+                    ],
+                    [
+                        'label'      => 'Analytics',
+                        'icon'       => 'bi-graph-up-arrow',
+                        'route'      => 'subscriber.analytics',
+                        'permission' => null,
+                        'active'     => ['subscriber.analytics', 'subscriber.analytics.*'],
                     ],
                 ],
             ],

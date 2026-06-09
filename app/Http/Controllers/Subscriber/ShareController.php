@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SubscriberShareLink;
 use App\Models\SubscriberProduct;
 use App\Models\SubscriberActivityLog;
+use App\Models\ShareTrack;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -100,6 +101,16 @@ class ShareController extends Controller
             'approval_status'   => 'approved',
         ]);
 
+        // Create ShareTrack record for analytics tracking
+        $channelMap = ['pdf' => 'pdf_share', 'image' => 'image_share', 'catalog' => 'direct_link', 'whatsapp' => 'whatsapp'];
+        ShareTrack::create([
+            'user_id'                  => $user->id,
+            'subscriber_share_link_id' => $link->id,
+            'tracking_token'           => 'SH_' . Str::random(16),
+            'channel'                  => $channelMap[$request->type] ?? 'direct_link',
+            'shared_at'                => now(),
+        ]);
+
         SubscriberActivityLog::log('created', 'Created share link: ' . $link->title, $link);
 
         return redirect()->route('subscriber.share.show', $link->id)
@@ -110,7 +121,14 @@ class ShareController extends Controller
     {
         if ($shareLink->user_id !== auth()->id()) abort(403);
         $shareLink->load('product.images', 'product.attributeValues.attribute');
-        return view('subscriber-panel.share.show', compact('shareLink'));
+
+        // Resolve tracking token for engagement tracking on share buttons
+        $shareTrack = ShareTrack::where('subscriber_share_link_id', $shareLink->id)
+            ->where('user_id', auth()->id())
+            ->first();
+        $trackingToken = $shareTrack?->tracking_token;
+
+        return view('subscriber-panel.share.show', compact('shareLink', 'trackingToken'));
     }
 
     public function destroy(SubscriberShareLink $shareLink)
@@ -122,7 +140,7 @@ class ShareController extends Controller
 
     // ─── PUBLIC SHARE PAGE ────────────────────────────────────────────────────
 
-    public function publicView(string $token)
+    public function publicView(Request $request, string $token)
     {
         $link = SubscriberShareLink::with([
             'subscriber.subscriberProfile',
@@ -150,6 +168,13 @@ class ShareController extends Controller
         $profile = $subscriber->subscriberProfile;
         $product = $link->product;
 
+        // Resolve tracking token for client-side tracking
+        $trackToken = $request->query('track');
+        $shareTrack = $trackToken
+            ? ShareTrack::where('tracking_token', $trackToken)->first()
+            : null;
+        $trackingToken = $shareTrack?->tracking_token;
+
         // For catalog shares (no specific product), load subscriber's active products
         $catalogProducts = null;
         if (!$product) {
@@ -157,7 +182,7 @@ class ShareController extends Controller
         }
 
         return view('subscriber-panel.share.public', compact(
-            'link', 'subscriber', 'profile', 'product', 'catalogProducts', 'settings'
+            'link', 'subscriber', 'profile', 'product', 'catalogProducts', 'settings', 'trackingToken'
         ));
     }
 
@@ -188,6 +213,20 @@ class ShareController extends Controller
         $profile = $subscriber->subscriberProfile;
         $settings = $link->settings ?? [];
 
+        // Resolve or create ShareTrack for PDF download tracking
+        $pdfTrack = ShareTrack::firstOrCreate(
+            [
+                'subscriber_share_link_id' => $link->id,
+                'channel'                  => 'pdf_download',
+                'user_id'                  => $link->user_id,
+            ],
+            [
+                'tracking_token'           => 'PD_' . Str::random(16),
+                'shared_at'                => now(),
+            ]
+        );
+        $trackingToken = $pdfTrack->tracking_token;
+
         $product = $link->product;
         $catalogProducts = null;
         if (!$product) {
@@ -197,7 +236,7 @@ class ShareController extends Controller
         $template = $subscriber->subscriberPdfTemplate ?? null;
 
         $pdf = Pdf::loadView('subscriber-panel.pdf.catalog', compact(
-            'link', 'subscriber', 'profile', 'product', 'catalogProducts', 'settings', 'template'
+            'link', 'subscriber', 'profile', 'product', 'catalogProducts', 'settings', 'template', 'trackingToken'
         ))
             ->setPaper('A4', $template?->orientation ?? 'portrait')
             ->setOptions([
@@ -216,7 +255,7 @@ class ShareController extends Controller
 
     // ─── IMAGE GALLERY SHARE ─────────────────────────────────────────────────
 
-    public function imageGallery(string $token)
+    public function imageGallery(Request $request, string $token)
     {
         $link = SubscriberShareLink::with([
             'subscriber.subscriberProfile',
@@ -238,8 +277,15 @@ class ShareController extends Controller
 
         $catalogProducts = $link->product ? null : $this->catalogProductsForLink($link);
 
+        // Resolve tracking token for client-side tracking
+        $trackToken = $request->query('track');
+        $shareTrack = $trackToken
+            ? ShareTrack::where('tracking_token', $trackToken)->first()
+            : null;
+        $trackingToken = $shareTrack?->tracking_token;
+
         $link->incrementView();
-        return view('subscriber-panel.share.image-gallery', compact('link', 'catalogProducts'));
+        return view('subscriber-panel.share.image-gallery', compact('link', 'catalogProducts', 'trackingToken'));
     }
 
     private function catalogProductsForLink(SubscriberShareLink $link, bool $forPdf = false)

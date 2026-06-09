@@ -143,7 +143,48 @@ function copyLink(text) {
             showConfirmButton: false,
             timer: 1500
         });
+        // Track copy link engagement
+        _trackEngagement('copy_link');
     });
 }
+
+// Share button engagement tracking
+(function() {
+    const SHARE_TOKEN = '{{ $shareLink->token }}';
+    const TRACK_TOKEN = '{{ $trackingToken ?? '' }}';
+    const CSRF = '{{ csrf_token() }}';
+    const API_BASE = '/api/analytics';
+
+    function _trackEngagement(eventType) {
+        fetch(API_BASE + '/engagement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({
+                token: SHARE_TOKEN,
+                track_token: TRACK_TOKEN || null,
+                event_type: eventType
+            })
+        }).catch(function() {});
+    }
+
+    // WhatsApp share button
+    document.querySelectorAll('a[href*="api.whatsapp.com"]').forEach(function(el) {
+        el.addEventListener('click', function() { _trackEngagement('whatsapp_click'); });
+    });
+
+    // Email share button
+    document.querySelectorAll('a[href^="mailto:"]').forEach(function(el) {
+        el.addEventListener('click', function() { _trackEngagement('email_click'); });
+    });
+
+    // Open Live Preview (direct link)
+    document.querySelectorAll('a[target="_blank"]').forEach(function(el) {
+        if (!el.href.includes('whatsapp') && !el.href.startsWith('mailto:')) {
+            el.addEventListener('click', function() { _trackEngagement('direct_link'); });
+        }
+    });
+
+    window._trackEngagement = _trackEngagement;
+})();
 </script>
 @endpush

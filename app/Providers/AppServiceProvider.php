@@ -6,6 +6,18 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Pagination\Paginator;
 
+use App\Events\Analytics\VisitLogged;
+use App\Listeners\Analytics\RecordVisit;
+use App\Events\Analytics\ProductViewed;
+use App\Listeners\Analytics\RecordProductView;
+use App\Events\Analytics\DownloadLogged;
+use App\Listeners\Analytics\RecordDownload;
+use App\Events\Analytics\OrderLogged;
+use App\Listeners\Analytics\RecordOrder;
+use App\Events\Analytics\EngagementLogged;
+use App\Listeners\Analytics\RecordEngagement;
+use Illuminate\Support\Facades\Event;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -22,6 +34,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        Event::listen(VisitLogged::class, RecordVisit::class);
+        Event::listen(ProductViewed::class, RecordProductView::class);
+        Event::listen(DownloadLogged::class, RecordDownload::class);
+        Event::listen(OrderLogged::class, RecordOrder::class);
+        Event::listen(EngagementLogged::class, RecordEngagement::class);
 
         // Implicitly grant "Super Admin" and "Admin" roles all permissions and dynamically map permissions for other roles
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
@@ -108,6 +126,11 @@ class AppServiceProvider extends ServiceProvider
                 'view-newsletters' => ['reports'],
                 'delete-newsletters' => ['reports'],
                 'newsletters.view' => ['reports'],
+
+                'view-analytics' => ['reports'],
+                'dashboard.analytics' => ['reports'],
+                'admin.analytics' => ['reports'],
+                'subscriber.analytics' => ['reports'],
 
                 'subscribers.manage' => ['subscriber-management', 'plan-management', 'domain-management'],
             ];
