@@ -2,15 +2,19 @@
 
 @section('title', 'Advanced Analytics')
 
+@push('css')
+@include('partials.analytics-dashboard-styles')
+@endpush
+
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid analytics-page">
     {{-- Header --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="analytics-toolbar">
         <div>
             <h1 class="h3 fw-bold mb-1"><i class="bi bi-graph-up-arrow text-primary"></i> Advanced Analytics</h1>
             <p class="text-muted mb-0 small">Real-time tracking, visitor engagement, and conversion insights</p>
         </div>
-        <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="analytics-actions">
             {{-- Date Filter --}}
             <select id="dateFilter" class="form-select form-select-sm" style="width:160px" onchange="applyFilter(this.value)">
                 @foreach(['all_time'=>'All Time','today'=>'Today','yesterday'=>'Yesterday','this_week'=>'This Week','last_30_days'=>'Last 30 Days','this_month'=>'This Month','last_month'=>'Last Month','this_year'=>'This Year'] as $val=>$label)
@@ -48,13 +52,14 @@
             ['label'=>'Avg Session','value'=>$avgSessionDuration.'s','icon'=>'bi-clock-fill','color'=>'dark'],
             ['label'=>'Bounce Rate','value'=>$bounceRate.'%','icon'=>'bi-arrow-return-left','color'=>'danger'],
             ['label'=>'Conversion','value'=>$conversionRate.'%','icon'=>'bi-bullseye','color'=>'primary'],
+            ['label'=>'Engagements','value'=>$totalEngagements,'icon'=>'bi-lightning-charge-fill','color'=>'warning'],
         ];
         @endphp
         @foreach($kpis as $kpi)
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card analytics-kpi h-100">
                 <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-{{ $kpi['color'] }}-subtle" style="width:48px;height:48px;min-width:48px;">
+                    <div class="analytics-kpi-icon d-flex align-items-center justify-content-center bg-{{ $kpi['color'] }}-subtle">
                         <i class="bi {{ $kpi['icon'] }} text-{{ $kpi['color'] }} fs-5"></i>
                     </div>
                     <div>
@@ -70,15 +75,15 @@
     {{-- Charts Row 1 --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-activity text-primary"></i> Visits & Product Views Over Time</div>
-                <div class="card-body pt-0"><canvas id="visitsChart" height="90"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="visitsChart" height="90"></canvas></div>
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-pie-chart text-info"></i> Device Distribution</div>
-                <div class="card-body pt-0"><canvas id="deviceChart" height="200"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="deviceChart" height="200"></canvas></div>
             </div>
         </div>
     </div>
@@ -86,15 +91,15 @@
     {{-- Charts Row 2 --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-share text-success"></i> Channel Breakdown</div>
-                <div class="card-body pt-0"><canvas id="channelChart" height="200"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="channelChart" height="200"></canvas></div>
             </div>
         </div>
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-bar-chart text-warning"></i> Top 10 Most Viewed Products</div>
-                <div class="card-body pt-0"><canvas id="topProductsChart" height="90"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="topProductsChart" height="90"></canvas></div>
             </div>
         </div>
     </div>
@@ -102,9 +107,9 @@
     {{-- Charts Row 3: Downloads + Enquiries --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-12">
-            <div class="card border-0 shadow-sm">
+            <div class="card analytics-card">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-arrow-down-circle text-secondary"></i> Downloads & Enquiries Over Time</div>
-                <div class="card-body pt-0"><canvas id="downloadsChart" height="60"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="downloadsChart" height="60"></canvas></div>
             </div>
         </div>
     </div>
@@ -113,10 +118,10 @@
     <div class="row g-3 mb-4">
         {{-- Top Performing Subscribers --}}
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-trophy text-warning"></i> Top Performing Subscribers</div>
                 <div class="card-body pt-0 table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm align-middle mb-0 analytics-table">
                         <thead class="table-light small"><tr><th>Name</th><th class="text-center">Shares</th><th class="text-center">Views</th><th class="text-center">Downloads</th><th class="text-center">Engagements</th><th class="text-center">Conversions</th></tr></thead>
                         <tbody>
                         @forelse($topSubscribers as $sub)
@@ -139,10 +144,10 @@
 
         {{-- Most Downloaded --}}
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-download text-secondary"></i> Most Downloaded Catalogues</div>
                 <div class="card-body pt-0 table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm align-middle mb-0 analytics-table">
                         <thead class="table-light small"><tr><th>Catalogue</th><th class="text-center">Downloads</th><th class="text-center">Unique</th></tr></thead>
                         <tbody>
                         @forelse($mostDownloaded as $dl)
@@ -180,13 +185,20 @@
             'email_click'         => ['label' => 'Email Clicks',       'icon' => 'bi-envelope-fill',     'color' => 'secondary'],
             'enquiry_submit'      => ['label' => 'Enquiry Submits',    'icon' => 'bi-chat-left-dots-fill','color' => 'danger'],
             'direct_link'         => ['label' => 'Direct Link Shares', 'icon' => 'bi-link-45deg',        'color' => 'dark'],
+            'pdf_share'           => ['label' => 'PDF Shares',         'icon' => 'bi-file-earmark-pdf',  'color' => 'primary'],
+            'image_share'         => ['label' => 'Image Shares',       'icon' => 'bi-images',            'color' => 'info'],
+            'whatsapp_pdf_share'  => ['label' => 'WhatsApp PDFs',      'icon' => 'bi-whatsapp',          'color' => 'success'],
+            'whatsapp_image_share'=> ['label' => 'WhatsApp Images',    'icon' => 'bi-whatsapp',          'color' => 'success'],
+            'pdf_download'        => ['label' => 'PDF Downloads',      'icon' => 'bi-file-earmark-arrow-down','color' => 'secondary'],
+            'image_download'      => ['label' => 'Image Downloads',    'icon' => 'bi-cloud-arrow-down',  'color' => 'secondary'],
+            'copy_link'           => ['label' => 'Copied Links',       'icon' => 'bi-clipboard-check',   'color' => 'dark'],
         ];
         @endphp
         @foreach($eventLabels as $type => $meta)
         <div class="col-xl col-lg-3 col-md-4 col-sm-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card analytics-kpi h-100">
                 <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-{{ $meta['color'] }}-subtle" style="width:42px;height:42px;min-width:42px;">
+                    <div class="analytics-kpi-icon d-flex align-items-center justify-content-center bg-{{ $meta['color'] }}-subtle" style="width:42px;height:42px;min-width:42px;">
                         <i class="bi {{ $meta['icon'] }} text-{{ $meta['color'] }} fs-6"></i>
                     </div>
                     <div>
@@ -202,15 +214,15 @@
     {{-- Engagement Charts --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-bar-chart-fill text-warning"></i> Engagement by Type</div>
-                <div class="card-body pt-0"><canvas id="engagementTypeChart" height="220"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="engagementTypeChart" height="220"></canvas></div>
             </div>
         </div>
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-activity text-warning"></i> Engagement Trend</div>
-                <div class="card-body pt-0"><canvas id="engagementTrendChart" height="220"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="engagementTrendChart" height="220"></canvas></div>
             </div>
         </div>
     </div>
@@ -218,10 +230,10 @@
     {{-- Top Products by Engagement + Recent Engagements --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-trophy-fill text-warning"></i> Top Products by Engagement</div>
                 <div class="card-body pt-0 table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm align-middle mb-0 analytics-table">
                         <thead class="table-light small"><tr><th>#</th><th>Product</th><th class="text-center">Events</th></tr></thead>
                         <tbody>
                         @forelse($topEngagedProducts as $i => $ep)
@@ -239,10 +251,10 @@
             </div>
         </div>
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-clock-history text-primary"></i> Recent Engagement Events</div>
                 <div class="card-body pt-0 table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm align-middle mb-0 analytics-table">
                         <thead class="table-light small"><tr><th>Event</th><th>Subscriber</th><th>Product</th><th>Catalogue</th><th>When</th></tr></thead>
                         <tbody>
                         @forelse($recentEngagements as $eng)
@@ -250,15 +262,36 @@
                             $eventColors = [
                                 'catalogue_open'=>'primary','product_detail_open'=>'info',
                                 'whatsapp_click'=>'success','call_click'=>'warning',
-                                'email_click'=>'secondary','enquiry_submit'=>'danger','direct_link'=>'dark'
+                                'email_click'=>'secondary','enquiry_submit'=>'danger','direct_link'=>'dark',
+                                'pdf_share'=>'primary','image_share'=>'info',
+                                'whatsapp_pdf_share'=>'success','whatsapp_image_share'=>'success',
+                                'pdf_download'=>'secondary','image_download'=>'secondary','copy_link'=>'dark'
                             ];
                             $ec = $eventColors[$eng->event_type] ?? 'secondary';
                             @endphp
                             <tr>
                                 <td><span class="badge bg-{{ $ec }}-subtle text-{{ $ec }}">{{ str_replace('_', ' ', $eng->event_type) }}</span></td>
                                 <td class="small">{{ $eng->user?->name ?? '—' }}</td>
-                                <td class="small">{{ Str::limit($eng->product?->name ?? '—', 20) }}</td>
-                                <td class="small">{{ Str::limit($eng->shareLink?->title ?? $eng->shareLink?->token ?? '—', 15) }}</td>
+                                <td class="small">
+                                    @if($eng->product?->name)
+                                        {{ Str::limit($eng->product->name, 20) }}
+                                    @elseif(is_array($eng->metadata) && !empty($eng->metadata['product_ids']))
+                                        <span class="text-muted">{{ count($eng->metadata['product_ids']) }} product(s)</span>
+                                    @else
+                                        <span class="text-muted">&mdash;</span>
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($eng->shareLink?->title)
+                                        {{ Str::limit($eng->shareLink->title, 15) }}
+                                    @elseif($eng->shareLink?->token)
+                                        <span class="text-muted">{{ Str::limit($eng->shareLink->token, 12) }}</span>
+                                    @elseif(is_array($eng->metadata) && !empty($eng->metadata['backfilled_catalogue']))
+                                        <span title="Backfilled">{{ Str::limit($eng->metadata['backfilled_catalogue'], 15) }}</span>
+                                    @else
+                                        <span class="text-muted">&mdash;</span>
+                                    @endif
+                                </td>
                                 <td class="small text-muted">{{ $eng->created_at->diffForHumans() }}</td>
                             </tr>
                         @empty
@@ -272,13 +305,13 @@
     </div>
 
     {{-- Recent Visitor Engagement --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card analytics-card mb-4">
         <div class="card-header bg-transparent border-0 fw-bold d-flex justify-content-between">
             <span><i class="bi bi-people text-primary"></i> Recent Visitor Activity</span>
             <span class="badge bg-primary-subtle text-primary" id="lastUpdated">Live</span>
         </div>
         <div class="card-body pt-0 table-responsive">
-            <table class="table table-sm align-middle mb-0" id="visitsTable">
+            <table class="table table-sm align-middle mb-0 analytics-table" id="visitsTable">
                 <thead class="table-light small">
                     <tr><th>Visitor</th><th>IP</th><th>Device</th><th>Browser</th><th>Location</th><th>Duration</th><th>Products</th><th>Opened</th><th></th></tr>
                 </thead>

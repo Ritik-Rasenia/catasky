@@ -2,15 +2,19 @@
 
 @section('title', 'My Analytics')
 
+@push('css')
+@include('partials.analytics-dashboard-styles')
+@endpush
+
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid analytics-page">
     {{-- Header --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="analytics-toolbar">
         <div>
             <h1 class="h3 fw-bold mb-1"><i class="bi bi-graph-up-arrow text-primary"></i> My Analytics</h1>
             <p class="text-muted mb-0 small">Track your catalogue performance, visitor engagement, and conversions</p>
         </div>
-        <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="analytics-actions">
             <select id="dateFilter" class="form-select form-select-sm" style="width:160px" onchange="applyFilter(this.value)">
                 @foreach(['all_time'=>'All Time','today'=>'Today','yesterday'=>'Yesterday','this_week'=>'This Week','last_30_days'=>'Last 30 Days','this_month'=>'This Month','last_month'=>'Last Month','this_year'=>'This Year'] as $val=>$label)
                     <option value="{{ $val }}" {{ $filter===$val?'selected':'' }}>{{ $label }}</option>
@@ -24,10 +28,7 @@
                 <input type="date" name="date_to" class="form-control form-control-sm" style="width:130px" value="{{ $dateTo }}" placeholder="To">
                 <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i></button>
             </form>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
-                <label class="form-check-label small" for="autoRefresh">Live</label>
-            </div>
+
             <a href="{{ route('subscriber.analytics.export', ['filter'=>$filter]) }}" class="btn btn-sm btn-outline-success">
                 <i class="bi bi-file-earmark-excel"></i> Export
             </a>
@@ -43,17 +44,14 @@
             ['label'=>'Unique Visitors','value'=>$uniqueVisitors,'icon'=>'bi-person-badge','color'=>'success'],
             ['label'=>'Product Views','value'=>$productViews,'icon'=>'bi-box-seam-fill','color'=>'warning'],
             ['label'=>'Downloads','value'=>$totalDownloads,'icon'=>'bi-download','color'=>'secondary'],
-            ['label'=>'Avg Session','value'=>$avgSessionDuration.'s','icon'=>'bi-clock-fill','color'=>'dark'],
-            ['label'=>'Bounce Rate','value'=>$bounceRate.'%','icon'=>'bi-arrow-return-left','color'=>'danger'],
-            ['label'=>'Conversion','value'=>$conversionRate.'%','icon'=>'bi-bullseye','color'=>'primary'],
             ['label'=>'Engagements','value'=>$totalEngagements,'icon'=>'bi-lightning-charge-fill','color'=>'warning'],
         ];
         @endphp
         @foreach($kpis as $kpi)
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card analytics-kpi h-100">
                 <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-{{ $kpi['color'] }}-subtle" style="width:48px;height:48px;min-width:48px;">
+                    <div class="analytics-kpi-icon d-flex align-items-center justify-content-center bg-{{ $kpi['color'] }}-subtle">
                         <i class="bi {{ $kpi['icon'] }} text-{{ $kpi['color'] }} fs-5"></i>
                     </div>
                     <div>
@@ -67,7 +65,7 @@
     </div>
 
     {{-- Conversion Funnel --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card analytics-card mb-4">
         <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-funnel text-primary"></i> Conversion Funnel</div>
         <div class="card-body pt-0">
             <div class="row text-center g-2">
@@ -84,7 +82,7 @@
                 @endphp
                 @foreach($funnelSteps as $step)
                 <div class="col">
-                    <div class="p-2 rounded bg-{{ $step['color'] }}-subtle">
+                    <div class="analytics-funnel-step p-2 bg-{{ $step['color'] }}-subtle">
                         <i class="bi {{ $step['icon'] }} text-{{ $step['color'] }} fs-4 d-block mb-1"></i>
                         <div class="fw-bold fs-5 text-{{ $step['color'] }}">{{ $step['value'] }}</div>
                         <div class="small text-muted">{{ $step['label'] }}</div>
@@ -102,15 +100,15 @@
     {{-- Charts Row 1 --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-activity text-primary"></i> Visits & Product Views Trend</div>
-                <div class="card-body pt-0"><canvas id="visitsChart" height="90"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="visitsChart" height="90"></canvas></div>
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-pie-chart text-info"></i> Device Distribution</div>
-                <div class="card-body pt-0"><canvas id="deviceChart" height="200"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="deviceChart" height="200"></canvas></div>
             </div>
         </div>
     </div>
@@ -118,24 +116,24 @@
     {{-- Charts Row 2 --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-share text-success"></i> Channels</div>
-                <div class="card-body pt-0"><canvas id="channelChart" height="200"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="channelChart" height="200"></canvas></div>
             </div>
         </div>
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card h-100">
                 <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-bar-chart text-warning"></i> Top Viewed Products</div>
-                <div class="card-body pt-0"><canvas id="topProductsChart" height="90"></canvas></div>
+                <div class="card-body analytics-chart-body pt-0"><canvas id="topProductsChart" height="90"></canvas></div>
             </div>
         </div>
     </div>
 
     {{-- Top Products Table --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card analytics-card mb-4">
         <div class="card-header bg-transparent border-0 fw-bold"><i class="bi bi-trophy text-warning"></i> Top Viewed Products Detail</div>
         <div class="card-body pt-0 table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table class="table table-sm align-middle mb-0 analytics-table">
                 <thead class="table-light small">
                     <tr><th>#</th><th>Product</th><th class="text-center">Views</th><th class="text-center">Avg Duration</th></tr>
                 </thead>
@@ -163,24 +161,20 @@
         <span class="badge bg-warning-subtle text-warning fs-6 px-3">{{ number_format($totalEngagements) }} total</span>
     </div>
 
-    {{-- Engagement Mini-Cards --}}
     <div class="row g-3 mb-4">
         @php
         $eventMeta = [
-            'catalogue_open'      => ['label' => 'Catalogue Opens',    'icon' => 'bi-book-open-fill',     'color' => 'primary'],
-            'product_detail_open' => ['label' => 'Product Clicks',     'icon' => 'bi-box-seam-fill',      'color' => 'info'],
-            'whatsapp_click'      => ['label' => 'WhatsApp Clicks',    'icon' => 'bi-whatsapp',           'color' => 'success'],
-            'call_click'          => ['label' => 'Call Clicks',        'icon' => 'bi-telephone-fill',     'color' => 'warning'],
-            'email_click'         => ['label' => 'Email Clicks',       'icon' => 'bi-envelope-fill',      'color' => 'secondary'],
-            'enquiry_submit'      => ['label' => 'Enquiry Submits',    'icon' => 'bi-chat-left-dots-fill','color' => 'danger'],
-            'direct_link'         => ['label' => 'Link Copies',        'icon' => 'bi-link-45deg',         'color' => 'dark'],
+            'whatsapp_image_share'=> ['label' => 'WhatsApp Images',    'icon' => 'bi-whatsapp',           'color' => 'success'],
+            'pdf_download'        => ['label' => 'PDF Downloads',      'icon' => 'bi-file-earmark-arrow-down','color' => 'secondary'],
+            'image_download'      => ['label' => 'Image Downloads',    'icon' => 'bi-cloud-arrow-down',   'color' => 'secondary'],
+            'copy_link'           => ['label' => 'Copied Links',       'icon' => 'bi-clipboard-check',    'color' => 'dark'],
         ];
         @endphp
         @foreach($eventMeta as $type => $meta)
         <div class="col-xl col-lg-3 col-md-4 col-sm-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card analytics-card analytics-kpi h-100">
                 <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-{{ $meta['color'] }}-subtle" style="width:40px;height:40px;min-width:40px;">
+                    <div class="analytics-kpi-icon d-flex align-items-center justify-content-center bg-{{ $meta['color'] }}-subtle" style="width:40px;height:40px;min-width:40px;">
                         <i class="bi {{ $meta['icon'] }} text-{{ $meta['color'] }} fs-6"></i>
                     </div>
                     <div>
@@ -194,24 +188,24 @@
     </div>
 
     {{-- Engagement Trend Chart --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card analytics-card mb-4">
         <div class="card-header bg-transparent border-0 fw-bold">
             <i class="bi bi-activity text-warning"></i> Engagement Trend
         </div>
-        <div class="card-body pt-0">
+        <div class="card-body analytics-chart-body pt-0">
             <canvas id="engagementTrendChart" height="70"></canvas>
         </div>
     </div>
 
     {{-- Recent Engagement Events --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card analytics-card mb-4">
         <div class="card-header bg-transparent border-0 fw-bold">
             <i class="bi bi-clock-history text-primary"></i> Recent Engagement Events
         </div>
         <div class="card-body pt-0 table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table class="table table-sm align-middle mb-0 analytics-table">
                 <thead class="table-light small">
-                    <tr><th>Event</th><th>Product</th><th>Catalogue</th><th>When</th></tr>
+                    <tr><th>Event</th><th>Product</th><th>When</th><th class="text-end pe-3">Actions</th></tr>
                 </thead>
                 <tbody>
                 @forelse($recentEngagements as $eng)
@@ -219,14 +213,35 @@
                     $ec = [
                         'catalogue_open'=>'primary','product_detail_open'=>'info',
                         'whatsapp_click'=>'success','call_click'=>'warning',
-                        'email_click'=>'secondary','enquiry_submit'=>'danger','direct_link'=>'dark'
+                        'email_click'=>'secondary','enquiry_submit'=>'danger','direct_link'=>'dark',
+                        'pdf_share'=>'primary','image_share'=>'info',
+                        'whatsapp_pdf_share'=>'success','whatsapp_image_share'=>'success',
+                        'pdf_download'=>'secondary','image_download'=>'secondary','copy_link'=>'dark'
                     ][$eng->event_type] ?? 'secondary';
                     @endphp
                     <tr>
                         <td><span class="badge bg-{{ $ec }}-subtle text-{{ $ec }}">{{ str_replace('_', ' ', $eng->event_type) }}</span></td>
-                        <td class="small">{{ Str::limit($eng->product?->name ?? '—', 25) }}</td>
-                        <td class="small">{{ Str::limit($eng->shareLink?->title ?? $eng->shareLink?->token ?? '—', 18) }}</td>
+                        <td class="small">
+                            @if($eng->associated_products && $eng->associated_products->isNotEmpty())
+                                <span title="{{ $eng->associated_products->pluck('name')->implode(', ') }}">
+                                    {{ Str::limit($eng->associated_products->pluck('name')->implode(', '), 35) }}
+                                </span>
+                            @else
+                                <span class="text-muted">&mdash;</span>
+                            @endif
+                        </td>
                         <td class="small text-muted">{{ $eng->created_at->diffForHumans() }}</td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" style="font-size:0.75rem; border-radius:6px;" 
+                                    data-event="{{ $eng->event_type }}" 
+                                    data-products="{{ json_encode($eng->associated_products->map(fn($p) => ['name' => $p->name, 'sku' => $p->sku, 'price' => $p->offer_price ?: $p->mrp]) ?? []) }}" 
+                                    data-catalogue="{{ $eng->shareLink?->title ?? ($eng->shareLink?->token ?? (is_array($eng->metadata) && !empty($eng->metadata['backfilled_catalogue']) ? $eng->metadata['backfilled_catalogue'] : '')) }}" 
+                                    data-time="{{ $eng->created_at->diffForHumans() }}" 
+                                    data-meta="{{ json_encode($eng->metadata ?? []) }}" 
+                                    onclick="showEventDetails(this)">
+                                <i class="bi bi-eye"></i> Details
+                            </button>
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="4" class="text-center text-muted py-3">No engagement events recorded yet</td></tr>
@@ -235,37 +250,48 @@
             </table>
         </div>
     </div>
-
-    {{-- Recent Visitors --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-0 fw-bold d-flex justify-content-between">
-            <span><i class="bi bi-people text-primary"></i> Recent Visitors</span>
-            <span class="badge bg-primary-subtle text-primary" id="lastUpdated">Live</span>
-        </div>
-        <div class="card-body pt-0 table-responsive">
-            <table class="table table-sm align-middle mb-0" id="visitsTable">
-                <thead class="table-light small">
-                    <tr><th>Visitor</th><th>Device</th><th>Browser</th><th>Location</th><th>Duration</th><th>Products</th><th>Opened</th><th></th></tr>
-                </thead>
-                <tbody>
-                @foreach($recentVisits as $v)
-                    <tr>
-                        <td class="small" title="{{ $v->visitor_uuid }}">{{ Str::limit($v->visitor_uuid ?? 'Anonymous', 10) }}</td>
-                        <td><span class="badge bg-light text-dark border">{{ $v->device_type }}</span></td>
-                        <td class="small">{{ $v->browser }}</td>
-                        <td class="small">{{ $v->city }}, {{ $v->country }}</td>
-                        <td class="small">{{ $v->total_time_spent >= 60 ? floor($v->total_time_spent/60).'m '.($v->total_time_spent%60).'s' : $v->total_time_spent.'s' }}</td>
-                        <td class="text-center">{{ $v->productViews->count() }}</td>
-                        <td class="small text-muted">{{ $v->opened_at?->diffForHumans() }}</td>
-                        <td>
-                            @if($v->visitor_uuid)
-                                <a href="{{ route('subscriber.analytics.timeline', $v->visitor_uuid) }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="View Journey"><i class="bi bi-diagram-3"></i></a>
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
+    {{-- Event Details Modal --}}
+    <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark" id="eventDetailsModalLabel">
+                        <i class="bi bi-info-circle text-primary me-2"></i> Event Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless align-middle mb-0">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted small" style="width: 120px; padding: 6px 0;">Event Type</td>
+                                    <td style="padding: 6px 0;"><span id="modalEventBadge" class="badge"></span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted small" style="padding: 6px 0;">Product</td>
+                                    <td id="modalEventProduct" class="fw-semibold text-dark" style="padding: 6px 0;"></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted small" style="padding: 6px 0;">Catalogue</td>
+                                    <td id="modalEventCatalogue" class="text-dark" style="padding: 6px 0;"></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted small" style="padding: 6px 0;">Triggered At</td>
+                                    <td id="modalEventTime" class="text-dark" style="padding: 6px 0;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <hr class="my-3 opacity-10">
+                    <div class="fw-bold text-dark mb-2 small"><i class="bi bi-database me-1"></i> Technical Metadata</div>
+                    <div class="bg-light rounded-3 p-3 font-monospace small text-secondary overflow-auto text-start" style="max-height: 200px; font-size: 0.75rem;" id="modalEventMeta">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -350,44 +376,89 @@ document.addEventListener('DOMContentLoaded', function() {
         options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
     });
 
-    // Auto-Refresh
-    let refreshInterval = null;
-    const autoRefreshToggle = document.getElementById('autoRefresh');
-
-    function fetchRealtime() {
-        fetch('{{ route("subscriber.analytics.realtime") }}')
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('lastUpdated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
-                if (data.recent_visits && data.recent_visits.length) {
-                    const tbody = document.querySelector('#visitsTable tbody');
-                    tbody.innerHTML = '';
-                    data.recent_visits.forEach(v => {
-                        tbody.innerHTML += `<tr>
-                            <td class="small">${v.visitor_uuid ? v.visitor_uuid.slice(0,10) : 'Anonymous'}</td>
-                            <td><span class="badge bg-light text-dark border">${v.device}</span></td>
-                            <td class="small">${v.browser}</td>
-                            <td class="small">${v.city}, ${v.country}</td>
-                            <td class="small">${v.duration >= 60 ? Math.floor(v.duration/60)+'m '+(v.duration%60)+'s' : v.duration+'s'}</td>
-                            <td class="text-center">${v.products_viewed}</td>
-                            <td class="small text-muted">${v.opened_at}</td>
-                            <td>${v.visitor_uuid ? `<a href="/dashboard/analytics/timeline/${v.visitor_uuid}" class="btn btn-sm btn-outline-primary py-0 px-2"><i class="bi bi-diagram-3"></i></a>` : ''}</td>
-                        </tr>`;
-                    });
-                }
-            })
-            .catch(err => console.warn('Refresh failed:', err));
-    }
-
-    function startAutoRefresh() {
-        if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(fetchRealtime, 30000);
-    }
-
-    autoRefreshToggle.addEventListener('change', function() {
-        if (this.checked) startAutoRefresh(); else clearInterval(refreshInterval);
-    });
-    if (autoRefreshToggle.checked) startAutoRefresh();
 });
+
+// Event details modal display helper
+window.showEventDetails = function(btn) {
+    const eventType = btn.getAttribute('data-event');
+    const productsStr = btn.getAttribute('data-products') || '[]';
+    const catalogue = btn.getAttribute('data-catalogue') || 'N/A';
+    const time = btn.getAttribute('data-time');
+    const metaStr = btn.getAttribute('data-meta');
+
+    const badge = document.getElementById('modalEventBadge');
+    badge.textContent = eventType.replace(/_/g, ' ');
+    badge.className = 'badge';
+
+    const ecClass = {
+        'catalogue_open': 'bg-primary-subtle text-primary',
+        'product_detail_open': 'bg-info-subtle text-info',
+        'whatsapp_click': 'bg-success-subtle text-success',
+        'call_click': 'bg-warning-subtle text-warning',
+        'email_click': 'bg-secondary-subtle text-secondary',
+        'enquiry_submit': 'bg-danger-subtle text-danger',
+        'direct_link': 'bg-dark-subtle text-dark',
+        'pdf_share': 'bg-primary-subtle text-primary',
+        'image_share': 'bg-info-subtle text-info',
+        'whatsapp_pdf_share': 'bg-success-subtle text-success',
+        'whatsapp_image_share': 'bg-success-subtle text-success',
+        'pdf_download': 'bg-secondary-subtle text-secondary',
+        'image_download': 'bg-secondary-subtle text-secondary',
+        'copy_link': 'bg-dark-subtle text-dark'
+    }[eventType] || 'bg-secondary-subtle text-secondary';
+
+    badge.classList.add(...ecClass.split(' '));
+
+    // Decode and display associated products nicely
+    let products = [];
+    try {
+        products = JSON.parse(productsStr);
+    } catch(e) {}
+
+    const productContainer = document.getElementById('modalEventProduct');
+    productContainer.innerHTML = '';
+    if (products.length > 0) {
+        let prodHtml = '<div class="d-flex flex-column gap-2 text-start w-100">';
+        products.forEach(function(p) {
+            prodHtml += `
+                <div class="p-2 rounded-3 bg-light d-flex flex-column gap-1 border" style="background-color: #f8fafc; border-color: #e2e8f0 !important;">
+                    <div class="fw-semibold text-dark small" style="font-size: 0.85rem;">${p.name}</div>
+                    <div class="d-flex align-items-center gap-2">
+                        ${p.sku ? `<span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.65rem;">SKU: ${p.sku}</span>` : ''}
+                        ${p.price ? `<span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.65rem;">₹${Number(p.price).toLocaleString('en-IN')}</span>` : ''}
+                    </div>
+                </div>`;
+        });
+        prodHtml += '</div>';
+        productContainer.innerHTML = prodHtml;
+    } else {
+        productContainer.innerHTML = '<span class="text-muted">&mdash;</span>';
+    }
+
+    document.getElementById('modalEventCatalogue').textContent = catalogue;
+    document.getElementById('modalEventTime').textContent = time;
+
+    let meta = {};
+    try {
+        meta = JSON.parse(metaStr);
+    } catch(e) {}
+
+    const metaContainer = document.getElementById('modalEventMeta');
+    metaContainer.innerHTML = '';
+    if (Object.keys(meta).length > 0) {
+        let metaHtml = '<ul class="list-unstyled mb-0 d-flex flex-column gap-1 text-start">';
+        for (const [key, value] of Object.entries(meta)) {
+            let displayVal = typeof value === 'object' ? JSON.stringify(value) : value;
+            metaHtml += `<li><strong class="text-dark">${key}:</strong> ${displayVal}</li>`;
+        }
+        metaHtml += '</ul>';
+        metaContainer.innerHTML = metaHtml;
+    } else {
+        metaContainer.textContent = 'No additional metadata available';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+    modal.show();
+};
 </script>
 @endpush

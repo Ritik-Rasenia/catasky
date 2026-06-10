@@ -19,6 +19,16 @@ use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
+    private const SHARE_ENGAGEMENT_TYPES = [
+        'pdf_share',
+        'image_share',
+        'whatsapp_pdf_share',
+        'whatsapp_image_share',
+        'whatsapp_click',
+        'direct_link',
+        'copy_link',
+    ];
+
     /**
      * Admin Analytics Dashboard
      */
@@ -30,7 +40,7 @@ class AnalyticsController extends Controller
         $user = auth()->user();
 
         // KPI Cards
-        $totalShares = $this->applyDateFilter(ShareTrack::query(), $filter, 'shared_at', $dateFrom, $dateTo)->count();
+        $totalShares = $this->countShares($filter, $dateFrom, $dateTo);
         $totalOpens = $this->applyDateFilter(VisitLog::query(), $filter, 'opened_at', $dateFrom, $dateTo)->count();
         $uniqueVisitors = $this->applyDateFilter(VisitLog::query(), $filter, 'opened_at', $dateFrom, $dateTo)->distinct('visitor_uuid')->count('visitor_uuid');
         $productViews = $this->applyDateFilter(ProductViewLog::query(), $filter, 'viewed_at', $dateFrom, $dateTo)->count();
@@ -72,13 +82,8 @@ class AnalyticsController extends Controller
             ->pluck('count', 'device_type')
             ->toArray();
 
-        // Channel Distribution (from share_tracks)
-        $channelDistribution = $this->applyDateFilter(ShareTrack::query(), $filter, 'shared_at', $dateFrom, $dateTo)
-            ->select('channel', DB::raw('COUNT(*) as count'))
-            ->groupBy('channel')
-            ->get()
-            ->pluck('count', 'channel')
-            ->toArray();
+        // Channel Distribution combines saved share links and modal share actions.
+        $channelDistribution = $this->shareChannelDistribution($filter, $dateFrom, $dateTo);
 
         // Engagement Events breakdown (new engagement_logs table)
         $engagementByType = $this->applyDateFilter(EngagementLog::query(), $filter, 'created_at', $dateFrom, $dateTo)
@@ -91,10 +96,69 @@ class AnalyticsController extends Controller
         $totalEngagements = array_sum($engagementByType);
 
         // Recent Engagement Events
-        $recentEngagements = EngagementLog::with(['user', 'product', 'shareLink'])
+        $rawEngagements = $this->applyDateFilter(EngagementLog::with(['user', 'product', 'shareLink']), $filter, 'created_at', $dateFrom, $dateTo)
             ->latest()
-            ->take(20)
+            ->take(100)
             ->get();
+
+        // Populate associated products for recent engagements
+        $productIds = [];
+        foreach ($rawEngagements as $eng) {
+            if ($eng->subscriber_product_id) {
+                $productIds[] = $eng->subscriber_product_id;
+            }
+            if (is_array($eng->metadata) && !empty($eng->metadata['product_ids'])) {
+                foreach ($eng->metadata['product_ids'] as $pid) {
+                    $productIds[] = (int) $pid;
+                }
+            }
+        }
+        $referencedProducts = \App\Models\SubscriberProduct::withTrashed()
+            ->whereIn('id', array_unique($productIds))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($rawEngagements as $eng) {
+            $associated = collect();
+            if ($eng->subscriber_product_id && isset($referencedProducts[$eng->subscriber_product_id])) {
+                $associated->push($referencedProducts[$eng->subscriber_product_id]);
+            }
+            if (is_array($eng->metadata) && !empty($eng->metadata['product_ids'])) {
+                foreach ($eng->metadata['product_ids'] as $pid) {
+                    if (isset($referencedProducts[$pid]) && $pid != $eng->subscriber_product_id) {
+                        $associated->push($referencedProducts[$pid]);
+                    }
+                }
+            }
+            $eng->associated_products = $associated;
+        }
+
+        // Group similar events to prevent row repetition
+        $grouped = collect();
+        foreach ($rawEngagements as $eng) {
+            $match = $grouped->first(function ($item) use ($eng) {
+                $sameType = $item->event_type === $eng->event_type;
+                $sameVisit = $item->visit_log_id === $eng->visit_log_id;
+                $sameLink = $item->subscriber_share_link_id === $eng->subscriber_share_link_id;
+                $sameUser = $item->user_id === $eng->user_id;
+                $closeTime = abs($item->created_at->diffInSeconds($eng->created_at)) <= 10;
+                
+                return $sameType && $sameVisit && $sameLink && $sameUser && $closeTime;
+            });
+
+            if ($match) {
+                if ($eng->associated_products) {
+                    foreach ($eng->associated_products as $prod) {
+                        if (!$match->associated_products->contains('id', $prod->id)) {
+                            $match->associated_products->push($prod);
+                        }
+                    }
+                }
+            } else {
+                $grouped->push($eng);
+            }
+        }
+        $recentEngagements = $grouped->take(20);
 
         // Top Products by Engagement Events
         $topEngagedProducts = EngagementLog::select('subscriber_product_id', DB::raw('COUNT(*) as engagement_count'))
@@ -148,7 +212,7 @@ class AnalyticsController extends Controller
 
         // Most Downloaded Catalogues
         $mostDownloaded = DownloadLog::select('subscriber_share_link_id', DB::raw('COUNT(*) as download_count'), DB::raw('COUNT(DISTINCT ip_address) as unique_downloads'))
-            ->when($filter !== 'all_time', fn($q) => $this->applyDateFilter($q, $filter, 'downloaded_at'))
+            ->when($filter !== 'all_time' || ($dateFrom || $dateTo), fn($q) => $this->applyDateFilter($q, $filter, 'downloaded_at', $dateFrom, $dateTo))
             ->groupBy('subscriber_share_link_id')
             ->orderByDesc('download_count')
             ->limit(10)
@@ -163,7 +227,7 @@ class AnalyticsController extends Controller
             });
 
         // Recent Visit Logs (Visitor Engagement)
-        $recentVisits = VisitLog::with(['shareTrack.user', 'productViews.product'])
+        $recentVisits = $this->applyDateFilter(VisitLog::with(['shareTrack.user', 'productViews.product']), $filter, 'opened_at', $dateFrom, $dateTo)
             ->latest('opened_at')
             ->take(20)
             ->get();
@@ -190,7 +254,7 @@ class AnalyticsController extends Controller
         $userId = $user->id;
 
         // KPI Cards (scoped to subscriber)
-        $totalShares = $this->applyDateFilter(ShareTrack::where('user_id', $userId), $filter, 'shared_at', $dateFrom, $dateTo)->count();
+        $totalShares = $this->countShares($filter, $dateFrom, $dateTo, $userId);
         $totalOpens = $this->applyDateFilter(
             VisitLog::whereHas('shareTrack', fn($q) => $q->where('user_id', $userId)),
             $filter, 'opened_at', $dateFrom, $dateTo
@@ -255,13 +319,8 @@ class AnalyticsController extends Controller
             ->pluck('count', 'device_type')
             ->toArray();
 
-        // Channel Distribution
-        $channelDistribution = $this->applyDateFilter(ShareTrack::where('user_id', $userId), $filter, 'shared_at', $dateFrom, $dateTo)
-            ->select('channel', DB::raw('COUNT(*) as count'))
-            ->groupBy('channel')
-            ->get()
-            ->pluck('count', 'channel')
-            ->toArray();
+        // Channel Distribution combines saved share links and modal share actions.
+        $channelDistribution = $this->shareChannelDistribution($filter, $dateFrom, $dateTo, $userId);
 
         // Engagement Events (scoped to subscriber)
         $engagementByType = $this->applyDateFilter(EngagementLog::where('user_id', $userId), $filter, 'created_at', $dateFrom, $dateTo)
@@ -274,11 +333,69 @@ class AnalyticsController extends Controller
         $totalEngagements = array_sum($engagementByType);
 
         // Recent Engagement Events for this subscriber
-        $recentEngagements = EngagementLog::where('user_id', $userId)
-            ->with(['product', 'shareLink'])
+        $rawEngagements = $this->applyDateFilter(EngagementLog::where('user_id', $userId)->with(['product', 'shareLink']), $filter, 'created_at', $dateFrom, $dateTo)
             ->latest()
-            ->take(15)
+            ->take(100)
             ->get();
+
+        // Populate associated products for recent engagements
+        $productIds = [];
+        foreach ($rawEngagements as $eng) {
+            if ($eng->subscriber_product_id) {
+                $productIds[] = $eng->subscriber_product_id;
+            }
+            if (is_array($eng->metadata) && !empty($eng->metadata['product_ids'])) {
+                foreach ($eng->metadata['product_ids'] as $pid) {
+                    $productIds[] = (int) $pid;
+                }
+            }
+        }
+        $referencedProducts = \App\Models\SubscriberProduct::withTrashed()
+            ->whereIn('id', array_unique($productIds))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($rawEngagements as $eng) {
+            $associated = collect();
+            if ($eng->subscriber_product_id && isset($referencedProducts[$eng->subscriber_product_id])) {
+                $associated->push($referencedProducts[$eng->subscriber_product_id]);
+            }
+            if (is_array($eng->metadata) && !empty($eng->metadata['product_ids'])) {
+                foreach ($eng->metadata['product_ids'] as $pid) {
+                    if (isset($referencedProducts[$pid]) && $pid != $eng->subscriber_product_id) {
+                        $associated->push($referencedProducts[$pid]);
+                    }
+                }
+            }
+            $eng->associated_products = $associated;
+        }
+
+        // Group similar events to prevent row repetition
+        $grouped = collect();
+        foreach ($rawEngagements as $eng) {
+            $match = $grouped->first(function ($item) use ($eng) {
+                $sameType = $item->event_type === $eng->event_type;
+                $sameVisit = $item->visit_log_id === $eng->visit_log_id;
+                $sameLink = $item->subscriber_share_link_id === $eng->subscriber_share_link_id;
+                $sameUser = $item->user_id === $eng->user_id;
+                $closeTime = abs($item->created_at->diffInSeconds($eng->created_at)) <= 10;
+                
+                return $sameType && $sameVisit && $sameLink && $sameUser && $closeTime;
+            });
+
+            if ($match) {
+                if ($eng->associated_products) {
+                    foreach ($eng->associated_products as $prod) {
+                        if (!$match->associated_products->contains('id', $prod->id)) {
+                            $match->associated_products->push($prod);
+                        }
+                    }
+                }
+            } else {
+                $grouped->push($eng);
+            }
+        }
+        $recentEngagements = $grouped->take(15);
 
         // Engagement trend chart data (subscriber scoped)
         $engagementTrend = $this->getEngagementTrendData($filter, $userId, $dateFrom, $dateTo);
@@ -583,6 +700,60 @@ class AnalyticsController extends Controller
         }
     }
 
+    protected function countShares(string $filter, ?string $dateFrom = null, ?string $dateTo = null, ?int $userId = null): int
+    {
+        $shareTracks = ShareTrack::query();
+        $engagementShares = EngagementLog::whereIn('event_type', self::SHARE_ENGAGEMENT_TYPES);
+
+        if ($userId) {
+            $shareTracks->where('user_id', $userId);
+            $engagementShares->where('user_id', $userId);
+        }
+
+        return (int) $this->applyDateFilter($shareTracks, $filter, 'shared_at', $dateFrom, $dateTo)->count()
+            + (int) $this->applyDateFilter($engagementShares, $filter, 'created_at', $dateFrom, $dateTo)->count();
+    }
+
+    protected function shareChannelDistribution(string $filter, ?string $dateFrom = null, ?string $dateTo = null, ?int $userId = null): array
+    {
+        $shareTrackQuery = ShareTrack::query();
+        $engagementQuery = EngagementLog::whereIn('event_type', self::SHARE_ENGAGEMENT_TYPES);
+
+        if ($userId) {
+            $shareTrackQuery->where('user_id', $userId);
+            $engagementQuery->where('user_id', $userId);
+        }
+
+        $channels = $this->applyDateFilter($shareTrackQuery, $filter, 'shared_at', $dateFrom, $dateTo)
+            ->select('channel', DB::raw('COUNT(*) as count'))
+            ->groupBy('channel')
+            ->pluck('count', 'channel')
+            ->toArray();
+
+        $modalShares = $this->applyDateFilter($engagementQuery, $filter, 'created_at', $dateFrom, $dateTo)
+            ->select('event_type', DB::raw('COUNT(*) as count'))
+            ->groupBy('event_type')
+            ->pluck('count', 'event_type')
+            ->toArray();
+
+        $labels = [
+            'pdf_share' => 'PDF share',
+            'image_share' => 'Image share',
+            'whatsapp_pdf_share' => 'WhatsApp PDF',
+            'whatsapp_image_share' => 'WhatsApp image',
+            'whatsapp_click' => 'WhatsApp link',
+            'copy_link' => 'Link copy',
+            'direct_link' => 'Direct link',
+        ];
+
+        foreach ($modalShares as $eventType => $count) {
+            $key = $labels[$eventType] ?? str_replace('_', ' ', $eventType);
+            $channels[$key] = ($channels[$key] ?? 0) + (int) $count;
+        }
+
+        return $channels;
+    }
+
     /**
      * Get engagement event counts per time period for trend chart.
      */
@@ -720,7 +891,21 @@ class AnalyticsController extends Controller
         $visitScope = fn($q) => $q->whereHas('shareTrack', fn($sq) => $sq->where('user_id', $userId));
         $viewScope = fn($q) => $q->whereHas('visitLog.shareTrack', fn($sq) => $sq->where('user_id', $userId));
 
-        if ($filter === 'today' || $filter === 'yesterday') {
+        if ($dateFrom && $dateTo) {
+            $start = Carbon::parse($dateFrom)->startOfDay();
+            $end   = Carbon::parse($dateTo)->endOfDay();
+            $diff  = (int) $start->diffInDays($end);
+            $step  = max(1, (int) ceil($diff / 30));
+            for ($i = 0; $i <= $diff; $i += $step) {
+                $day     = $start->copy()->addDays($i);
+                $dayEnd  = $day->copy()->addDays($step - 1)->endOfDay();
+                $labels[]    = $day->format('M d');
+                $visits[]    = (int) VisitLog::where($visitScope)->whereBetween('opened_at', [$day, $dayEnd])->count();
+                $views[]     = (int) ProductViewLog::where($viewScope)->whereBetween('viewed_at', [$day, $dayEnd])->count();
+                $downloads[] = (int) DownloadLog::where('user_id', $userId)->whereBetween('downloaded_at', [$day, $dayEnd])->count();
+                $enquiries[] = (int) Enquiry::whereBetween('created_at', [$day, $dayEnd])->count();
+            }
+        } elseif ($filter === 'today' || $filter === 'yesterday') {
             $targetDate = $filter === 'today' ? $now : $now->copy()->subDay();
             $dateStr = $targetDate->toDateString();
             for ($h = 0; $h < 24; $h++) {

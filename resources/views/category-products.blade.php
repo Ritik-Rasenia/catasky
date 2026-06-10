@@ -4,6 +4,12 @@
 
 @section('content')
 
+<style>
+/* Ensure filter offcanvas and its backdrop render above the floating selection bar (z-index: 1045) */
+#mobileFiltersOffcanvas { z-index: 1055 !important; }
+.offcanvas-backdrop.show { z-index: 1050 !important; }
+</style>
+
 @php
     // Fetch all active categories dynamically in the view if not overridden by controller
     if (!isset($allCategories)) {
@@ -217,7 +223,7 @@
                 </div>
 
                 <!-- Mobile Offcanvas Filters Drawer (Mobile viewport only) -->
-                <div class="offcanvas offcanvas-start border-end-0 shadow" tabindex="-1" id="mobileFiltersOffcanvas" aria-labelledby="mobileFiltersOffcanvasLabel" style="width: 320px; border-top-right-radius: 24px; border-bottom-right-radius: 24px; background-color: var(--background); transition: transform 0.25s ease-in-out;">
+                <div class="offcanvas offcanvas-start border-end-0 shadow" tabindex="-1" id="mobileFiltersOffcanvas" aria-labelledby="mobileFiltersOffcanvasLabel" style="width: 320px; border-top-right-radius: 24px; border-bottom-right-radius: 24px; background-color: var(--background); transition: transform 0.25s ease-in-out; z-index: 1055;">
                     <div class="offcanvas-header bg-white border-bottom p-4">
                         <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center gap-2" id="mobileFiltersOffcanvasLabel">
                             <i class="bi bi-funnel-fill text-primary"></i> Filter Specifications

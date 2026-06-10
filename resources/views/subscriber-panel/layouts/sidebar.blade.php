@@ -82,6 +82,11 @@
                         'permission' => 'dashboard.view',
                         'active'     => ['dashboard'],
                     ],
+                ],
+            ],
+            [
+                'label' => 'Analytics',
+                'items' => [
                     [
                         'label'      => 'Analytics',
                         'icon'       => 'bi-graph-up-arrow',

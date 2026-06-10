@@ -30,6 +30,7 @@ use App\Http\Controllers\Subscriber\VariantController as SubscriberVariantContro
 use App\Http\Controllers\Subscriber\InventoryController as SubscriberInventoryController;
 use App\Http\Controllers\Subscriber\BulkUploadController as SubscriberBulkUploadController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\FrontendAnalyticsController;
 use App\Http\Controllers\TrackingRedirectController;
 
 
@@ -207,6 +208,11 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/admin/analytics/timeline/{visitorUuid}', [AnalyticsController::class, 'activityTimeline'])->name('analytics.timeline')->middleware('permission:reports');
         Route::get('/admin/analytics/export', [AnalyticsController::class, 'exportExcel'])->name('analytics.export')->middleware('permission:reports');
         Route::get('/admin/analytics/realtime', [AnalyticsController::class, 'realtimeData'])->name('analytics.realtime')->middleware('permission:reports');
+
+        // Frontend-Only Analytics Dashboard
+        Route::get('/admin/frontend-analytics', [FrontendAnalyticsController::class, 'adminDashboard'])->name('frontend-analytics');
+        Route::get('/admin/frontend-analytics/realtime', [FrontendAnalyticsController::class, 'adminRealtime'])->name('frontend-analytics.realtime');
+        Route::get('/admin/frontend-analytics/export', [FrontendAnalyticsController::class, 'adminExport'])->name('frontend-analytics.export');
 
         // --- BRANDS (Granular Access) ---
         Route::group(['middleware' => ['permission:create-brands']], function () {
@@ -558,6 +564,11 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
         Route::get('/analytics/timeline/{visitorUuid}', [AnalyticsController::class, 'subscriberTimeline'])->name('analytics.timeline');
         Route::get('/analytics/export', [AnalyticsController::class, 'subscriberExport'])->name('analytics.export');
         Route::get('/analytics/realtime', [AnalyticsController::class, 'realtimeData'])->name('analytics.realtime');
+
+        // Frontend-Only Analytics Dashboard — REMOVED from subscriber panel (admin-only now)
+        // Route::get('/frontend-analytics', [FrontendAnalyticsController::class, 'subscriberDashboard'])->name('frontend-analytics');
+        // Route::get('/frontend-analytics/realtime', [FrontendAnalyticsController::class, 'subscriberRealtime'])->name('frontend-analytics.realtime');
+        // Route::get('/frontend-analytics/export', [FrontendAnalyticsController::class, 'subscriberExport'])->name('frontend-analytics.export');
 
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Subscriber\NotificationController::class, 'index'])->name('notifications.index');

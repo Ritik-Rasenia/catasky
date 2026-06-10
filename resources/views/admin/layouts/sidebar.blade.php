@@ -33,20 +33,19 @@
                         'permission' => 'dashboard.view',
                         'active' => ['dashboard'],
                     ],
+                ],
+            ],
+            [
+                'label' => 'Analytics',
+                'items' => [
                     [
-                        'label' => 'Advanced Analytics',
+                        'label' => 'Analytics',
                         'icon' => 'bi-graph-up-arrow',
                         'route' => 'admin.analytics',
                         'permission' => 'dashboard.analytics',
                         'active' => ['admin.analytics', 'admin.analytics.*'],
                     ],
-                    [
-                        'label' => 'WhatsApp Tracker',
-                        'icon' => 'bi-whatsapp',
-                        'route' => 'admin.tracking.analytics',
-                        'permission' => 'dashboard.analytics',
-                        'active' => ['admin.tracking.analytics'],
-                    ],
+                    
                 ],
             ],
             [

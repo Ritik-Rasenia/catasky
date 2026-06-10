@@ -129,6 +129,23 @@
             opacity: 1 !important;
             pointer-events: auto !important;
         }
+        #selection-bar.floating-bar.collapsed {
+            transform: translate(-50%, calc(100% - 22px)) !important;
+            opacity: 0.85 !important;
+        }
+        #selection-bar.floating-bar.collapsed:hover {
+            transform: translate(-50%, calc(100% - 32px)) !important;
+            opacity: 1 !important;
+        }
+        #selection-bar.floating-bar.collapsed .bar-pill-btn:not(.close-btn) {
+            opacity: 0.3 !important;
+            pointer-events: none !important;
+        }
+        #selection-bar.floating-bar.collapsed .close-btn {
+            background: linear-gradient(135deg, #1D6FEB 0%, #0284C7 100%) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 4px 12px rgba(29, 111, 235, 0.3) !important;
+        }
         #selection-bar .bar-actions {
             display: flex !important;
             flex-direction: row !important;
@@ -418,6 +435,96 @@
             #sharingModal .btn {
                 min-height: 42px;
                 white-space: normal;
+            }
+        }
+
+        #sharingModal .modal-dialog {
+            max-width: min(1120px, 96vw);
+        }
+        #sharingModal .premium-modal {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+        }
+        #sharingModal .modal-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #ffffff;
+        }
+        #sharingModal .modal-body {
+            background: #f8fafc;
+        }
+        #sharingModal .nav-tabs-premium {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px;
+            background: #ffffff;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        #sharingModal .nav-tabs-premium .nav-item {
+            width: 100%;
+        }
+        #sharingModal .nav-tabs-premium .nav-link {
+            width: 100%;
+            min-height: 42px;
+            border: 0;
+            border-radius: 6px;
+            color: #475569;
+            font-weight: 800;
+            font-size: .82rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        #sharingModal .nav-tabs-premium .nav-link.active {
+            background: #eef2ff;
+            color: #4338ca;
+            box-shadow: inset 0 0 0 1px rgba(79, 70, 229, .18);
+        }
+        #sharingModal .tab-pane > .row {
+            align-items: stretch;
+        }
+        #sharingModal .form-control,
+        #sharingModal .form-select {
+            border-radius: 8px !important;
+            border-color: #dbe3ef;
+            min-height: 42px;
+        }
+        #sharingModal .premium-card {
+            border-radius: 8px !important;
+            border-color: #dbe3ef !important;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, .04);
+        }
+        #sharingModal .btn-premium,
+        #sharingModal .btn-premium-outline {
+            border-radius: 8px !important;
+            min-height: 42px;
+        }
+        #modal-selection-list {
+            min-height: 260px;
+        }
+        @media (max-width: 767.98px) {
+            #sharingModal .modal-dialog {
+                max-width: 100vw;
+                margin: 0;
+            }
+            #sharingModal .premium-modal {
+                min-height: 100vh;
+                border-radius: 0;
+            }
+            #sharingModal .modal-body {
+                padding: 12px !important;
+            }
+            #sharingModal .nav-tabs-premium {
+                grid-template-columns: 1fr;
+            }
+            #sharingModal .nav-tabs-premium .nav-link {
+                justify-content: flex-start;
+                padding-left: 14px;
             }
         }
         
@@ -821,6 +928,10 @@
             <!-- Right button: Share Image -->
             <button class="bar-pill-btn images-btn" onclick="openSharingModal('image')" title="Open Flyer & Image Sharing">
                 <i class="bi bi-images me-2"></i>Image Share
+            </button>
+            <!-- Minimize Toggle Button -->
+            <button class="bar-pill-btn close-btn" onclick="toggleSelectionBarCollapse(event)" title="Minimize/Expand Menu" style="background: rgba(255, 255, 255, 0.12) !important; border: 1.5px solid rgba(255, 255, 255, 0.25) !important; padding: 8px 12px !important; min-height: 46px !important; border-radius: 50px !important; margin-left: 8px; width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="bi bi-chevron-down" id="selection-bar-toggle-icon" style="font-size: 14px; transition: transform 0.3s ease;"></i>
             </button>
         </div>
     </div>
@@ -1272,6 +1383,56 @@
         </div>
     </div>
 
+    <!-- iOS PWA Install Guidance Modal -->
+    <div class="modal fade" id="iosPwaModal" tabindex="-1" aria-labelledby="iosPwaModalLabel" aria-hidden="true" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+            <div class="modal-content border-0 rounded-4 shadow-lg" style="background: rgba(30, 41, 59, 0.95); border: 1.5px solid rgba(255, 255, 255, 0.15) !important; color: #ffffff;">
+                <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-bold text-gradient-primary d-flex align-items-center gap-2" id="iosPwaModalLabel" style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        <i class="bi bi-apple fs-4"></i> Install App on iOS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="box-shadow: none;"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-white-50 small mb-4" style="line-height: 1.5; font-size: 0.9rem;">
+                        Install <b>Catasky</b> on your iPhone or iPad for quick B2B specifications, offline catalog caching, and a full-screen experience.
+                    </p>
+                    
+                    <div class="d-flex flex-column gap-3 mb-2">
+                        <!-- Step 1 -->
+                        <div class="d-flex gap-3 align-items-start p-3 rounded-3" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle text-primary fw-bold" style="background: rgba(56, 189, 248, 0.15); width: 28px; height: 28px; flex-shrink: 0; font-size: 0.9rem; color: #38BDF8 !important;">1</div>
+                            <div class="small" style="line-height: 1.4;">
+                                Open this site in the <b>Safari</b> browser, then tap the <b>Share</b> button in the navigation bar.
+                                <div class="mt-2 text-white-50"><i class="bi bi-box-arrow-up fs-5 text-primary"></i> (The box icon with an upward arrow at the bottom or top of your screen)</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2 -->
+                        <div class="d-flex gap-3 align-items-start p-3 rounded-3" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle text-primary fw-bold" style="background: rgba(56, 189, 248, 0.15); width: 28px; height: 28px; flex-shrink: 0; font-size: 0.9rem; color: #38BDF8 !important;">2</div>
+                            <div class="small" style="line-height: 1.4;">
+                                Scroll down the share menu and select <b>Add to Home Screen</b>.
+                                <div class="mt-2 text-white-50"><i class="bi bi-plus-square fs-5 text-success"></i> (Look for the plus icon)</div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="d-flex gap-3 align-items-start p-3 rounded-3" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle text-primary fw-bold" style="background: rgba(56, 189, 248, 0.15); width: 28px; height: 28px; flex-shrink: 0; font-size: 0.9rem; color: #38BDF8 !important;">3</div>
+                            <div class="small" style="line-height: 1.4;">
+                                Tap <b>Add</b> in the top-right corner to complete the installation.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-premium w-100 py-2.5" data-bs-dismiss="modal" style="background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%); border: none; font-size: 0.9rem; font-weight: 700; border-radius: 12px; color: #ffffff;">Got It</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Search Overlay Modal -->
     <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1523,14 +1684,23 @@
                     return res.json();
                 })
                 .then(data => {
-                    if (data && data.success && data.products) {
-                        Object.keys(data.products).forEach(idKey => {
-                            window.cachedProductDetails[idKey] = data.products[idKey];
-                        });
-                    }
+                    // Cache returned products, and mark any missing requested IDs as failed/not found to prevent infinite loop
+                    uncachedIds.forEach(id => {
+                        const idStr = id.toString();
+                        if (data && data.success && data.products && data.products[idStr]) {
+                            window.cachedProductDetails[idStr] = data.products[idStr];
+                        } else {
+                            window.cachedProductDetails[idStr] = { success: false, notFound: true, error: 'Product not found' };
+                        }
+                    });
                 })
                 .catch(err => {
                     console.error("fetchMultipleProductDetails bulk error:", err);
+                    // Mark all attempted IDs as failed to avoid retrying infinitely
+                    uncachedIds.forEach(id => {
+                        const idStr = id.toString();
+                        window.cachedProductDetails[idStr] = { success: false, error: err.message || err };
+                    });
                 })
                 .finally(() => {
                     window.activeFetchPromise = null;
@@ -1597,6 +1767,29 @@
         }
 
         $(document).ready(function() {
+            // Auto-hide selection bar when sharing modal is open
+            $('#sharingModal').on('show.bs.modal', function () {
+                $('#selection-bar').removeClass('active');
+            });
+            $('#sharingModal').on('hidden.bs.modal', function () {
+                updateSelectionUISafe();
+            });
+
+            // Click outside user dropdown close handler
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#headerUserDropdownBtn').length) {
+                    $('#headerUserDropdownBtn').next('.dropdown-menu').removeClass('show');
+                }
+            });
+
+            // Click outside mobile menu close handler
+            $(document).on('click', function (e) {
+                const navbarNav = $('#navbarNav');
+                if (navbarNav.hasClass('show') && !$(e.target).closest('#navbarNav, .navbar-toggler').length) {
+                    navbarNav.collapse('hide');
+                }
+            });
+
             // Scroll navbar styling
             $(window).scroll(function() {
                 if ($(this).scrollTop() > 30) {
@@ -3130,6 +3323,21 @@
                 `;
             }
 
+            window.toggleSelectionBarCollapse = function(event) {
+                if (event) event.stopPropagation();
+                const bar = $('#selection-bar');
+                const icon = $('#selection-bar-toggle-icon');
+                if (bar.hasClass('collapsed')) {
+                    bar.removeClass('collapsed');
+                    icon.removeClass('bi-chevron-up').addClass('bi-chevron-down');
+                    localStorage.setItem('selectionBarCollapsed', 'false');
+                } else {
+                    bar.addClass('collapsed');
+                    icon.removeClass('bi-chevron-down').addClass('bi-chevron-up');
+                    localStorage.setItem('selectionBarCollapsed', 'true');
+                }
+            };
+
             window.updateSelectionUI = function() {
                 const count = selectedProducts.length;
                 const isAuthenticated = $('#selection-bar').data('authenticated') === true || $('#selection-bar').data('authenticated') === 'true';
@@ -3141,8 +3349,16 @@
                 // Logged-in users keep the bar visible at 0 selections to open empty states.
                 if (isAuthenticated || count > 0) {
                     $('#selection-bar').addClass('active');
+                    // Apply collapsed state from localStorage
+                    if (localStorage.getItem('selectionBarCollapsed') === 'true') {
+                        $('#selection-bar').addClass('collapsed');
+                        $('#selection-bar-toggle-icon').removeClass('bi-chevron-down').addClass('bi-chevron-up');
+                    } else {
+                        $('#selection-bar').removeClass('collapsed');
+                        $('#selection-bar-toggle-icon').removeClass('bi-chevron-up').addClass('bi-chevron-down');
+                    }
                 } else {
-                    $('#selection-bar').removeClass('active');
+                    $('#selection-bar').removeClass('active collapsed');
                 }
 
                 // Sync all selection card UI borders and badges
@@ -3602,8 +3818,8 @@
                         ''
                     );
                     if (result.unsupported) {
-                        downloadPreparedPdf(prepared);
-                        showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                        openWhatsAppWithLink(settings, 'Open this curated PDF-style product selection:');
+                        showToast('WhatsApp file sharing is not supported on this browser, so the catalog link was opened instead.', 'Share Link Ready', 'warning');
                         return;
                     }
                     trackAnalyticsEventSafe('whatsapp_share_pdf_native_success', type);
@@ -3611,8 +3827,8 @@
                     btn.removeAttr('disabled').html(origHtml);
                     if (error && error.name === 'AbortError') return;
                     console.error(error);
-                    downloadPreparedPdf(prepared ? prepared : null);
-                    showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                    openWhatsAppWithLink(settings, 'Open this curated PDF-style product selection:');
+                    showToast('PDF sharing was not completed. The catalog link was opened instead.', 'Share Link Ready', 'warning');
                 }
             };
 
@@ -3972,7 +4188,7 @@
                     
                     let promises = selectedProducts.map(id => fetchProductDetailsCached(id));
 
-                    Promise.all(promises).then(dataList => {
+                    return Promise.all(promises).then(dataList => {
                         if (token !== window.exportBuildTokens[type]) return;
                         const validDataList = dataList.filter(d => d && d.success);
                         
@@ -4133,8 +4349,8 @@
                         }).catch(compileErr => {
                             console.error("Background PDF compilation failed:", compileErr);
                             if (token !== window.exportBuildTokens[type]) return;
-                            badge.removeClass('bg-warning bg-danger text-dark text-white').addClass('bg-success text-white').text('Ready');
-                            setExportButtonsState(type, true);
+                            badge.removeClass('bg-warning bg-success text-dark text-white').addClass('bg-danger text-white').text('Error');
+                            setExportButtonsState(type, false, 'Failed');
                         });
                     }).catch(err => {
                         console.error("Error generating PDF preview", err);
@@ -4707,8 +4923,7 @@
 
                     );
                     if (result.unsupported) {
-                        downloadPreparedPdf(prepared);
-                        showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                        showToast('This browser cannot share PDF files directly. Please use the Download PDF button from this modal.', 'Share Not Supported', 'warning');
                         return;
                     }
                     trackAnalyticsEventSafe('system_share_pdf_success', selectedProducts.length);
@@ -4716,8 +4931,7 @@
                     btn.removeAttr('disabled').html(origHtml);
                     if (error && error.name === 'AbortError') return;
                     console.error(error);
-                    downloadPreparedPdf(prepared ? prepared : null);
-                    showToast('PDF compiled successfully! PDF download triggered.', 'PDF Downloaded');
+                    showToast('PDF sharing was not completed. Please use the Download PDF button if you want a file.', 'Share Not Completed', 'warning');
                 }
             };
 
@@ -4906,6 +5120,13 @@
                     return;
                 }
 
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    const iosModal = new bootstrap.Modal(document.getElementById('iosPwaModal'));
+                    iosModal.show();
+                    return;
+                }
+
                 if (!deferredPrompt) {
                     // No warning toast if prompt is unavailable - just check matches display-mode or show installed, or do nothing.
                     if (window.matchMedia('(display-mode: standalone)').matches || localStorage.getItem('pwaInstalled') === 'true') {
@@ -4913,6 +5134,13 @@
                             window.alertService.toastSuccess('App is already installed on this device.');
                         } else {
                             alert('App is already installed on this device.');
+                        }
+                    } else {
+                        // On non-iOS devices, if prompt is missing (e.g. desktop safari/firefox), suggest bookmarking or show fallback
+                        if (window.alertService) {
+                            window.alertService.infoAlert('Install App', 'To install, click your browser\'s menu or share button and select "Add to Home Screen" or "Install".');
+                        } else {
+                            alert('To install, click your browser\'s menu and select "Add to Home Screen" or "Install".');
                         }
                     }
                     return;
@@ -4981,6 +5209,7 @@
      *   trackEvent('product_view', { product_id: 789 });
      *
      * Events: pdf_download | image_download | whatsapp_share | other_share | product_view
+     *         DOWNLOAD_PDF | DOWNLOAD_IMAGE | SHARE_WHATSAPP | SHARE_LINK | OPEN_PRODUCT
      *
      * Uses sendBeacon for reliability (works even after page unload).
      * Falls back to fetch with keepalive if sendBeacon is unavailable.
@@ -4989,6 +5218,13 @@
     (function() {
         var TRACK_URL = '/api/track-event';
         var QUEUE_KEY = '_catasky_fe_queue';
+
+        // Generate or retrieve a persistent session ID for this browsing session
+        var _sessionId = sessionStorage.getItem('_catasky_sid');
+        if (!_sessionId) {
+            _sessionId = 'fes_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('_catasky_sid', _sessionId);
+        }
 
         // Flush any queued events from previous page loads
         function flushQueue() {
@@ -5035,16 +5271,19 @@
         /**
          * Public API: window.trackEvent(eventName, options)
          * @param {string} eventName - pdf_download|image_download|whatsapp_share|other_share|product_view
-         * @param {object} options - { product_id, file_type, user_id, meta }
+         *                             DOWNLOAD_PDF|DOWNLOAD_IMAGE|SHARE_WHATSAPP|SHARE_LINK|OPEN_PRODUCT
+         * @param {object} options - { product_id, file_type, user_id, subscriber_id, meta }
          */
         window.trackEvent = function(eventName, options) {
             options = options || {};
             var payload = {
-                event:      eventName,
-                product_id: options.product_id || null,
-                file_type:  options.file_type  || null,
-                user_id:    options.user_id    || null,
-                meta:       Object.assign({
+                event_type:    eventName,
+                session_id:    _sessionId,
+                product_id:    options.product_id    || null,
+                file_type:     options.file_type     || null,
+                user_id:       options.user_id       || null,
+                subscriber_id: options.subscriber_id || window.storeOwnerId || null,
+                meta:          Object.assign({
                     page:      window.location.pathname,
                     referrer:  document.referrer,
                     timestamp: new Date().toISOString()
@@ -5067,11 +5306,10 @@
     </script>
 
     {{-- ─── FRONTEND SHARE TRACKING ─────────────────────────────────────────── --}}
-    @if(isset($profile) && isset($isSubscriberStore) && $isSubscriberStore)
     <script>
     (function() {
-        const SUBSCRIBER_USER_ID = {{ $profile->user_id ?? 'null' }};
-        const COMPANY_SLUG = '{{ $profile->company_slug ?? '' }}';
+        const SUBSCRIBER_USER_ID = {{ isset($profile) && $profile ? ($profile->user_id ?? 'null') : 'null' }};
+        const COMPANY_SLUG = '{{ isset($profile) && $profile ? ($profile->company_slug ?? '') : '' }}';
         const CSRF = '{{ csrf_token() }}';
         const API_BASE = '/api/analytics';
 
@@ -5119,6 +5357,7 @@
                 session_id: sessionId,
                 user_id: SUBSCRIBER_USER_ID,
                 file_type: fileType || 'pdf',
+                product_ids: getSelectedProductIds(),
                 _token: CSRF
             };
             // Use sendBeacon for reliability, fallback to fetch
@@ -5236,6 +5475,9 @@
             if (typeof _origShareWithDoubleTick === 'function') {
                 window.shareWithDoubleTick = function() {
                     trackEngagement('whatsapp_click', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('whatsapp_share', { product_id: null, file_type: 'link', meta: { share_method: 'doubletick', product_ids: getSelectedProductIds() } });
+                    }
                     return _origShareWithDoubleTick.apply(this, arguments);
                 };
             }
@@ -5245,6 +5487,9 @@
             if (typeof _origSendPDFDirectly === 'function') {
                 window.sendPDFDirectly = function() {
                     trackEngagement('whatsapp_pdf_share', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('whatsapp_share', { product_id: null, file_type: 'pdf', meta: { share_method: 'doubletick_pdf', product_ids: getSelectedProductIds() } });
+                    }
                     return _origSendPDFDirectly.apply(this, arguments);
                 };
             }
@@ -5254,6 +5499,9 @@
             if (typeof _origShareOnWhatsAppDirect === 'function') {
                 window.shareOnWhatsAppDirect = function() {
                     trackEngagement('whatsapp_click', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('whatsapp_share', { product_id: null, file_type: 'link', meta: { share_method: 'direct_whatsapp', product_ids: getSelectedProductIds() } });
+                    }
                     return _origShareOnWhatsAppDirect.apply(this, arguments);
                 };
             }
@@ -5263,6 +5511,9 @@
             if (typeof _origCopyShareText === 'function') {
                 window.copyShareText = function() {
                     trackEngagement('copy_link', { product_ids: getSelectedProductIds() });
+                    if (window.trackEvent) {
+                        window.trackEvent('other_share', { product_id: null, file_type: 'link', meta: { share_method: 'copy_link', product_ids: getSelectedProductIds() } });
+                    }
                     return _origCopyShareText.apply(this, arguments);
                 };
             }
@@ -5278,6 +5529,5 @@
         }
     })();
     </script>
-    @endif
 </body>
 </html>

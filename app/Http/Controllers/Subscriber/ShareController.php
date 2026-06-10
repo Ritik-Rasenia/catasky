@@ -272,9 +272,12 @@ class ShareController extends Controller
                 'metadata'                 => [
                     'share_token' => $token,
                     'ip'          => request()->ip(),
+                    'product_ids' => $catalogProducts ? $catalogProducts->pluck('id')->all() : ($link->subscriber_product_id ? [$link->subscriber_product_id] : []),
                     'source'      => 'share_link_pdf_download',
                 ],
             ]);
+
+
 
             Log::info('[DownloadTracking] Share link PDF download event created', [
                 'link_id' => $link->id,

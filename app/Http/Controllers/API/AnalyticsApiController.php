@@ -163,10 +163,12 @@ class AnalyticsApiController extends Controller
     public function logDownload(Request $request)
     {
         $request->validate([
-            'session_id' => 'nullable|string',
-            'token'      => 'nullable|string',
-            'user_id'    => 'nullable|integer',
-            'file_type'  => 'required|string|in:pdf,brochure,catalog,image',
+            'session_id'   => 'nullable|string',
+            'token'        => 'nullable|string',
+            'user_id'      => 'nullable|integer',
+            'file_type'    => 'required|string|in:pdf,brochure,catalog,image',
+            'product_ids'  => 'nullable|array|max:250',
+            'product_ids.*'=> 'integer|exists:subscriber_products,id',
         ]);
 
         Log::info('[DownloadTracking] Download API hit', [
@@ -216,16 +218,19 @@ class AnalyticsApiController extends Controller
         // ── Write to engagement_logs table (for Engagement Events) ──────────
         try {
             $eventType = $request->file_type === 'image' ? 'image_download' : 'pdf_download';
+            $productIds = $request->input('product_ids', []);
+
             EngagementLog::create([
                 'visit_log_id'             => $visitLog?->id,
                 'subscriber_share_link_id' => $shareLinkId,
                 'user_id'                  => $userId,
                 'event_type'               => $eventType,
-                'subscriber_product_id'    => null,
+                'subscriber_product_id'    => !empty($productIds) ? (int) $productIds[0] : null,
                 'metadata'                 => [
-                    'file_type' => $request->file_type,
-                    'ip'        => $request->ip(),
-                    'source'    => 'frontend_store_download',
+                    'file_type'   => $request->file_type,
+                    'ip'          => $request->ip(),
+                    'product_ids' => $productIds,
+                    'source'      => 'frontend_store_download',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -311,16 +316,27 @@ class AnalyticsApiController extends Controller
             }
         }
 
+        // Resolve first product ID for main relationship (optional fallback)
+        $productIds = $request->input('product_ids', []);
+        $firstProductId = null;
+        if (is_array($productIds) && count($productIds) > 0) {
+            $firstProductId = (int) $productIds[0];
+        } else {
+            $firstProductId = $request->product_id;
+        }
+
+        $metadata = array_merge($request->metadata ?? [], [
+            'product_ids' => is_array($productIds) && count($productIds) > 0 ? $productIds : ($request->product_id ? [$request->product_id] : []),
+            'source'      => 'frontend_store',
+        ]);
+
         EngagementLogged::dispatch(
             $visitLog?->id,
             $shareLinkId,
             $userId,
             $request->event_type,
-            $request->product_id,
-            array_merge($request->metadata ?? [], [
-                'product_ids' => $request->input('product_ids'),
-                'source' => 'frontend_store',
-            ])
+            $firstProductId,
+            $metadata
         );
 
         return response()->json(['success' => true]);

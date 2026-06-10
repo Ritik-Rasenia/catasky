@@ -29,7 +29,7 @@ class EngagementLog extends Model
 
     public function shareLink()
     {
-        return $this->belongsTo(SubscriberShareLink::class, 'subscriber_share_link_id');
+        return $this->belongsTo(SubscriberShareLink::class, 'subscriber_share_link_id')->withTrashed();
     }
 
     public function user()
@@ -39,6 +39,6 @@ class EngagementLog extends Model
 
     public function product()
     {
-        return $this->belongsTo(SubscriberProduct::class, 'subscriber_product_id');
+        return $this->belongsTo(SubscriberProduct::class, 'subscriber_product_id')->withTrashed();
     }
 }

@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Exclude public analytics endpoints from CSRF (sendBeacon cannot carry tokens)
+        $middleware->validateCsrfTokens(except: [
+            'api/track-event',
+        ]);
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
             if ($request->is('admin*') || $request->is('dashboard/admin*')) {
                 return route('login'); // secure-admin-login
