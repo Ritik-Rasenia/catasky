@@ -164,10 +164,14 @@ class ProductImportTest extends TestCase
             ['New Samsung S21 Ultra', 'SAM-S21', 'samsung-s21', 'Samsung', 'Electronics', 'Smartphones', '82000', '71000', '2', '22', 'in_stock', 'Updated S21', 'Full S21', 'active', 'yes'],
             // Row 4 (Update Samsung S22 by Name)
             ['Samsung S22', 'SAM-S22-NEW', 'samsung-s22', 'Samsung', 'Electronics', 'Smartphones', '91000', '86000', '1', '8', 'in_stock', 'Updated S22', 'Full S22', 'active', 'yes'],
-            // Row 5 (Fail: Non-existent Category)
+            // Row 5 (Success: Auto-created Category NonExistent)
             ['Samsung S24', 'SAM-S24', 'samsung-s24', 'Samsung', 'NonExistent', 'Smartphones', '120000', '110000', '1', '10', 'in_stock', 'New S24', 'Full S24', 'active', 'no'],
-            // Row 6 (Fail: Invalid Price format)
+            // Row 6 (Success: Invalid Price format ignored)
             ['Samsung S25', 'SAM-S25', 'samsung-s25', 'Samsung', 'Electronics', 'Smartphones', '130000', 'abc', '1', '10', 'in_stock', 'New S25', 'Full S25', 'active', 'no'],
+            // Row 7 (Success: Empty category & subcategory)
+            ['Samsung S26', 'SAM-S26', 'samsung-s26', 'Samsung', '', '', '140000', '120000', '1', '12', 'in_stock', 'New S26', 'Full S26', 'active', 'no'],
+            // Row 8 (Fail: Empty Product Name)
+            ['', 'SAM-S27', 'samsung-s27', 'Samsung', 'Electronics', 'Smartphones', '150000', '130000', '1', '10', 'in_stock', 'New S27', 'Full S27', 'active', 'no'],
         ];
 
         foreach ($rowsData as $rowIndex => $rowData) {
@@ -202,10 +206,10 @@ class ProductImportTest extends TestCase
 
         // 1. Verify log stats
         $this->assertEquals('completed', $log->status);
-        $this->assertEquals(5, $log->total_rows);
-        $this->assertEquals(1, $log->imported_rows); // 1 new insert (Samsung S23)
+        $this->assertEquals(7, $log->total_rows);
+        $this->assertEquals(4, $log->imported_rows); // 4 new inserts (Samsung S23, S24, S25, S26)
         $this->assertEquals(2, $log->updated_rows);  // 2 updates (Samsung S21, S22)
-        $this->assertEquals(2, $log->failed_rows);   // 2 failures (S24, S25)
+        $this->assertEquals(1, $log->failed_rows);   // 1 failure (S27 empty name)
 
         // 2. Verify database records updated/inserted
         // Samsung S23 should be inserted
@@ -213,6 +217,27 @@ class ProductImportTest extends TestCase
         $this->assertNotNull($s23);
         $this->assertEquals('Samsung S23', $s23->name);
         $this->assertEquals(95000, $s23->offer_price);
+
+        // Samsung S24 should be inserted with auto-created NonExistent Category
+        $s24 = SubscriberProduct::where('sku', 'SAM-S24')->first();
+        $this->assertNotNull($s24);
+        $this->assertEquals('Samsung S24', $s24->name);
+        $createdCat = Category::withoutGlobalScope('tenant')->where('subscriber_id', $this->subscriber->id)->where('name', 'NonExistent')->first();
+        $this->assertNotNull($createdCat);
+        $this->assertEquals([$createdCat->id], $s24->category_id);
+
+        // Samsung S25 should be inserted with offer_price as null (since abc is not numeric)
+        $s25 = SubscriberProduct::where('sku', 'SAM-S25')->first();
+        $this->assertNotNull($s25);
+        $this->assertEquals('Samsung S25', $s25->name);
+        $this->assertNull($s25->offer_price);
+
+        // Samsung S26 should be inserted (with empty category and subcategory)
+        $s26 = SubscriberProduct::where('sku', 'SAM-S26')->first();
+        $this->assertNotNull($s26);
+        $this->assertEquals('Samsung S26', $s26->name);
+        $this->assertEquals([], $s26->category_id);
+        $this->assertEquals([], $s26->subcategory_id);
 
         // Samsung S21 should be updated (name, stock, mrp changed)
         $s21 = SubscriberProduct::where('sku', 'SAM-S21')->first();
@@ -230,20 +255,22 @@ class ProductImportTest extends TestCase
         $this->assertEquals('SAM-S22-NEW', $s22->sku);
         $this->assertEquals(8, $s22->stock);
 
-        // Samsung S24 & S25 should not be in the database
-        $this->assertDatabaseMissing('subscriber_products', ['sku' => 'SAM-S24']);
-        $this->assertDatabaseMissing('subscriber_products', ['sku' => 'SAM-S25']);
+        // Samsung S27 should not be in the database
+        $this->assertDatabaseMissing('subscriber_products', ['sku' => 'SAM-S27']);
 
         // 3. Test dynamic error report download CSV
         $response = $this->actingAs($this->subscriber)
             ->get(route('subscriber.products.import-logs.download-errors', $log->id));
 
         $response->assertStatus(200);
-        $response->assertHeader('Content-Disposition', 'attachment; filename="import_errors_' . $log->id . '_' . date('Ymd_His') . '.csv"');
+        $contentDisposition = $response->headers->get('Content-Disposition');
+        $this->assertMatchesRegularExpression(
+            '/^attachment; filename="import_errors_' . $log->id . '_\d{8}_\d{6}\.csv"$/',
+            $contentDisposition
+        );
 
         $csvContent = $response->streamedContent();
         $this->assertStringContainsString('"Row Number",SKU,"Product Name",Category,Subcategory,"Failure Reason"', $csvContent);
-        $this->assertStringContainsString('5,SAM-S24,"Samsung S24",NonExistent,Smartphones,"Category not found: \'NonExistent\'."', $csvContent);
-        $this->assertStringContainsString('6,SAM-S25,"Samsung S25",Electronics,Smartphones,"Invalid price format."', $csvContent);
+        $this->assertStringContainsString('8,SAM-S27,,Electronics,Smartphones,"Product name is required."', $csvContent);
     }
 }

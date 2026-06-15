@@ -62,98 +62,85 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             return;
         }
  
-        // 2. Numeric checks
+        // 2. Numeric checks (Parsed using parseNumeric, no strict failures reported)
         $mrpRaw = $this->getCell($data, 'mrp');
         $offerPriceRaw = $this->getCell($data, 'offer_price', 'price');
         $moqRaw = $this->getCell($data, 'moq');
         $stockRaw = $this->getCell($data, 'stock_quantity', 'stock');
- 
-        if ($mrpRaw !== null && $mrpRaw !== '') {
-            $mrpClean = preg_replace('/[^0-9.]/', '', $mrpRaw);
-            if (!is_numeric($mrpClean)) {
-                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid MRP format.', $data);
-                return;
-            }
-        }
-        if ($offerPriceRaw !== null && $offerPriceRaw !== '') {
-            $opClean = preg_replace('/[^0-9.]/', '', $offerPriceRaw);
-            if (!is_numeric($opClean)) {
-                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid price format.', $data);
-                return;
-            }
-        }
-        if ($moqRaw !== null && $moqRaw !== '') {
-            $moqClean = preg_replace('/[^0-9]/', '', $moqRaw);
-            if (!is_numeric($moqClean)) {
-                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid MOQ format.', $data);
-                return;
-            }
-        }
-        if ($stockRaw !== null && $stockRaw !== '') {
-            $stockClean = preg_replace('/[^0-9]/', '', $stockRaw);
-            if (!is_numeric($stockClean)) {
-                $this->logFailedRow($rowIndex, $sku, $name, 'Invalid stock quantity format.', $data);
-                return;
-            }
-        }
  
         $mrp = $this->parseNumeric($mrpRaw);
         $offerPrice = $this->parseNumeric($offerPriceRaw);
         $moq = (int)$this->parseNumeric($moqRaw, 1);
         $stock = (int)$this->parseNumeric($stockRaw, 0);
  
-        // 3. Resolve categories (Strict check)
+        // 3. Resolve categories
         $categoryCell = trim($this->getCell($data, 'category'));
-        if ($categoryCell === '') {
-            $this->logFailedRow($rowIndex, $sku, $name, 'Category is required.', $data);
-            return;
-        }
-        $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
         $categoryIds = [];
         $firstCategoryId = null;
         $firstCategoryName = null;
-        foreach ($categoryNames as $cName) {
-            $cat = $this->resolveCategory($cName);
-            if (!$cat) {
-                $this->logFailedRow($rowIndex, $sku, $name, "Category not found: '{$cName}'.", $data);
-                return;
-            }
-            $categoryIds[] = $cat->id;
-            if ($firstCategoryId === null) {
-                $firstCategoryId = $cat->id;
-                $firstCategoryName = $cName;
+        if ($categoryCell !== '') {
+            $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
+            foreach ($categoryNames as $cName) {
+                $cat = $this->resolveCategory($cName);
+                if ($cat) {
+                    $categoryIds[] = $cat->id;
+                    if ($firstCategoryId === null) {
+                        $firstCategoryId = $cat->id;
+                        $firstCategoryName = $cName;
+                    }
+                }
             }
         }
- 
-        // 4. Resolve subcategories (Strict check scoped to category)
+
+        // 4. Resolve subcategories
         $subcategoryCell = trim($this->getCell($data, 'subcategory', 'sub_category'));
-        if ($subcategoryCell === '') {
-            $this->logFailedRow($rowIndex, $sku, $name, 'Subcategory is required.', $data);
-            return;
-        }
-        $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
         $subcategoryIds = [];
-        foreach ($subcategoryNames as $sName) {
-            $sub = $this->resolveSubcategory($firstCategoryId, $sName);
-            if (!$sub) {
-                $this->logFailedRow($rowIndex, $sku, $name, "Subcategory not found: '{$sName}' under Category '{$firstCategoryName}'.", $data);
-                return;
+        if ($subcategoryCell !== '') {
+            $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
+            foreach ($subcategoryNames as $sName) {
+                $sub = null;
+                if ($firstCategoryId !== null) {
+                    $sub = $this->resolveSubcategory($firstCategoryId, $sName);
+                } else {
+                    $sub = Subcategory::withoutGlobalScope('tenant')
+                        ->whereNull('deleted_at')
+                        ->where('subscriber_id', $this->subscriberId)
+                        ->whereRaw('LOWER(name) = ?', [Str::lower($sName)])
+                        ->first();
+                    if ($sub) {
+                        if (!in_array($sub->category_id, $categoryIds)) {
+                            $categoryIds[] = $sub->category_id;
+                            $firstCategoryId = $sub->category_id;
+                            $firstCategoryName = $sub->category?->name;
+                        }
+                    } else {
+                        // resolve General category
+                        $genCat = $this->resolveCategory('General');
+                        $firstCategoryId = $genCat->id;
+                        $firstCategoryName = $genCat->name;
+                        if (!in_array($firstCategoryId, $categoryIds)) {
+                            $categoryIds[] = $firstCategoryId;
+                        }
+                        $sub = $this->resolveSubcategory($firstCategoryId, $sName);
+                    }
+                }
+
+                if ($sub) {
+                    $subcategoryIds[] = $sub->id;
+                }
             }
-            $subcategoryIds[] = $sub->id;
         }
  
-        // 5. Resolve Brands (Strict check)
+        // 5. Resolve Brands
         $brandCell = trim($this->getCell($data, 'brand'));
         $brandIds = [];
         if ($brandCell !== '') {
             $brandNames = array_filter(array_map('trim', explode(',', $brandCell)));
             foreach ($brandNames as $bName) {
                 $bId = $this->resolveBrandId($bName);
-                if (!$bId) {
-                    $this->logFailedRow($rowIndex, $sku, $name, "Brand does not exist: '{$bName}'.", $data);
-                    return;
+                if ($bId) {
+                    $brandIds[] = $bId;
                 }
-                $brandIds[] = $bId;
             }
         }
  
@@ -519,6 +506,14 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             ->where('subscriber_id', $this->subscriberId)
             ->whereRaw('LOWER(name) = ?', [$key])
             ->first();
+        if (!$cat) {
+            $cat = Category::create([
+                'subscriber_id' => $this->subscriberId,
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'status' => 1
+            ]);
+        }
         $this->categoryCache[$key] = $cat;
         return $cat;
     }
@@ -535,6 +530,15 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             ->where('category_id', $categoryId)
             ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
             ->first();
+        if (!$sub) {
+            $sub = Subcategory::create([
+                'subscriber_id' => $this->subscriberId,
+                'category_id' => $categoryId,
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'status' => 1
+            ]);
+        }
         $this->subcategoryCache[$key] = $sub;
         return $sub;
     }
@@ -643,6 +647,14 @@ class SubscriberProductsImportNew implements OnEachRow, WithChunkReading, SkipsE
             ->where('subscriber_id', $this->subscriberId)
             ->whereRaw('LOWER(name) = ?', [$key])
             ->first();
+        if (!$brand) {
+            $brand = \App\Models\Brand::create([
+                'subscriber_id' => $this->subscriberId,
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'status' => 1
+            ]);
+        }
         $id = $brand?->id;
         $this->brandCache[$key] = $id;
  

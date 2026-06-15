@@ -74,43 +74,54 @@ class ProductsImport implements OnEachRow, WithChunkReading, SkipsEmptyRows, Wit
 
         // Resolve categories
         $categoryCell = trim($this->getCell($data, 'category'));
-        if ($categoryCell === '') {
-            $categoryCell = 'General';
-        }
-        $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
         $categoryIds = [];
         $firstCategoryId = null;
-        foreach ($categoryNames as $cName) {
-            $cat = $this->resolveCategory($cName);
-            if ($cat) {
-                $categoryIds[] = $cat->id;
-                if ($firstCategoryId === null) {
-                    $firstCategoryId = $cat->id;
+        if ($categoryCell !== '') {
+            $categoryNames = array_filter(array_map('trim', explode(',', $categoryCell)));
+            foreach ($categoryNames as $cName) {
+                $cat = $this->resolveCategory($cName);
+                if ($cat) {
+                    $categoryIds[] = $cat->id;
+                    if ($firstCategoryId === null) {
+                        $firstCategoryId = $cat->id;
+                    }
                 }
             }
-        }
-        if (empty($categoryIds)) {
-            $cat = $this->resolveCategory('General');
-            $categoryIds[] = $cat->id;
-            $firstCategoryId = $cat->id;
         }
 
         // Resolve subcategories (scoped to the first category found, or general)
         $subcategoryCell = trim($this->getCell($data, 'subcategory', 'sub_category'));
-        if ($subcategoryCell === '') {
-            $subcategoryCell = 'General';
-        }
-        $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
         $subcategoryIds = [];
-        foreach ($subcategoryNames as $sName) {
-            $sub = $this->resolveSubcategory($firstCategoryId, $sName);
-            if ($sub) {
-                $subcategoryIds[] = $sub->id;
+        if ($subcategoryCell !== '') {
+            $subcategoryNames = array_filter(array_map('trim', explode(',', $subcategoryCell)));
+            foreach ($subcategoryNames as $sName) {
+                $sub = null;
+                if ($firstCategoryId !== null) {
+                    $sub = $this->resolveSubcategory($firstCategoryId, $sName);
+                } else {
+                    // Search for subcategory under any category for this subscriber
+                    $sub = $this->tenantQuery(Subcategory::withoutGlobalScope('tenant'))
+                        ->whereRaw('LOWER(name) = ?', [Str::lower($sName)])
+                        ->first();
+                    if ($sub) {
+                        if (!in_array($sub->category_id, $categoryIds)) {
+                            $categoryIds[] = $sub->category_id;
+                            $firstCategoryId = $sub->category_id;
+                        }
+                    } else {
+                        // resolve General category
+                        $genCat = $this->resolveCategory('General');
+                        $firstCategoryId = $genCat->id;
+                        if (!in_array($firstCategoryId, $categoryIds)) {
+                            $categoryIds[] = $firstCategoryId;
+                        }
+                        $sub = $this->resolveSubcategory($firstCategoryId, $sName);
+                    }
+                }
+                if ($sub) {
+                    $subcategoryIds[] = $sub->id;
+                }
             }
-        }
-        if (empty($subcategoryIds)) {
-            $sub = $this->resolveSubcategory($firstCategoryId, 'General');
-            $subcategoryIds[] = $sub->id;
         }
 
         // Resolve Brands

@@ -775,106 +775,66 @@ class ProductController extends Controller
             // Category existence check
             $firstCatId = null;
             $firstCatName = null;
-            if ($category === '') {
-                $errors[] = 'Category is required.';
-            } else {
+            if ($category !== '') {
                 $categoryNames = array_filter(array_map('trim', explode(',', $category)));
-                if (empty($categoryNames)) {
-                    $errors[] = 'Category is required.';
-                } else {
-                    foreach ($categoryNames as $cName) {
-                        $cat = \App\Models\Category::withoutGlobalScope('tenant')
-                            ->whereNull('deleted_at')
-                            ->where('subscriber_id', $user->id)
-                            ->whereRaw('LOWER(name) = ?', [strtolower($cName)])
-                            ->first();
-                        if (!$cat) {
-                            $errors[] = "Category not found: '{$cName}'.";
-                        } else {
-                            if ($firstCatId === null) {
-                                $firstCatId = $cat->id;
-                                $firstCatName = $cName;
-                            }
+                foreach ($categoryNames as $cName) {
+                    $cat = \App\Models\Category::withoutGlobalScope('tenant')
+                        ->whereNull('deleted_at')
+                        ->where('subscriber_id', $user->id)
+                        ->whereRaw('LOWER(name) = ?', [strtolower($cName)])
+                        ->first();
+                    if ($cat) {
+                        if ($firstCatId === null) {
+                            $firstCatId = $cat->id;
+                            $firstCatName = $cName;
                         }
                     }
                 }
             }
 
             // Subcategory existence check
-            if ($subcategory === '') {
-                $errors[] = 'Subcategory is required.';
-            } elseif ($firstCatId !== null) {
+            if ($subcategory !== '') {
                 $subcatNames = array_filter(array_map('trim', explode(',', $subcategory)));
-                if (empty($subcatNames)) {
-                    $errors[] = 'Subcategory is required.';
-                } else {
-                    foreach ($subcatNames as $sName) {
-                        $sub = \App\Models\Subcategory::withoutGlobalScope('tenant')
-                            ->whereNull('deleted_at')
-                            ->where('subscriber_id', $user->id)
-                            ->where('category_id', $firstCatId)
-                            ->whereRaw('LOWER(name) = ?', [strtolower($sName)])
-                            ->first();
-                        if (!$sub) {
-                            $errors[] = "Subcategory not found: '{$sName}' under Category '{$firstCatName}'.";
+                foreach ($subcatNames as $sName) {
+                    $subQuery = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                        ->whereNull('deleted_at')
+                        ->where('subscriber_id', $user->id);
+                    if ($firstCatId !== null) {
+                        $subQuery->where('category_id', $firstCatId);
+                    }
+                    $sub = $subQuery->whereRaw('LOWER(name) = ?', [strtolower($sName)])
+                        ->first();
+                    if ($sub) {
+                        if ($firstCatId === null) {
+                            $firstCatId = $sub->category_id;
+                            $firstCatName = $sub->category?->name;
                         }
                     }
                 }
             }
 
-            // Brand existence check
-            if ($brand !== '') {
-                $brandNames = array_filter(array_map('trim', explode(',', $brand)));
-                foreach ($brandNames as $bName) {
-                    $brandExists = \App\Models\Brand::withoutGlobalScope('tenant')
-                        ->whereNull('deleted_at')
-                        ->where('subscriber_id', $user->id)
-                        ->whereRaw('LOWER(name) = ?', [strtolower($bName)])
-                        ->exists();
-                    if (!$brandExists) {
-                        $errors[] = "Brand does not exist: '{$bName}'.";
-                    }
-                }
-            }
- 
             $mrp = null;
             if ($mrpVal !== '') {
                 $mrpClean = preg_replace('/[^0-9.]/', '', $mrpVal);
-                if (!is_numeric($mrpClean)) {
-                    $errors[] = 'Invalid MRP format.';
-                } else {
-                    $mrp = (float)$mrpClean;
-                }
+                $mrp = is_numeric($mrpClean) ? (float)$mrpClean : null;
             }
- 
+
             $offerPrice = null;
             if ($offerPriceVal !== '') {
                 $opClean = preg_replace('/[^0-9.]/', '', $offerPriceVal);
-                if (!is_numeric($opClean)) {
-                    $errors[] = 'Invalid price format.';
-                } else {
-                    $offerPrice = (float)$opClean;
-                }
+                $offerPrice = is_numeric($opClean) ? (float)$opClean : null;
             }
- 
+
             $moq = 1;
             if ($moqVal !== '') {
                 $moqClean = preg_replace('/[^0-9]/', '', $moqVal);
-                if (!is_numeric($moqClean)) {
-                    $errors[] = 'Invalid MOQ format.';
-                } else {
-                    $moq = (int)$moqClean;
-                }
+                $moq = is_numeric($moqClean) ? (int)$moqClean : 1;
             }
- 
+
             $stock = 0;
             if ($stockVal !== '') {
                 $stockClean = preg_replace('/[^0-9]/', '', $stockVal);
-                if (!is_numeric($stockClean)) {
-                    $errors[] = 'Invalid stock quantity format.';
-                } else {
-                    $stock = (int)$stockClean;
-                }
+                $stock = is_numeric($stockClean) ? (int)$stockClean : 0;
             }
  
             if ($action === 'Insert' && $currCount + $summary['valid'] >= $limit) {

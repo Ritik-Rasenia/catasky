@@ -306,9 +306,12 @@
 
     {{-- Recent Visitor Engagement --}}
     <div class="card analytics-card mb-4">
-        <div class="card-header bg-transparent border-0 fw-bold d-flex justify-content-between">
+        <div class="card-header bg-transparent border-0 fw-bold d-flex justify-content-between align-items-center">
             <span><i class="bi bi-people text-primary"></i> Recent Visitor Activity</span>
-            <span class="badge bg-primary-subtle text-primary" id="lastUpdated">Live</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="live-dot"></span>
+                <span class="badge bg-primary-subtle text-primary" id="lastUpdated">Live</span>
+            </div>
         </div>
         <div class="card-body pt-0 table-responsive">
             <table class="table table-sm align-middle mb-0 analytics-table" id="visitsTable">
@@ -368,17 +371,95 @@ document.addEventListener('DOMContentLoaded', function() {
         colors.warning, colors.secondary, colors.danger, colors.dark
     ];
 
+    // Read theme variables
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const fontFamily = "'Poppins', 'Inter', sans-serif";
+
+    // Chart.js default overrides
+    Chart.defaults.font.family = fontFamily;
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = textColor;
+    Chart.defaults.plugins.tooltip.backgroundColor = isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.95)';
+    Chart.defaults.plugins.tooltip.titleFont = { family: fontFamily, weight: '600', size: 12 };
+    Chart.defaults.plugins.tooltip.bodyFont = { family: fontFamily, size: 11 };
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.boxWidth = 8;
+    Chart.defaults.plugins.tooltip.boxHeight = 8;
+
+    // Helper for line linear gradients
+    function createLineGradient(ctx, baseColor) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, baseColor + '40'); // 25% opacity
+        gradient.addColorStop(1, baseColor + '00'); // 0% opacity
+        return gradient;
+    }
+
     // 1. Visits & Product Views Line Chart
-    new Chart(document.getElementById('visitsChart'), {
+    const visitsCanvas = document.getElementById('visitsChart');
+    const visitsCtx = visitsCanvas.getContext('2d');
+    const visitsGrad = createLineGradient(visitsCtx, colors.primary);
+    const viewsGrad = createLineGradient(visitsCtx, colors.warning);
+
+    new Chart(visitsCtx, {
         type: 'line',
         data: {
             labels: chartData.labels,
             datasets: [
-                { label: 'Visits', data: chartData.visits, borderColor: colors.primary, backgroundColor: colors.primary+'20', fill: true, tension: 0.3 },
-                { label: 'Product Views', data: chartData.views, borderColor: colors.warning, backgroundColor: colors.warning+'20', fill: true, tension: 0.3 }
+                { 
+                    label: 'Visits', 
+                    data: chartData.visits, 
+                    borderColor: colors.primary, 
+                    backgroundColor: visitsGrad, 
+                    fill: true, 
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointBackgroundColor: colors.primary,
+                    pointBorderColor: isDark ? '#111827' : '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                },
+                { 
+                    label: 'Product Views', 
+                    data: chartData.views, 
+                    borderColor: colors.warning, 
+                    backgroundColor: viewsGrad, 
+                    fill: true, 
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointBackgroundColor: colors.warning,
+                    pointBorderColor: isDark ? '#111827' : '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }
             ]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor, padding: 8 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, padding: 8 }
+                }
+            } 
+        }
     });
 
     // 2. Device Doughnut
@@ -386,9 +467,24 @@ document.addEventListener('DOMContentLoaded', function() {
         type: 'doughnut',
         data: {
             labels: Object.keys(deviceData).length ? Object.keys(deviceData) : ['No Data'],
-            datasets: [{ data: Object.keys(deviceData).length ? Object.values(deviceData) : [1], backgroundColor: [colors.primary, colors.info, colors.success, colors.warning, colors.danger] }]
+            datasets: [{ 
+                data: Object.keys(deviceData).length ? Object.values(deviceData) : [1], 
+                backgroundColor: [colors.primary, colors.info, colors.success, colors.warning, colors.danger],
+                borderWidth: isDark ? 2 : 1,
+                borderColor: isDark ? '#1e293b' : '#ffffff'
+            }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { 
+                legend: { 
+                    position: 'bottom',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', padding: 16 }
+                } 
+            } 
+        }
     });
 
     // 3. Channel Doughnut
@@ -396,61 +492,186 @@ document.addEventListener('DOMContentLoaded', function() {
         type: 'doughnut',
         data: {
             labels: Object.keys(channelData).length ? Object.keys(channelData).map(c => c.replace('_',' ')) : ['No Data'],
-            datasets: [{ data: Object.keys(channelData).length ? Object.values(channelData) : [1], backgroundColor: [colors.success, colors.primary, colors.info, colors.warning, colors.secondary] }]
+            datasets: [{ 
+                data: Object.keys(channelData).length ? Object.values(channelData) : [1], 
+                backgroundColor: [colors.success, colors.primary, colors.info, colors.warning, colors.secondary],
+                borderWidth: isDark ? 2 : 1,
+                borderColor: isDark ? '#1e293b' : '#ffffff'
+            }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { 
+                legend: { 
+                    position: 'bottom',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', padding: 16 }
+                } 
+            } 
+        }
     });
 
     // 4. Top Products Bar Chart
-    new Chart(document.getElementById('topProductsChart'), {
+    const topProdCanvas = document.getElementById('topProductsChart');
+    const topProdCtx = topProdCanvas.getContext('2d');
+    const barGrad1 = topProdCtx.createLinearGradient(0, 0, 400, 0);
+    barGrad1.addColorStop(0, colors.primary);
+    barGrad1.addColorStop(1, colors.info + 'aa');
+    const barGrad2 = topProdCtx.createLinearGradient(0, 0, 400, 0);
+    barGrad2.addColorStop(0, colors.warning);
+    barGrad2.addColorStop(1, '#f97316aa');
+
+    new Chart(topProdCtx, {
         type: 'bar',
         data: {
             labels: topProducts.map(p => p.name.length > 20 ? p.name.slice(0,20)+'...' : p.name),
             datasets: [
-                { label: 'Views', data: topProducts.map(p => p.view_count), backgroundColor: colors.primary+'cc' },
-                { label: 'Avg Duration(s)', data: topProducts.map(p => p.avg_duration), backgroundColor: colors.warning+'cc' }
+                { label: 'Views', data: topProducts.map(p => p.view_count), backgroundColor: barGrad1, borderRadius: 4 },
+                { label: 'Avg Duration(s)', data: topProducts.map(p => p.avg_duration), backgroundColor: barGrad2, borderRadius: 4 }
             ]
         },
-        options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } }, scales: { x: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            indexAxis: 'y', 
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                x: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: textColor }
+                }
+            } 
+        }
     });
 
     // 5. Downloads & Enquiries Line
-    new Chart(document.getElementById('downloadsChart'), {
+    const downloadsCanvas = document.getElementById('downloadsChart');
+    const downloadsCtx = downloadsCanvas.getContext('2d');
+    const dlGrad = downloadsCtx.createLinearGradient(0, 0, 0, 180);
+    dlGrad.addColorStop(0, colors.secondary + '40');
+    dlGrad.addColorStop(1, colors.secondary + '00');
+    const enqGrad = downloadsCtx.createLinearGradient(0, 0, 0, 180);
+    enqGrad.addColorStop(0, colors.danger + '40');
+    enqGrad.addColorStop(1, colors.danger + '00');
+
+    new Chart(downloadsCtx, {
         type: 'line',
         data: {
             labels: chartData.labels,
             datasets: [
-                { label: 'Downloads', data: chartData.downloads, borderColor: colors.secondary, backgroundColor: colors.secondary+'20', fill: true, tension: 0.3 },
-                { label: 'Enquiries', data: chartData.enquiries, borderColor: colors.danger, backgroundColor: colors.danger+'20', fill: true, tension: 0.3 }
+                { 
+                    label: 'Downloads', 
+                    data: chartData.downloads, 
+                    borderColor: colors.secondary, 
+                    backgroundColor: dlGrad, 
+                    fill: true, 
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointBackgroundColor: colors.secondary,
+                    pointBorderColor: isDark ? '#111827' : '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                },
+                { 
+                    label: 'Enquiries', 
+                    data: chartData.enquiries, 
+                    borderColor: colors.danger, 
+                    backgroundColor: enqGrad, 
+                    fill: true, 
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointBackgroundColor: colors.danger,
+                    pointBorderColor: isDark ? '#111827' : '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }
             ]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor }
+                }
+            } 
+        }
     });
 
     // 6. Engagement by Type — Horizontal Bar
+    const engTypeCanvas = document.getElementById('engagementTypeChart');
+    const engTypeCtx = engTypeCanvas.getContext('2d');
     const engLabels = Object.keys(engagementByType).map(k => k.replace(/_/g,' '));
     const engValues = Object.values(engagementByType);
-    new Chart(document.getElementById('engagementTypeChart'), {
+    const engTypeGrad = engTypeCtx.createLinearGradient(0, 0, 400, 0);
+    engTypeGrad.addColorStop(0, colors.warning);
+    engTypeGrad.addColorStop(1, colors.danger);
+
+    new Chart(engTypeCtx, {
         type: 'bar',
         data: {
             labels: engLabels.length ? engLabels : ['No Events'],
             datasets: [{
                 label: 'Count',
                 data: engValues.length ? engValues : [0],
-                backgroundColor: engagementColors.slice(0, Math.max(engLabels.length, 1)),
+                backgroundColor: engTypeGrad,
                 borderRadius: 4,
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             indexAxis: 'y',
             plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            scales: { 
+                x: { 
+                    beginAtZero: true, 
+                    ticks: { stepSize: 1, color: textColor },
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false }
+                },
+                y: {
+                    ticks: { color: textColor },
+                    grid: { display: false }
+                }
+            }
         }
     });
 
     // 7. Engagement Trend Line
-    new Chart(document.getElementById('engagementTrendChart'), {
+    const engTrendCanvas = document.getElementById('engagementTrendChart');
+    const engTrendCtx = engTrendCanvas.getContext('2d');
+    const trendGrad = engTrendCtx.createLinearGradient(0, 0, 0, 200);
+    trendGrad.addColorStop(0, colors.warning + '40');
+    trendGrad.addColorStop(1, colors.warning + '00');
+
+    new Chart(engTrendCtx, {
         type: 'line',
         data: {
             labels: engagementTrend.labels,
@@ -458,13 +679,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 label: 'Engagement Events',
                 data: engagementTrend.counts,
                 borderColor: colors.warning,
-                backgroundColor: colors.warning + '25',
+                backgroundColor: trendGrad,
                 fill: true,
                 tension: 0.4,
+                borderWidth: 2,
+                pointBackgroundColor: colors.warning,
+                pointBorderColor: isDark ? '#111827' : '#ffffff',
+                pointBorderWidth: 1.5,
                 pointRadius: 3,
+                pointHoverRadius: 6
             }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor }
+                }
+            } 
+        }
     });
 
     // Auto-Refresh (every 30 seconds)
@@ -481,8 +728,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 document.getElementById('lastUpdated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
-                // Update KPI values
-                const kpiMap = { total_opens: 'total-opens', total_views: 'product-views', total_downloads: 'downloads' };
+                // Update KPI values using correct data-keys matching the HTML output
+                const kpiMap = { total_opens: 'total_opens', total_views: 'product_views', total_downloads: 'downloads' };
                 Object.entries(kpiMap).forEach(([key, el]) => {
                     const elem = document.querySelector(`.kpi-value[data-key="${el}"]`);
                     if (elem && data[key] !== undefined) elem.textContent = data[key];

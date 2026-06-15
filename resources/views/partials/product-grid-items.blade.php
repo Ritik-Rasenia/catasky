@@ -65,10 +65,10 @@
                 @endif
             </div>
 
-            <h6 class="product-title fw-bold text-dark mb-2 cursor-pointer text-truncate" 
+            <h6 class="product-title fw-bold text-dark mb-2 cursor-pointer" 
                 onclick="window.location.href='{{ route('product.details', $product->slug) }}'" 
                 title="{{ $product->name }}" 
-                style="font-size: 0.95rem; font-family: 'Outfit', sans-serif; transition: color 0.2s;">
+                style="font-size: 0.95rem; font-family: 'Outfit', sans-serif; transition: color 0.2s; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px !important; line-height: 1.3 !important;">
                 {{ $product->name }}
             </h6>
 

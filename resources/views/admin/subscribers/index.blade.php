@@ -174,6 +174,11 @@
                                     <td class="text-muted small">{{ $subscriber->created_at->format('d M, Y') }}</td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group  rounded-3 overflow-hidden">
+                                            @if($subscriber->subscriberProfile && $subscriber->subscriberProfile->company_slug)
+                                                <a href="{{ route('subscriber_store', $subscriber->subscriberProfile->company_slug) }}" target="_blank" class="btn btn-white btn-sm px-3" title="View Catalogue">
+                                                    <i class="fa-solid fa-store text-info"></i>
+                                                </a>
+                                            @endif
                                             <a href="{{ route('admin.subscribers.show', $subscriber->id) }}" class="btn btn-white btn-sm px-3" title="View Detail Profile">
                                                 <i class="fa-solid fa-eye text-primary"></i>
                                             </a>

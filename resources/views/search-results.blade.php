@@ -47,7 +47,7 @@
                                 <span class="small text-secondary mb-1" style="font-size:0.75rem; font-weight: 500;">
                                     {{ $product->category?->name ?? 'Corporate Segment' }}
                                 </span>
-                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'">
+                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px !important; line-height: 1.3 !important;">
                                     {{ $product->name }}
                                 </h6>
                                 

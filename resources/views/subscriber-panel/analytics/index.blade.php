@@ -81,13 +81,18 @@
                     $maxVal = max(array_column($funnelSteps, 'value')) ?: 1;
                 @endphp
                 @foreach($funnelSteps as $step)
-                <div class="col">
-                    <div class="analytics-funnel-step p-2 bg-{{ $step['color'] }}-subtle">
-                        <i class="bi {{ $step['icon'] }} text-{{ $step['color'] }} fs-4 d-block mb-1"></i>
-                        <div class="fw-bold fs-5 text-{{ $step['color'] }}">{{ $step['value'] }}</div>
-                        <div class="small text-muted">{{ $step['label'] }}</div>
-                        @php $pct = $maxVal > 0 ? round(($step['value'] / $maxVal) * 100) : 0; @endphp
-                        <div class="progress mt-2" style="height:6px">
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="analytics-funnel-step p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <i class="bi {{ $step['icon'] }} text-{{ $step['color'] }} fs-5"></i>
+                            @php $pct = $maxVal > 0 ? round(($step['value'] / $maxVal) * 100) : 0; @endphp
+                            <span class="badge bg-{{ $step['color'] }}-subtle text-{{ $step['color'] }}" style="font-size: 0.65rem;">{{ $pct }}%</span>
+                        </div>
+                        <div class="text-start">
+                            <div class="text-muted small fw-medium" style="font-size: 0.75rem;">{{ $step['label'] }}</div>
+                            <div class="fw-bold fs-4 text-{{ $step['color'] }} mt-1">{{ number_format($step['value']) }}</div>
+                        </div>
+                        <div class="progress mt-3" style="height:4px">
                             <div class="progress-bar bg-{{ $step['color'] }}" style="width:{{ $pct }}%"></div>
                         </div>
                     </div>
@@ -310,56 +315,210 @@ document.addEventListener('DOMContentLoaded', function() {
     const channelData    = @json($channelDistribution);
     const engagementTrend = @json($engagementTrend);
 
-    const colors = { primary:'#4F46E5', info:'#06b6d4', success:'#10b981', warning:'#f59e0b', danger:'#ef4444', secondary:'#64748b' };
+    // Read colors dynamically from CSS variables for complete brand alignment
+    const rootStyles = getComputedStyle(document.documentElement);
+    const primaryColor = rootStyles.getPropertyValue('--primary-color').trim() || '#4F46E5';
+    const secondaryColor = rootStyles.getPropertyValue('--secondary-color').trim() || '#7C3AED';
 
-    // Visits Chart
-    new Chart(document.getElementById('visitsChart'), {
+    const colors = { 
+        primary: primaryColor, 
+        info: '#06b6d4', 
+        success: '#10b981', 
+        warning: '#f59e0b', 
+        danger: '#ef4444', 
+        secondary: secondaryColor,
+        dark: '#1e293b'
+    };
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const fontFamily = "'Poppins', 'Inter', sans-serif";
+
+    // Chart.js default overrides
+    Chart.defaults.font.family = fontFamily;
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = textColor;
+    Chart.defaults.plugins.tooltip.backgroundColor = isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.95)';
+    Chart.defaults.plugins.tooltip.titleFont = { family: fontFamily, weight: '600', size: 12 };
+    Chart.defaults.plugins.tooltip.bodyFont = { family: fontFamily, size: 11 };
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.boxWidth = 8;
+    Chart.defaults.plugins.tooltip.boxHeight = 8;
+
+    // Helper for line linear gradients
+    function createLineGradient(ctx, baseColor) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, baseColor + '40'); // 25% opacity
+        gradient.addColorStop(1, baseColor + '00'); // 0% opacity
+        return gradient;
+    }
+
+    // 1. Visits Chart
+    const visitsCanvas = document.getElementById('visitsChart');
+    const visitsCtx = visitsCanvas.getContext('2d');
+    const visitsGrad = createLineGradient(visitsCtx, colors.primary);
+    const viewsGrad = createLineGradient(visitsCtx, colors.warning);
+
+    new Chart(visitsCtx, {
         type: 'line',
         data: {
             labels: chartData.labels,
             datasets: [
-                { label: 'Visits', data: chartData.visits, borderColor: colors.primary, backgroundColor: colors.primary+'20', fill: true, tension: 0.3 },
-                { label: 'Product Views', data: chartData.views, borderColor: colors.warning, backgroundColor: colors.warning+'20', fill: true, tension: 0.3 }
+                { 
+                    label: 'Visits', 
+                    data: chartData.visits, 
+                    borderColor: colors.primary, 
+                    backgroundColor: visitsGrad, 
+                    fill: true, 
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointBackgroundColor: colors.primary,
+                    pointBorderColor: isDark ? '#111827' : '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                },
+                { 
+                    label: 'Product Views', 
+                    data: chartData.views, 
+                    borderColor: colors.warning, 
+                    backgroundColor: viewsGrad, 
+                    fill: true, 
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointBackgroundColor: colors.warning,
+                    pointBorderColor: isDark ? '#111827' : '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }
             ]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor, padding: 8 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, padding: 8 }
+                }
+            } 
+        }
     });
 
-    // Device Chart
+    // 2. Device Chart
     new Chart(document.getElementById('deviceChart'), {
         type: 'doughnut',
         data: {
             labels: Object.keys(deviceData).length ? Object.keys(deviceData) : ['No Data'],
-            datasets: [{ data: Object.keys(deviceData).length ? Object.values(deviceData) : [1], backgroundColor: [colors.primary, colors.info, colors.success, colors.warning] }]
+            datasets: [{ 
+                data: Object.keys(deviceData).length ? Object.values(deviceData) : [1], 
+                backgroundColor: [colors.primary, colors.info, colors.success, colors.warning],
+                borderWidth: isDark ? 2 : 1,
+                borderColor: isDark ? '#1e293b' : '#ffffff'
+            }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { 
+                legend: { 
+                    position: 'bottom',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', padding: 16 }
+                } 
+            } 
+        }
     });
 
-    // Channel Chart
+    // 3. Channel Chart
     new Chart(document.getElementById('channelChart'), {
         type: 'doughnut',
         data: {
             labels: Object.keys(channelData).length ? Object.keys(channelData).map(c => c.replace('_',' ')) : ['No Data'],
-            datasets: [{ data: Object.keys(channelData).length ? Object.values(channelData) : [1], backgroundColor: [colors.success, colors.primary, colors.info, colors.warning] }]
+            datasets: [{ 
+                data: Object.keys(channelData).length ? Object.values(channelData) : [1], 
+                backgroundColor: [colors.success, colors.primary, colors.info, colors.warning],
+                borderWidth: isDark ? 2 : 1,
+                borderColor: isDark ? '#1e293b' : '#ffffff'
+            }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { 
+                legend: { 
+                    position: 'bottom',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', padding: 16 }
+                } 
+            } 
+        }
     });
 
-    // Top Products Chart
-    new Chart(document.getElementById('topProductsChart'), {
+    // 4. Top Products Chart
+    const topProdCanvas = document.getElementById('topProductsChart');
+    const topProdCtx = topProdCanvas.getContext('2d');
+    const barGrad = topProdCtx.createLinearGradient(0, 0, 400, 0);
+    barGrad.addColorStop(0, colors.primary);
+    barGrad.addColorStop(1, colors.info + 'aa');
+
+    new Chart(topProdCtx, {
         type: 'bar',
         data: {
             labels: topProducts.map(p => p.name.length > 20 ? p.name.slice(0,20)+'...' : p.name),
             datasets: [
-                { label: 'Views', data: topProducts.map(p => p.view_count), backgroundColor: colors.primary+'cc' },
-                { label: 'Avg Duration(s)', data: topProducts.map(p => p.avg_duration), backgroundColor: colors.warning+'cc' }
+                { label: 'Views', data: topProducts.map(p => p.view_count), backgroundColor: barGrad, borderRadius: 4 },
+                { label: 'Avg Duration(s)', data: topProducts.map(p => p.avg_duration), backgroundColor: colors.warning+'cc', borderRadius: 4 }
             ]
         },
-        options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } }, scales: { x: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            indexAxis: 'y', 
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                x: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: textColor }
+                }
+            } 
+        }
     });
 
-    // Engagement Trend Chart
-    new Chart(document.getElementById('engagementTrendChart'), {
+    // 5. Engagement Trend Chart
+    const engTrendCanvas = document.getElementById('engagementTrendChart');
+    const engTrendCtx = engTrendCanvas.getContext('2d');
+    const trendGrad = engTrendCtx.createLinearGradient(0, 0, 0, 150);
+    trendGrad.addColorStop(0, colors.warning + '40');
+    trendGrad.addColorStop(1, colors.warning + '00');
+
+    new Chart(engTrendCtx, {
         type: 'line',
         data: {
             labels: engagementTrend.labels,
@@ -367,13 +526,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 label: 'Engagement Events',
                 data: engagementTrend.counts,
                 borderColor: colors.warning,
-                backgroundColor: colors.warning + '25',
+                backgroundColor: trendGrad,
                 fill: true,
                 tension: 0.4,
+                borderWidth: 2,
+                pointBackgroundColor: colors.warning,
+                pointBorderColor: isDark ? '#111827' : '#ffffff',
+                pointBorderWidth: 1.5,
                 pointRadius: 3,
+                pointHoverRadius: 6
             }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { weight: '600' } }
+                } 
+            }, 
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4], drawBorder: false },
+                    ticks: { color: textColor }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor }
+                }
+            } 
+        }
     });
 
 });

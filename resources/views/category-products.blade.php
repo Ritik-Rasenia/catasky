@@ -35,11 +35,11 @@
                         </a>
                     @endforeach
                 @else
-                    <a href="{{ route('catalogue') }}" class="category-chip {{ ($category->id ?? 0) == 0 ? 'active' : '' }}">
+                    <a href="{{ route('catalogue') }}{{ request('search') ? '?search='.urlencode(request('search')) : '' }}{{ request('sort') ? (request('search') ? '&' : '?') . 'sort='.urlencode(request('sort')) : '' }}" class="category-chip {{ ($category->id ?? 0) == 0 ? 'active' : '' }}">
                         🔥 All
                     </a>
                     @foreach($allCategories as $cat)
-                        <a href="{{ route('category.products', $cat->slug) }}" class="category-chip {{ ($category->id ?? 0) == $cat->id ? 'active' : '' }}">
+                        <a href="{{ route('category.products', $cat->slug) }}{{ request('search') ? '?search='.urlencode(request('search')) : '' }}{{ request('sort') ? (request('search') ? '&' : '?') . 'sort='.urlencode(request('sort')) : '' }}" class="category-chip {{ ($category->id ?? 0) == $cat->id ? 'active' : '' }}">
                             {{ $cat->name }}
                         </a>
                     @endforeach
@@ -290,6 +290,14 @@
                 </div>
 
                 <!-- Product Responsive Grid -->
+                @if(request()->filled('search'))
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-4 rounded-3 py-2.5 px-3 border-0 bg-light animate-fade-in" style="font-family: 'Outfit', sans-serif;">
+                        <span class="small-text text-secondary">
+                            Showing results for search: <strong class="text-primary fs-6">"{{ request('search') }}"</strong>
+                        </span>
+                        <a href="{{ request()->fullUrlWithQuery(['search' => null, 'page' => null]) }}" class="btn-close small-text" style="font-size: 0.75rem;" aria-label="Clear Search"></a>
+                    </div>
+                @endif
                 <div class="product-grid" id="product-grid">
                     @forelse($products as $product)
                         <div class="premium-card animate-fade-in" id="product-card-{{ $product->id }}">
@@ -318,7 +326,7 @@
                                 <span class="small text-secondary mb-1" style="font-size:0.75rem; font-weight: 500;">
                                     {{ $product->category->name ?? 'Corporate Segment' }}
                                 </span>
-                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'" style="height:45px !important;">
+                                <h6 class="product-title" onclick="window.location.href='{{ route('product.details', $product->slug) }}'" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px !important; line-height: 1.3 !important;">
                                     {{ $product->name }}
                                 </h6>
                                 

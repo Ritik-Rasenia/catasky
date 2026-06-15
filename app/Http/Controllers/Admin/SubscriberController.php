@@ -53,9 +53,10 @@ class SubscriberController extends Controller
         abort_if(!auth()->user()->can('subscribers.manage'), 403, 'Unauthorized.');
         if (!$user->hasRole('Subscriber')) abort(404);
         $user->load(['subscriberProfile', 'subscriptions.plan', 'payments.plan']);
-        $productCount = SubscriberProduct::where('user_id', $user->id)->count();
+        $products = SubscriberProduct::where('user_id', $user->id)->latest()->get();
+        $productCount = $products->count();
         $plans = SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->get();
-        return view('admin.subscribers.show', compact('user', 'productCount', 'plans'));
+        return view('admin.subscribers.show', compact('user', 'productCount', 'plans', 'products'));
     }
 
     public function suspend(Request $request, User $user)

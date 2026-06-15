@@ -1035,15 +1035,15 @@
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Additional pictures</label>
-                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-show-gallery" type="checkbox" style="width: 42px; height: 22px;">
+                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-show-gallery" type="checkbox" checked style="width: 42px; height: 22px;">
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Watermark</label>
-                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-watermark" type="checkbox" style="width: 42px; height: 22px;">
+                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-watermark" type="checkbox" checked style="width: 42px; height: 22px;">
                                         </div>
                                         <div class="form-check form-switch p-0 d-flex justify-content-between align-items-center">
                                             <label class="form-check-label fw-bold text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Notes</label>
-                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-note" type="checkbox" style="width: 42px; height: 22px;">
+                                            <input class="form-check-input ms-0 premium-switch share-setting-mirror" data-share-setting="share-add-note" type="checkbox" checked style="width: 42px; height: 22px;">
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
@@ -1200,7 +1200,7 @@
                                                     <p class="text-secondary small mb-0" style="max-width: 280px;">if additional pictures are present in the product, they will also be shared</p>
                                                 </div>
                                                 <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-show-gallery" style="width: 42px; height: 22px; cursor: pointer;">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-show-gallery" checked style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
 
@@ -1211,7 +1211,7 @@
                                                     <p class="text-secondary small mb-0" style="max-width: 280px;">Show your logo watermark on each photo while sharing</p>
                                                 </div>
                                                 <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-watermark" style="width: 42px; height: 22px; cursor: pointer;">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-watermark" checked style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
 
@@ -1222,7 +1222,7 @@
                                                     <p class="text-secondary small mb-0" style="max-width: 280px;">Add additional information on your photos like special offers, etc</p>
                                                 </div>
                                                 <div class="form-check form-switch p-0 m-0">
-                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-note" style="width: 42px; height: 22px; cursor: pointer;">
+                                                    <input class="form-check-input ms-0 premium-switch" type="checkbox" id="share-add-note" checked style="width: 42px; height: 22px; cursor: pointer;">
                                                 </div>
                                             </div>
 
@@ -1438,11 +1438,13 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="p-4 bg-white">
-                    <div class="d-flex align-items-center gap-3">
-                        <i class="bi bi-search text-primary fs-4"></i>
-                        <input type="text" id="catalog-search" class="form-control border-0 p-2 fs-5 outline-none shadow-none w-100" placeholder="Type keyword (e.g. Sweater, Polo, Drinkware, Awards)..." autocomplete="off">
+                    <form id="global-search-form" action="javascript:void(0);" class="w-100 d-flex align-items-center gap-3">
+                        <button type="submit" class="btn p-0 border-0 bg-transparent text-primary fs-4" title="Search">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <input type="text" id="catalog-search" class="form-control border-0 p-2 fs-5 outline-none shadow-none w-100" placeholder="Type keyword (e.g. Sweater, Polo, Drinkware, Awards)..." autocomplete="off" value="{{ request('search') }}">
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
+                    </form>
                 </div>
                 <div class="modal-body p-0 border-top bg-light" style="max-height: 400px; overflow-y: auto;" id="search-results-pane">
                     <div class="p-4 text-center text-secondary small">
@@ -1493,9 +1495,9 @@
         const exportSettings = {
             showTitle: true,
             showPrice: true,
-            showGallery: false,
-            showWatermark: false,
-            showNotes: false,
+            showGallery: true,
+            showWatermark: true,
+            showNotes: true,
             includeLink: true,
             catalogTitle: 'Premium Selection',
             noteText: 'An Award For Every Achievement & Effort',
@@ -1506,6 +1508,8 @@
         window.currentExportMode = currentExportMode;
         window.renderedPreviews = { details: false, images: false };
         window.preparedShareDocs = window.preparedShareDocs || {};
+        window.activePDFCompilePromises = window.activePDFCompilePromises || {};
+        window.pdfCompilationQueue = Promise.resolve();
         window.exportBuildTokens = { details: 0, images: 0 };
         window.imageCache = new Map();
 
@@ -2172,6 +2176,32 @@
                 });
             }
 
+            const base64Cache = new Map();
+            async function getBase64Image(url) {
+                const transparentGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                if (typeof url !== 'string' || !url) return transparentGif;
+                if (url.startsWith('data:')) return url;
+                if (base64Cache.has(url)) return base64Cache.get(url);
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const blob = await response.blob();
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                    base64Cache.set(url, base64);
+                    return base64;
+                } catch (e) {
+                    console.warn(`[Base64 Conversion Fallback] URL: ${url}`, e);
+                    return transparentGif; // Return transparent 1x1 GIF to prevent html2canvas 404/CORS load errors and canvas taint
+                }
+            }
+            window.getBase64Image = getBase64Image;
+
             async function preloadImage(url) {
                 return loadImage(url);
             }
@@ -2358,19 +2388,30 @@
                     return Promise.resolve(existing);
                 }
 
+                if (window.activePDFCompilePromises[cacheKey]) {
+                    return window.activePDFCompilePromises[cacheKey];
+                }
+
                 if (options.btn) {
                     $(options.btn).attr('disabled', true).css({ opacity: '0.5', 'pointer-events': 'none' });
                 }
 
-                return generatePDFBlob(type).then(function(pdfData) {
+                const compilePromise = generatePDFBlob(type).then(function(pdfData) {
                     const prepared = {
                         ...pdfData,
                         cacheKey: cacheKey,
                         file: new File([pdfData.blob], pdfData.filename, { type: 'application/pdf' })
                     };
                     window.preparedShareDocs[type] = prepared;
+                    delete window.activePDFCompilePromises[cacheKey];
                     return prepared;
+                }).catch(function(err) {
+                    delete window.activePDFCompilePromises[cacheKey];
+                    throw err;
                 });
+
+                window.activePDFCompilePromises[cacheKey] = compilePromise;
+                return compilePromise;
             }
 
              function prepareImageShareDocs(options = {}) {
@@ -2918,7 +2959,8 @@
                 ctx.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
 
                 // ── PRODUCT IMAGE — object-fit: contain (fits full area, maintains aspect ratio, no cropping) ─
-                const img  = await loadImage(imgUrl);
+                const base64Url = await getBase64Image(imgUrl);
+                const img  = await loadImage(base64Url);
                 const imgH = DESIGN_HEIGHT - imageAreaBottom;
                 // Light grey background for image area (matching HTML preview background #f8fafc)
                 ctx.fillStyle = '#f8fafc';
@@ -3215,9 +3257,9 @@
                 return `
                 <div class="render-box-wrapper" style="box-sizing:border-box;width:1080px;height:1350px;overflow:hidden;position:relative;background:#ffffff;font-family:'Outfit','Poppins','Helvetica Neue',Arial,sans-serif;">
 
-                    <!-- Image area: background-size:contain to fill, no white space, no stretching in html2canvas -->
-                    <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background-color:#f8fafc;${imgUrl ? `background-image:url('${imgUrl}');background-position:center;background-size:contain;background-repeat:no-repeat;` : ''}overflow:hidden;z-index:1;">
-                        ${!imgUrl ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;font-size:36px;z-index:1;">No Image</div>` : ''}
+                    <!-- Image area: img with object-fit contain -->
+                    <div style="position:absolute;top:0;left:0;right:0;bottom:${imageAreaBottom}px;background-color:#f8fafc;overflow:hidden;z-index:1;display:flex;align-items:center;justify-content:center;">
+                        ${imgUrl ? `<img src="${imgUrl}" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;">` : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-weight:800;font-size:36px;z-index:1;">No Image</div>`}
                         ${watermarkHtml}
                     </div>
 
@@ -3381,6 +3423,45 @@
                 openSharingModal(defaultTab);
             };
 
+            // Form submission handler
+            $('#global-search-form').on('submit', function(e) {
+                e.preventDefault();
+                const query = $('#catalog-search').val().trim();
+                if (query.length > 0) {
+                    let redirectUrl = '';
+                    
+                    // Check if subscriber is logged in
+                    const loggedInSubscriberSlug = "{{ (auth()->check() && auth()->user()->isSubscriber() && auth()->user()->subscriberProfile) ? auth()->user()->subscriberProfile->company_slug : '' }}";
+                    
+                    if (isSubscriber) {
+                        // Already browsing a subscriber's storefront
+                        const path = window.location.pathname;
+                        if (path.indexOf('/subscriber_store/') > -1) {
+                            redirectUrl = '/subscriber_store/' + companySlug + '?search=' + encodeURIComponent(query);
+                        } else if (path.indexOf('/store/') > -1) {
+                            redirectUrl = '/store/' + companySlug + '?search=' + encodeURIComponent(query);
+                        } else {
+                            // Determine if we're on standard domain (with subdomains/localhost) or custom domain
+                            const isStandardDomain = window.location.hostname.indexOf('catasky') > -1 || 
+                                                     window.location.hostname === 'localhost' || 
+                                                     window.location.hostname === '127.0.0.1';
+                            if (isStandardDomain) {
+                                redirectUrl = '/store/' + companySlug + '?search=' + encodeURIComponent(query);
+                            } else {
+                                redirectUrl = '/?search=' + encodeURIComponent(query);
+                            }
+                        }
+                    } else if (loggedInSubscriberSlug) {
+                        // Logged in as subscriber but browsing main catalog, redirect to their own catalog
+                        redirectUrl = '/store/' + loggedInSubscriberSlug + '?search=' + encodeURIComponent(query);
+                    } else {
+                        // Visitor or admin on main catalog
+                        redirectUrl = '{{ route("catalogue") }}?search=' + encodeURIComponent(query);
+                    }
+                    window.location.href = redirectUrl;
+                }
+            });
+
             // Custom search logic
             let searchTimeout = null;
             $('#catalog-search').on('input', function() {
@@ -3485,9 +3566,10 @@
                         generateLiveImagePreview();
                     }
 
-                    // Background prepare images for sharing to achieve instant clicks!
+                    // Background prepare images and PDF for sharing to achieve instant clicks!
                     setTimeout(() => {
                         prepareImageShareDocs().catch(err => console.log('Background image prep skipped:', err));
+                        preparePDFShareDoc('details').catch(err => console.log('Background PDF prep skipped:', err));
                     }, 150);
 
                 }).catch(err => {
@@ -4188,9 +4270,22 @@
                     
                     let promises = selectedProducts.map(id => fetchProductDetailsCached(id));
 
-                    return Promise.all(promises).then(dataList => {
+                    return Promise.all(promises).then(async (dataList) => {
                         if (token !== window.exportBuildTokens[type]) return;
                         const validDataList = dataList.filter(d => d && d.success);
+
+                        updateProgressText(type, 'Converting Images...');
+                        const shareSettings = getShareSettings();
+                        await Promise.all(validDataList.map(async (data) => {
+                            if (data.thumbnail_url) {
+                                data.thumbnail_url = await getBase64Image(getRelativeImageUrl(data.thumbnail_url));
+                            }
+                            if (shareSettings.showGallery && Array.isArray(data.gallery_urls)) {
+                                data.gallery_urls = await Promise.all(data.gallery_urls.map(async (url) => {
+                                    return url ? await getBase64Image(getRelativeImageUrl(url)) : '';
+                                }));
+                            }
+                        }));
                         
                         // A4 Page styling variables
                         const pageStyle = `
@@ -4237,9 +4332,9 @@
                                 // Remove per-card watermark from details PDF — watermark is now on the full page
                                 gridHtml += `
                                 <div style="box-sizing:border-box;width:330px;height:420px;border:1.5px solid #d2d2d2;border-radius:12px;padding:15px;background:#ffffff;display:flex;flex-direction:column;justify-content:space-between;font-family:Arial,sans-serif;">
-                                    <!-- Image Box: background-size:contain to fill, no white space -->
-                                    <div style="position:relative;width:100%;flex:1;border:1px solid #e2e8f0;border-radius:10px;background-color:#f8fafc;${imgUrl ? `background-image:url('${imgUrl}');background-position:center;background-size:contain;background-repeat:no-repeat;` : ''}overflow:hidden;box-sizing:border-box;">
-                                        ${!imgUrl ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94A3B8;font-weight:bold;">No Image</div>` : ''}
+                                    <!-- Image Box: standard img with object-fit contain -->
+                                    <div style="position:relative;width:100%;flex:1;border:1px solid #e2e8f0;border-radius:10px;background-color:#f8fafc;overflow:hidden;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">
+                                        ${imgUrl ? `<img src="${imgUrl}" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;">` : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94A3B8;font-weight:bold;">No Image</div>`}
                                     </div>
                                     <!-- Below Image: Name, MRP strikethrough, Offer Price, Description -->
                                     <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;box-sizing:border-box;text-align:left;width:100%;">
@@ -4349,7 +4444,7 @@
                         }).catch(compileErr => {
                             console.error("Background PDF compilation failed:", compileErr);
                             if (token !== window.exportBuildTokens[type]) return;
-                            badge.removeClass('bg-warning bg-success text-dark text-white').addClass('bg-danger text-white').text('Error');
+                            badge.removeClass('bg-warning bg-success text-dark text-white').addClass('bg-danger text-white').text('Error: ' + (compileErr.message || compileErr));
                             setExportButtonsState(type, false, 'Failed');
                         });
                     }).catch(err => {
@@ -4389,7 +4484,15 @@
             // Generates beautiful discrete pages and fits them exactly on A4.
             // ================================================================
             async function buildPDFDocument(type) {
-                type = normalizeExportType(type);
+                // Wait for the active compilation queue to empty
+                await window.pdfCompilationQueue;
+                
+                let compileResolver;
+                const compileDone = new Promise(resolve => { compileResolver = resolve; });
+                window.pdfCompilationQueue = window.pdfCompilationQueue.then(() => compileDone).catch(() => {});
+
+                try {
+                    type = normalizeExportType(type);
                 const updateExporterProgress = (t, text) => {
                     const spinners = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> ';
                     $(`#pdf-download-btn-${t}:disabled`).html(spinners + text);
@@ -4423,6 +4526,22 @@
                     selectedProducts.map(id => fetchProductDetailsCached(id))
                 );
                 const validDataList = dataList.filter(d => d && d.success);
+
+                // Pre-convert all images in validDataList to base64 to avoid iOS Safari CORS cache bug!
+                if (typeof updateExporterProgress === 'function') {
+                    updateExporterProgress(type, 'Converting Images...');
+                }
+                const shareSettings = getShareSettings();
+                await Promise.all(validDataList.map(async (data) => {
+                    if (data.thumbnail_url) {
+                        data.thumbnail_url = await getBase64Image(getRelativeImageUrl(data.thumbnail_url));
+                    }
+                    if (shareSettings.showGallery && Array.isArray(data.gallery_urls)) {
+                        data.gallery_urls = await Promise.all(data.gallery_urls.map(async (url) => {
+                            return url ? await getBase64Image(getRelativeImageUrl(url)) : '';
+                        }));
+                    }
+                }));
 
                 // Helper to chunk products into pages
                 const chunkArray = (arr, size) => {
@@ -4546,7 +4665,7 @@
 
                 // ── 2. PRODUCT DETAILS OR IMAGE GRID PAGES ──────────────────
                 if (type === 'details') {
-                    const shareSettings = getShareSettings();
+                    // shareSettings is already defined at the beginning of the function
                     // Split products into pages (exactly 4 per page for 2x2 grid)
                     const detailsItems = getImagePdfItems(validDataList);
                     const productChunks = chunkArray(detailsItems, 4);
@@ -4575,9 +4694,9 @@
                             // Remove per-card watermark — watermark is now one full-page overlay
                             gridHtml += `
                             <div class="pdf-product-link-target" data-slug="${escapeHtml(p.slug)}" style="box-sizing:border-box;width:330px;height:420px;border:1.5px solid #d2d2d2;border-radius:12px;padding:15px;background:#ffffff;display:inline-flex;flex-direction:column;justify-content:space-between;font-family:Arial,sans-serif;cursor:pointer;">
-                                <!-- Image Box: background-size:contain to fill, no white space -->
-                                <div style="position:relative;width:100%;flex:1;border:1px solid #e2e8f0;border-radius:10px;background-color:#f8fafc;${imgUrl ? `background-image:url('${imgUrl}');background-position:center;background-size:contain;background-repeat:no-repeat;` : ''}overflow:hidden;box-sizing:border-box;">
-                                    ${!imgUrl ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94A3B8;font-weight:bold;">No Image</div>` : ''}
+                                <!-- Image Box: standard img with object-fit contain -->
+                                <div style="position:relative;width:100%;flex:1;border:1px solid #e2e8f0;border-radius:10px;background-color:#f8fafc;overflow:hidden;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">
+                                    ${imgUrl ? `<img src="${imgUrl}" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;">` : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94A3B8;font-weight:bold;">No Image</div>`}
                                 </div>
                                 <!-- Below Image: Name, MRP strikethrough, Offer Price, Description -->
                                 <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;box-sizing:border-box;text-align:left;width:100%;">
@@ -4748,8 +4867,9 @@
                 const pageCanvases = new Array(pageElements.length);
 
                 try {
-                    // Process in parallel batches of 12 pages to maximize multi-threaded canvas compiling speed
-                    const batchSize = 12;
+                    // Process sequentially on iOS Safari to avoid exceeding canvas memory limits, and in parallel batches of 4 on other platforms.
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                    const batchSize = isIOS ? 1 : 4;
                     for (let i = 0; i < pageElements.length; i += batchSize) {
                         const batch = [];
                         for (let j = i; j < Math.min(i + batchSize, pageElements.length); j++) {
@@ -4761,10 +4881,18 @@
                                 updateExporterProgress(type, `Compiling Page ${pageIdx + 1} of ${pageElements.length}...`);
                             }
 
-                                const renderScale = (selectedProducts && selectedProducts.length > 8) ? 2.5 : 3.0;
+                                let renderScale = 2.4;
+                                const numPages = pageElements.length;
+                                if (numPages > 8) {
+                                    renderScale = 1.2;
+                                } else if (numPages > 4) {
+                                    renderScale = 1.5;
+                                } else if (numPages > 2) {
+                                    renderScale = 1.8;
+                                }
                                 batch.push(
                                     html2canvas(pageEl, {
-                                        scale:           renderScale, // 3.0/2.5 is extremely high-resolution crisp print quality!
+                                        scale:           renderScale, // dynamically optimized for speed & quality!
                                     useCORS:         true,
                                     allowTaint:      false,
                                     backgroundColor: '#ffffff',
@@ -4809,10 +4937,10 @@
                 for (let i = 0; i < pageCanvases.length; i++) {
                     if (i > 0) pdf.addPage();
                     const canvas = pageCanvases[i];
-                    // Save as high-quality JPEG to keep sizes small and compile fast (using 0.95 quality for sharp vector look)
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    // Render exactly across full page A4 (210mm x 297mm) with zero margin
-                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                    // Save as high-quality JPEG to keep sizes small and compile fast (using 0.85 quality for fast encoding & sharp look)
+                    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                    // Render exactly across full page A4 (210mm x 297mm) with zero margin using FAST compression
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
 
                     if (includeLink) {
                         // 1. Precise collection links on the header/footer/cover catalog button areas:
@@ -4838,8 +4966,11 @@
                     }
                 }
 
-                const filename = catalogTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + type + '.pdf';
-                return { pdf, filename };
+                    const filename = catalogTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + type + '.pdf';
+                    return { pdf, filename };
+                } finally {
+                    compileResolver();
+                }
             }
 // ── Download PDF (triggers browser save-as dialog) ────────────
             window.generatePDFCatalogue = function(type = 'details') {

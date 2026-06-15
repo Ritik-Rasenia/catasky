@@ -60,6 +60,73 @@ class FrontendController extends Controller
             $category->name = 'Selected Catalogue Products';
         }
 
+        // Filter by search query
+        if ($request->filled('search')) {
+            $searchQuery = $request->input('search');
+            
+            // Resolve matching Category, Subcategory, and Brand IDs
+            $matchingCategoryIds = \App\Models\Category::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $matchingSubcategoryIds = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $matchingBrandIds = \App\Models\Brand::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $query->where(function($q) use ($searchQuery, $matchingCategoryIds, $matchingSubcategoryIds, $matchingBrandIds) {
+                $q->where('name', 'like', "%{$searchQuery}%")
+                  ->orWhere('sku', 'like', "%{$searchQuery}%")
+                  ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                  ->orWhere('description', 'like', "%{$searchQuery}%");
+
+                // Match Category Name
+                foreach ($matchingCategoryIds as $catId) {
+                    $q->orWhere('category_id', $catId)
+                      ->orWhere('category_id', (string)$catId)
+                      ->orWhereJsonContains('category_id', $catId)
+                      ->orWhereJsonContains('category_id', (string)$catId)
+                      ->orWhere('category_id', 'like', '%"' . $catId . '"%')
+                      ->orWhere('category_id', 'like', '%[' . $catId . ']%')
+                      ->orWhere('category_id', 'like', '%[' . $catId . ',%')
+                      ->orWhere('category_id', 'like', '%,' . $catId . ']%')
+                      ->orWhere('category_id', 'like', '%,' . $catId . ',%');
+                }
+
+                // Match Subcategory Name
+                foreach ($matchingSubcategoryIds as $subcatId) {
+                    $q->orWhere('subcategory_id', $subcatId)
+                      ->orWhere('subcategory_id', (string)$subcatId)
+                      ->orWhereJsonContains('subcategory_id', $subcatId)
+                      ->orWhereJsonContains('subcategory_id', (string)$subcatId)
+                      ->orWhere('subcategory_id', 'like', '%"' . $subcatId . '"%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ']%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ',%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ']%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ',%');
+                }
+
+                // Match Brand Name
+                foreach ($matchingBrandIds as $brandId) {
+                    $q->orWhere('brand_id', $brandId)
+                      ->orWhere('brand_id', (string)$brandId)
+                      ->orWhereJsonContains('brand_id', $brandId)
+                      ->orWhereJsonContains('brand_id', (string)$brandId)
+                      ->orWhere('brand_id', 'like', '%"' . $brandId . '"%')
+                      ->orWhere('brand_id', 'like', '%[' . $brandId . ']%')
+                      ->orWhere('brand_id', 'like', '%[' . $brandId . ',%')
+                      ->orWhere('brand_id', 'like', '%,' . $brandId . ']%')
+                      ->orWhere('brand_id', 'like', '%,' . $brandId . ',%');
+                }
+            });
+        }
+
         // Filter by subcategory
         if ($request->filled('subcategory')) {
             $sub = Subcategory::where('slug', $request->input('subcategory'))->first();
@@ -189,6 +256,73 @@ class FrontendController extends Controller
             })
             ->where('status', 1)
             ->with([]);
+
+        // Filter by search query
+        if ($request->filled('search')) {
+            $searchQuery = $request->input('search');
+            
+            // Resolve matching Category, Subcategory, and Brand IDs
+            $matchingCategoryIds = \App\Models\Category::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $matchingSubcategoryIds = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $matchingBrandIds = \App\Models\Brand::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $query->where(function($q) use ($searchQuery, $matchingCategoryIds, $matchingSubcategoryIds, $matchingBrandIds) {
+                $q->where('name', 'like', "%{$searchQuery}%")
+                  ->orWhere('sku', 'like', "%{$searchQuery}%")
+                  ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                  ->orWhere('description', 'like', "%{$searchQuery}%");
+
+                // Match Category Name
+                foreach ($matchingCategoryIds as $catId) {
+                    $q->orWhere('category_id', $catId)
+                      ->orWhere('category_id', (string)$catId)
+                      ->orWhereJsonContains('category_id', $catId)
+                      ->orWhereJsonContains('category_id', (string)$catId)
+                      ->orWhere('category_id', 'like', '%"' . $catId . '"%')
+                      ->orWhere('category_id', 'like', '%[' . $catId . ']%')
+                      ->orWhere('category_id', 'like', '%[' . $catId . ',%')
+                      ->orWhere('category_id', 'like', '%,' . $catId . ']%')
+                      ->orWhere('category_id', 'like', '%,' . $catId . ',%');
+                }
+
+                // Match Subcategory Name
+                foreach ($matchingSubcategoryIds as $subcatId) {
+                    $q->orWhere('subcategory_id', $subcatId)
+                      ->orWhere('subcategory_id', (string)$subcatId)
+                      ->orWhereJsonContains('subcategory_id', $subcatId)
+                      ->orWhereJsonContains('subcategory_id', (string)$subcatId)
+                      ->orWhere('subcategory_id', 'like', '%"' . $subcatId . '"%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ']%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ',%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ']%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ',%');
+                }
+
+                // Match Brand Name
+                foreach ($matchingBrandIds as $brandId) {
+                    $q->orWhere('brand_id', $brandId)
+                      ->orWhere('brand_id', (string)$brandId)
+                      ->orWhereJsonContains('brand_id', $brandId)
+                      ->orWhereJsonContains('brand_id', (string)$brandId)
+                      ->orWhere('brand_id', 'like', '%"' . $brandId . '"%')
+                      ->orWhere('brand_id', 'like', '%[' . $brandId . ']%')
+                      ->orWhere('brand_id', 'like', '%[' . $brandId . ',%')
+                      ->orWhere('brand_id', 'like', '%,' . $brandId . ']%')
+                      ->orWhere('brand_id', 'like', '%,' . $brandId . ',%');
+                }
+            });
+        }
 
         // Filter by subcategory
         if ($request->filled('subcategory')) {
@@ -1073,12 +1207,68 @@ class FrontendController extends Controller
 
         // Search filter
         if ($request->filled('search')) {
-            $q = $request->input('search');
-            $query->where(function($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                   ->orWhere('sku', 'like', "%{$q}%")
-                   ->orWhere('short_description', 'like', "%{$q}%")
-                   ->orWhere('full_description', 'like', "%{$q}%");
+            $searchQuery = $request->input('search');
+            
+            // Resolve matching Category, Subcategory, and Brand IDs for the query string
+            $matchingCategoryIds = \App\Models\Category::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $matchingSubcategoryIds = \App\Models\Subcategory::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $matchingBrandIds = \App\Models\Brand::withoutGlobalScope('tenant')
+                ->where('name', 'like', "%{$searchQuery}%")
+                ->pluck('id')
+                ->toArray();
+
+            $query->where(function($q) use ($searchQuery, $matchingCategoryIds, $matchingSubcategoryIds, $matchingBrandIds) {
+                $q->where('name', 'like', "%{$searchQuery}%")
+                  ->orWhere('sku', 'like', "%{$searchQuery}%")
+                  ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                  ->orWhere('full_description', 'like', "%{$searchQuery}%");
+
+                // Match Category Name
+                foreach ($matchingCategoryIds as $catId) {
+                    $q->orWhere('category_id', $catId)
+                      ->orWhere('category_id', (string)$catId)
+                      ->orWhereJsonContains('category_id', $catId)
+                      ->orWhereJsonContains('category_id', (string)$catId)
+                      ->orWhere('category_id', 'like', '%"' . $catId . '"%')
+                      ->orWhere('category_id', 'like', '%[' . $catId . ']%')
+                      ->orWhere('category_id', 'like', '%[' . $catId . ',%')
+                      ->orWhere('category_id', 'like', '%,' . $catId . ']%')
+                      ->orWhere('category_id', 'like', '%,' . $catId . ',%');
+                }
+
+                // Match Subcategory Name
+                foreach ($matchingSubcategoryIds as $subcatId) {
+                    $q->orWhere('subcategory_id', $subcatId)
+                      ->orWhere('subcategory_id', (string)$subcatId)
+                      ->orWhereJsonContains('subcategory_id', $subcatId)
+                      ->orWhereJsonContains('subcategory_id', (string)$subcatId)
+                      ->orWhere('subcategory_id', 'like', '%"' . $subcatId . '"%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ']%')
+                      ->orWhere('subcategory_id', 'like', '%[' . $subcatId . ',%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ']%')
+                      ->orWhere('subcategory_id', 'like', '%,' . $subcatId . ',%');
+                }
+
+                // Match Brand Name
+                foreach ($matchingBrandIds as $brandId) {
+                    $q->orWhere('brand_id', $brandId)
+                      ->orWhere('brand_id', (string)$brandId)
+                      ->orWhereJsonContains('brand_id', $brandId)
+                      ->orWhereJsonContains('brand_id', (string)$brandId)
+                      ->orWhere('brand_id', 'like', '%"' . $brandId . '"%')
+                      ->orWhere('brand_id', 'like', '%[' . $brandId . ']%')
+                      ->orWhere('brand_id', 'like', '%[' . $brandId . ',%')
+                      ->orWhere('brand_id', 'like', '%,' . $brandId . ']%')
+                      ->orWhere('brand_id', 'like', '%,' . $brandId . ',%');
+                }
             });
         }
 

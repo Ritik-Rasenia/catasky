@@ -67,6 +67,11 @@
         </div>
 
         <div class="subscriber-actions">
+            @if($profile && $profile->company_slug)
+                <a href="{{ route('subscriber_store', $profile->company_slug) }}" target="_blank" class="btn btn-outline-info">
+                    <i class="fa-solid fa-store"></i>View Catalogue
+                </a>
+            @endif
             <button type="button" class="btn btn-outline-success btn-assign-plan-modal">
                 <i class="fa-solid fa-id-card"></i>Assign Plan
             </button>
@@ -252,6 +257,8 @@
                             @endif
                         </div>
 
+
+
                         <!-- Subscriptions History Pane -->
                         <div class="tab-pane fade" id="subscriptions-pane" role="tabpanel" aria-labelledby="subscriptions-tab" tabindex="0">
                             <h6 class="fw-bold text-dark mb-3">Subscription History</h6>
@@ -391,6 +398,98 @@
                     </div>
         </section>
     </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 rounded-4 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-dark mb-3 font-outfit" style="font-size: 19px !important; font-weight: 800;">Products Catalogue</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle table-nowrap" id="subscriberProductsTable" style="width:100%;">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 border-0 text-uppercase small fw-bold text-muted">Product</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">Category</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">SKU / Stock</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted">Price</th>
+                                    <th class="border-0 text-uppercase small fw-bold text-muted text-center">Status</th>
+                                    <th class="text-end pe-4 border-0 text-uppercase small fw-bold text-muted">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($products as $product)
+                                    <tr>
+                                         <td class="ps-4">
+                                             <div class="d-flex align-items-center">
+                                                 @if($product->thumbnail)
+                                                     <img src="{{ $product->thumbnail_url }}" width="45" height="45" class="rounded-3 object-fit-cover border me-3" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($product->name) }}&background=f3f4f6&color=6366f1'">
+                                                 @else
+                                                     <div class="rounded-3 bg-light d-flex align-items-center justify-content-center text-muted border me-3" style="width: 45px; height: 45px;">
+                                                         <i class="fa-solid fa-box small"></i>
+                                                     </div>
+                                                 @endif
+                                                 <div>
+                                                     <a href="{{ route('product.details', $product->slug) }}" target="_blank" class="fw-bold text-dark text-decoration-none hover-primary">{{ $product->name }}</a>
+                                                     <div class="small text-muted">SKU: {{ $product->sku ?? 'N/A' }}</div>
+                                                 </div>
+                                             </div>
+                                         </td>
+                                         <td>
+                                             <div class="small fw-semibold text-dark">{{ $product->category->name ?? 'N/A' }}</div>
+                                             <div class="smaller text-muted">{{ $product->subcategory->name ?? '' }}</div>
+                                         </td>
+                                         <td>
+                                             <div class="small fw-semibold text-dark">{{ $product->sku ?? 'N/A' }}</div>
+                                             <div class="smaller text-muted">{{ $product->stock ?? 0 }} pcs left</div>
+                                         </td>
+                                         <td>
+                                             <div class="fw-bold text-primary">
+                                                 @if($product->offer_price)
+                                                     ₹{{ number_format($product->offer_price, 2) }}
+                                                     @if($product->mrp && $product->mrp > $product->offer_price)
+                                                         <div class="smaller text-muted text-decoration-line-through text-opacity-50">₹{{ number_format($product->mrp, 2) }}</div>
+                                                     @endif
+                                                 @elseif($product->mrp)
+                                                     ₹{{ number_format($product->mrp, 2) }}
+                                                 @else
+                                                     <span class="text-muted small fst-italic">Price on Request</span>
+                                                 @endif
+                                             </div>
+                                         </td>
+                                         <td class="text-center">
+                                             @if($product->status == 'active')
+                                                 <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">Active</span>
+                                             @elseif($product->status == 'draft')
+                                                 <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3">Draft</span>
+                                             @else
+                                                 <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">Inactive</span>
+                                             @endif
+                                         </td>
+                                         <td class="text-end pe-4">
+                                             <div class="d-inline-flex gap-2 justify-content-end align-items-center">
+                                                 <a href="{{ route('product.details', $product->slug) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="View Public Page">
+                                                     <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
+                                                 </a>
+                                                 @can('delete-products')
+                                                 <form action="{{ route('admin.subscriber-products.destroy', $product->id) }}" method="POST" class="d-inline form-delete">
+                                                     @csrf
+                                                     @method('DELETE')
+                                                     <button type="button" class="btn btn-sm btn-outline-danger btn-delete-product rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Delete Subscriber Product">
+                                                         <i class="fa-solid fa-trash-can" style="font-size: 12px;"></i>
+                                                     </button>
+                                                 </form>
+                                                 @endcan
+                                             </div>
+                                         </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Assign Plan Modal -->
@@ -489,6 +588,41 @@
                 }
             });
         });
+
+        if ($('#subscriberProductsTable').length) {
+            $('#subscriberProductsTable').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "responsive": true,
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Search products..."
+                }
+            });
+            // Adjust columns on tab switch
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                $($.fn.dataTable.tables(true)).DataTable().columns.adjust().responsive.recalc();
+            });
+        }
+
+        // Delete product confirmation
+        $(document).on('click', '.btn-delete-product', function() {
+            let form = $(this).closest('form');
+            Swal.fire({
+                title: 'Delete Product?',
+                text: "This product and all its related data will be permanently removed!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete',
+                borderRadius: '15px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
     });
 </script>
 @endpush
@@ -533,7 +667,7 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 24px;
-        align-items: center;
+        align-items: flex-start;
         padding: 24px;
         overflow: hidden;
         position: relative;
@@ -615,8 +749,7 @@
         gap: 8px;
         color: var(--text-muted);
         text-decoration: none;
-        min-width: 0;
-        overflow-wrap: anywhere;
+        white-space: nowrap;
     }
 
     .subscriber-contact-grid i {
@@ -921,7 +1054,7 @@
         white-space: nowrap;
     }
 
-    @media (max-width: 1199.98px) {
+    @media (max-width: 1399.98px) {
         .subscriber-hero {
             grid-template-columns: 1fr;
         }

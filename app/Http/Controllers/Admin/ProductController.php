@@ -510,41 +510,25 @@ class ProductController extends Controller
             $mrp = null;
             if ($mrpVal !== '') {
                 $mrpClean = preg_replace('/[^0-9.]/', '', $mrpVal);
-                if (!is_numeric($mrpClean)) {
-                    $errors[] = 'MRP must be numeric.';
-                } else {
-                    $mrp = (float)$mrpClean;
-                }
+                $mrp = is_numeric($mrpClean) ? (float)$mrpClean : null;
             }
 
             $offerPrice = null;
             if ($offerPriceVal !== '') {
                 $opClean = preg_replace('/[^0-9.]/', '', $offerPriceVal);
-                if (!is_numeric($opClean)) {
-                    $errors[] = 'Offer Price must be numeric.';
-                } else {
-                    $offerPrice = (float)$opClean;
-                }
+                $offerPrice = is_numeric($opClean) ? (float)$opClean : null;
             }
 
             $moq = 1;
             if ($moqVal !== '') {
                 $moqClean = preg_replace('/[^0-9]/', '', $moqVal);
-                if (!is_numeric($moqClean)) {
-                    $errors[] = 'MOQ must be an integer.';
-                } else {
-                    $moq = (int)$moqClean;
-                }
+                $moq = is_numeric($moqClean) ? (int)$moqClean : 1;
             }
 
             $stock = 0;
             if ($stockVal !== '') {
                 $stockClean = preg_replace('/[^0-9]/', '', $stockVal);
-                if (!is_numeric($stockClean)) {
-                    $errors[] = 'Stock Quantity must be an integer.';
-                } else {
-                    $stock = (int)$stockClean;
-                }
+                $stock = is_numeric($stockClean) ? (int)$stockClean : 0;
             }
 
             $hasError = count($errors) > 0;
